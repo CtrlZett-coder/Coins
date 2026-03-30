@@ -7,45 +7,45 @@
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --font: 'Inter', sans-serif; --bg: #ffffff; --ui-bg: #f2f2f7; }
-        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font); }
+        :root { --font: 'Inter', sans-serif; }
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #fff; font-family: var(--font); }
         body { display: flex; flex-direction: column; padding: 12px; box-sizing: border-box; }
 
-        /* Поиск - Самый верхний слой */
+        /* ПОИСК */
         #search-box { position: relative; margin-bottom: 8px; z-index: 10001; }
         #search-input { 
             width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #e5e5ea; 
-            outline: none; font-size: 16px; background: var(--ui-bg); box-sizing: border-box;
+            outline: none; font-size: 16px; background: #f2f2f7; box-sizing: border-box;
         }
 
-        /* Шапка с выбором валюты */
+        /* ШАПКА */
         #header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; z-index: 10000; }
         #pair-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
         
-        #currency-selector { display: flex; background: var(--ui-bg); padding: 2px; border-radius: 10px; }
+        #currency-selector { display: flex; background: #f2f2f7; padding: 2px; border-radius: 10px; }
         .curr-btn { 
             border: none; background: none; font-size: 11px; font-weight: 700; 
-            padding: 6px 10px; border-radius: 8px; cursor: pointer; color: #8e8e93;
+            padding: 6px 12px; border-radius: 8px; cursor: pointer; color: #8e8e93;
         }
         .curr-btn.active { background: #fff; color: #000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        /* Контейнер графика */
+        /* ГРАФИК */
         #chart-wrapper { flex-grow: 1; border-radius: 16px; overflow: hidden; border: 1px solid #f2f2f7; z-index: 1; }
         #tv-chart { width: 100%; height: 100%; }
 
-        /* Периоды */
+        /* ПЕРИОДЫ */
         #controls { padding-top: 12px; z-index: 10000; }
-        #periods { display: flex; justify-content: space-between; background: var(--ui-bg); padding: 4px; border-radius: 12px; }
-        .period-btn { background: none; border: none; color: #8e8e93; padding: 10px 0; border-radius: 9px; font-size: 12px; font-weight: 700; flex: 1; }
+        #periods { display: flex; justify-content: space-between; background: #f2f2f7; padding: 4px; border-radius: 12px; }
+        .period-btn { background: none; border: none; color: #8e8e93; padding: 10px 0; border-radius: 9px; font-size: 12px; font-weight: 700; flex: 1; outline: none; }
         .period-btn.active { background: #000; color: #fff; }
 
-        /* Подсказки */
+        /* ПОДСКАЗКИ */
         #suggestions { 
             position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 12px; 
             box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none; margin-top: 4px; 
-            max-height: 300px; overflow-y: auto; z-index: 10002; border: 1px solid #e5e5ea;
+            max-height: 350px; overflow-y: auto; z-index: 10002; border: 1px solid #e5e5ea;
         }
-        .suggest-item { padding: 12px 16px; border-bottom: 1px solid #f2f2f7; display: flex; justify-content: space-between; align-items: center; }
+        .suggest-item { padding: 12px 16px; border-bottom: 1px solid #f2f2f7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
         .suggest-item b { font-size: 15px; }
         .suggest-item i { font-style: normal; font-size: 11px; color: #8e8e93; }
     </style>
@@ -53,7 +53,7 @@
 <body>
 
     <div id="search-box">
-        <input type="text" id="search-input" placeholder="Поиск (Сбер, Apple, BTC, Тенге...)" autocomplete="off">
+        <input type="text" id="search-input" placeholder="Поиск (BTC, Тенге, Сбер, Apple...)" autocomplete="off">
         <div id="suggestions"></div>
     </div>
 
@@ -91,21 +91,24 @@
         let currentRange = "1M";
         let currentInterval = "240";
 
-        // База данных активов (Крипта, Мосбиржа, Мировые валюты)
+        // База: Крипта + Мосбиржа + Мировые валюты (FOREX)
         const assets = [
-            { id: 'BTC', n: 'Bitcoin', s: 'BINANCE:BTCUSDT' },
-            { id: 'ETH', n: 'Ethereum', s: 'BINANCE:ETHUSDT' },
+            { id: 'BTC', n: 'Биткоин', s: 'BINANCE:BTCUSDT' },
+            { id: 'ETH', n: 'Эфириум', s: 'BINANCE:ETHUSDT' },
             { id: 'TON', n: 'Toncoin', s: 'OKX:TONUSDT' },
-            { id: 'SBER', n: 'Сбербанк', s: 'MOEX:SBER' },
-            { id: 'GAZP', n: 'Газпром', s: 'MOEX:GAZP' },
-            { id: 'LKOH', n: 'Лукойл', s: 'MOEX:LKOH' },
-            { id: 'USD', n: 'Доллар США', s: 'FX_IDC:USDRUB' },
-            { id: 'EUR', n: 'Евро', s: 'FX_IDC:EURRUB' },
-            { id: 'KZT', n: 'Тенге (KZT)', s: 'FX_IDC:KZTRUB' },
+            { id: 'SBER', n: 'Сбербанк (MOEX)', s: 'MOEX:SBER' },
+            { id: 'GAZP', n: 'Газпром (MOEX)', s: 'MOEX:GAZP' },
+            { id: 'LKOH', n: 'Лукойл (MOEX)', s: 'MOEX:LKOH' },
+            { id: 'IMOEX', n: 'Индекс Мосбиржи', s: 'MOEX:IMOEX' },
+            { id: 'KZT', n: 'Тенге (Казахстан)', s: 'FX_IDC:USDKZT' },
+            { id: 'USD', n: 'Доллар/Рубль', s: 'FX_IDC:USDRUB' },
+            { id: 'EUR', n: 'Евро/Рубль', s: 'FX_IDC:EURRUB' },
             { id: 'CNY', n: 'Юань (Китай)', s: 'FX_IDC:CNYRUB' },
-            { id: 'TRY', n: 'Лира (Турция)', s: 'FX_IDC:TRYRUB' },
-            { id: 'AAPL', n: 'Apple', s: 'NASDAQ:AAPL' },
-            { id: 'GOLD', n: 'Золото', s: 'OANDA:XAUUSD' }
+            { id: 'AED', n: 'Дирхам (ОАЭ)', s: 'FX_IDC:USDAED' },
+            { id: 'TRY', n: 'Лира (Турция)', s: 'FX_IDC:USDTRY' },
+            { id: 'KGS', n: 'Сом (Киргизия)', s: 'FX_IDC:USDKGS' },
+            { id: 'AAPL', n: 'Apple (USA)', s: 'NASDAQ:AAPL' },
+            { id: 'GLDRUB', n: 'Золото в рублях', s: 'MOEX:GLDRUB_TOM' }
         ];
 
         function createWidget() {
@@ -121,18 +124,18 @@
                 "container_id": "tv-chart",
                 "hide_top_toolbar": true,
                 "hide_legend": true,
-                "save_image": false,
                 "hide_side_toolbar": true,
-                "currency": displayCurrency, // Магия конвертации здесь
+                "save_image": false,
+                "currency": displayCurrency, // Это заставляет график конвертировать цену
                 "backgroundColor": "#ffffff"
             });
         }
 
         createWidget();
 
-        // Обработка кнопок валюты измерения (USDT / USD / RUB)
+        // Кнопки валюты (USDT / USD / RUB)
         document.querySelectorAll('.curr-btn').forEach(btn => {
-            btn.addEventListener('touchstart', function(e) {
+            btn.addEventListener('touchstart', function() {
                 document.querySelectorAll('.curr-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
                 displayCurrency = this.dataset.val;
@@ -140,7 +143,7 @@
             });
         });
 
-        // Периоды времени
+        // Кнопки периодов
         document.querySelectorAll('.period-btn').forEach(btn => {
             btn.addEventListener('touchstart', function() {
                 document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -151,7 +154,7 @@
             });
         });
 
-        // Поиск на русском и по кодам
+        // Поиск
         const input = document.getElementById('search-input');
         const suggs = document.getElementById('suggestions');
 
@@ -162,9 +165,9 @@
 
             const filtered = assets.filter(a => a.id.includes(val) || a.n.toUpperCase().includes(val));
             
-            // Если в базе нет, позволяем искать любой тикер напрямую
-            if (filtered.length === 0 && val.length > 2) {
-                filtered.push({ id: val, n: 'Прямой поиск тикера', s: val });
+            // Если в базе нет, пробуем угадать тикер
+            if (filtered.length === 0 && val.length >= 3) {
+                filtered.push({ id: val, n: 'Поиск по тикеру...', s: val });
             }
 
             filtered.forEach(item => {
@@ -184,7 +187,6 @@
             suggs.style.display = 'block';
         };
 
-        // Закрытие поиска при клике на график
         document.addEventListener('touchstart', (e) => {
             if (!document.getElementById('search-box').contains(e.target)) suggs.style.display = 'none';
         });
