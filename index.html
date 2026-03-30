@@ -3,334 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoGenius iOS Style</title>
+    <title>CryptoGenius Ultimate</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
             --font: 'Inter', sans-serif;
-            --bg-color: #ffffff;
-            --search-bg: #f2f2f7; /* Цвет фона поиска в iOS */
-            --border-color: #e5e5ea;
-            --text-main: #000000;
-            --text-secondary: #8e8e93;
-            --accent: #007AFF; /* Основной синий iOS */
+            --ios-bg: #ffffff;
+            --ios-gray: #f2f2f7;
+            --ios-text: #000000;
+            --ios-secondary: #8e8e93;
+            --ios-blue: #007AFF;
         }
 
         body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            font-family: var(--font);
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            overflow: hidden; /* Запрещаем скролл всей страницы */
-            box-sizing: border-box;
-            -webkit-font-smoothing: antialiased;
+            margin: 0; padding: 0; height: 100vh;
+            background: var(--ios-bg); font-family: var(--font);
+            display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* Блок поиска сверху */
-        #search-container {
-            padding: 10px 16px;
-            border-bottom: 0.5px solid var(--border-color); /* Тонкая линия */
-            flex-shrink: 0;
-        }
-
-        #search-box {
-            position: relative;
-        }
-
-        #search-input {
-            width: 100%;
-            padding: 12px 12px 12px 40px; /* Отступ слева под иконку */
-            border-radius: 12px;
-            border: none;
-            background-color: var(--search-bg);
-            font-size: 17px;
-            color: var(--text-main);
-            outline: none;
-            box-sizing: border-box;
-        }
-
-        /* Иконка лупы в поиске */
-        #search-box::before {
-            content: '';
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 20px;
-            height: 20px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'%3E%3C/circle%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'%3E%3C/line%3E%3C/svg%3E");
-            background-size: contain;
-            background-repeat: no-repeat;
-        }
-
-        /* Выпадающий список подсказок */
-        #suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background-color: #fff;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            display: none;
-            margin-top: 5px;
-            max-height: 200px;
-            overflow-y: auto;
-            z-index: 1000;
-        }
-
-        .suggest-item {
-            padding: 15px;
-            border-bottom: 0.5px solid var(--border-color);
+        /* Шапка с выбором валюты */
+        #header-selector {
+            padding: 16px;
+            display: flex; align-items: center;
+            border-bottom: 0.5px solid #e5e5ea;
             cursor: pointer;
-            font-size: 16px;
+            transition: background 0.2s;
         }
+        #header-selector:active { background: #f2f2f7; }
 
-        .suggest-item:last-child {
-            border-bottom: none;
-        }
+        #current-flag { font-size: 32px; margin-right: 12px; }
+        #current-info { flex-grow: 1; }
+        #current-name { font-size: 22px; font-weight: 700; }
+        #current-sub { font-size: 14px; color: var(--ios-secondary); }
+        .chevron { color: var(--ios-secondary); font-size: 20px; }
 
-        /* Шапка графика (Заголовок как на скриншоте) */
-        #header-container {
-            padding: 15px 16px;
-            display: flex;
-            align-items: center;
-            flex-shrink: 0;
-        }
+        /* График */
+        #chart-wrapper { flex-grow: 1; position: relative; }
+        #tv-chart { width: 100%; height: 100%; }
 
-        #country-flag {
-            width: 32px;
-            height: 32px;
-            margin-right: 12px;
-            font-size: 28px; /* Флаг как emoji */
-            line-height: 32px;
-            text-align: center;
-        }
-
-        #pair-info {
-            display: flex;
-            align-items: baseline;
-        }
-
-        #base-asset {
-            font-size: 30px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-        }
-
-        #quote-asset {
-            font-size: 17px;
-            color: var(--text-secondary);
-            margin-left: 6px;
-            font-weight: 500;
-        }
-
-        /* Основной контейнер графика (на весь экран) */
-        #chart-wrapper {
-            flex-grow: 1;
-            width: 100%;
-            position: relative;
-        }
-
-        #tv-chart {
-            width: 100%;
-            height: 100%;
-        }
-
-        /* Блок кнопок внизу (iOS Style) */
-        #controls {
-            padding: 10px 16px 20px 16px; /* Отступ снизу под Telegram bar */
-            background-color: var(--bg-color);
-            border-top: 0.5px solid var(--border-color);
-            flex-shrink: 0;
-        }
-
+        /* Кнопки периодов */
+        #footer-controls { padding: 12px 16px 24px; border-top: 0.5px solid #e5e5ea; }
         #periods {
-            display: flex;
-            justify-content: space-between;
-            background-color: var(--search-bg);
-            padding: 3px;
-            border-radius: 12px;
+            display: flex; background: var(--ios-gray);
+            padding: 2px; border-radius: 10px;
         }
-
         .period-btn {
-            background: none;
-            border: none;
-            color: var(--text-main);
-            padding: 10px 0;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            flex: 1;
-            cursor: pointer;
-            transition: background-color 0.2s, color 0.2s;
-            outline: none;
+            flex: 1; border: none; background: none; padding: 8px 0;
+            font-size: 13px; font-weight: 600; border-radius: 8px;
+        }
+        .period-btn.active { background: #000; color: #fff; }
+
+        /* МОДАЛЬНОЕ ОКНО ВЫБОРА (Full Screen) */
+        #modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #fff; z-index: 9999;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column;
+        }
+        #modal-overlay.open { transform: translateY(0); }
+
+        #modal-header {
+            padding: 16px; border-bottom: 0.5px solid #e5e5ea;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        #modal-title { font-weight: 700; font-size: 18px; }
+        #close-modal { color: var(--ios-blue); font-weight: 600; cursor: pointer; }
+
+        #modal-search { padding: 10px 16px; }
+        #search-input {
+            width: 100%; padding: 10px 12px; border-radius: 10px;
+            border: none; background: var(--ios-gray); font-size: 16px; outline: none;
         }
 
-        /* Активная кнопка - черная, как на скриншоте */
-        .period-btn.active {
-            background-color: #000000;
-            color: #ffffff;
+        #tabs { display: flex; padding: 0 16px 10px; gap: 8px; }
+        .tab {
+            padding: 6px 16px; background: var(--ios-gray); border-radius: 20px;
+            font-size: 13px; font-weight: 600; color: var(--ios-secondary);
         }
+        .tab.active { background: var(--ios-blue); color: #fff; }
+
+        #assets-list { overflow-y: auto; flex-grow: 1; }
+        .asset-item {
+            display: flex; align-items: center; padding: 12px 16px;
+            border-bottom: 0.5px solid #f2f2f7;
+        }
+        .asset-item:active { background: #f2f2f7; }
+        .asset-flag { font-size: 24px; margin-right: 15px; width: 30px; text-align: center; }
+        .asset-code { font-weight: 700; font-size: 16px; }
+        .asset-full-name { font-size: 13px; color: var(--ios-secondary); display: block; }
     </style>
 </head>
 <body>
 
-    <div id="search-container">
-        <div id="search-box">
-            <input type="text" id="search-input" placeholder="Поиск актива..." autocomplete="off">
-            <div id="suggestions"></div>
+    <!-- Главный экран -->
+    <div id="header-selector">
+        <div id="current-flag">🇺🇸</div>
+        <div id="current-info">
+            <div id="current-name">USD <span style="color:#8e8e93; font-weight:400;">/ RUB</span></div>
+            <div id="current-sub">Доллар США</div>
         </div>
-    </div>
-
-    <div id="header-container">
-        <div id="country-flag">🇺🇸</div> <div id="pair-info">
-            <span id="base-asset">USD</span>
-            <span id="quote-asset">/ RUB</span>
-        </div>
+        <div class="chevron">▼</div>
     </div>
 
     <div id="chart-wrapper">
         <div id="tv-chart"></div>
     </div>
 
-    <div id="controls">
+    <div id="footer-controls">
         <div id="periods">
             <button class="period-btn active" data-range="1D" data-int="5">1Д</button>
             <button class="period-btn" data-range="1W" data-int="60">1Н</button>
             <button class="period-btn" data-range="1M" data-int="240">1М</button>
-            <button class="period-btn" data-range="3M" data-int="D">3М</button>
-            <button class="period-btn" data-range="6M" data-int="D">6М</button>
             <button class="period-btn" data-range="12M" data-int="W">1Г</button>
             <button class="period-btn" data-range="ALL" data-int="M">Все</button>
+        </div>
+    </div>
+
+    <!-- Модалка выбора валюты -->
+    <div id="modal-overlay">
+        <div id="modal-header">
+            <div id="modal-title">Выберите валюту</div>
+            <div id="close-modal">Готово</div>
+        </div>
+        <div id="modal-search">
+            <input type="text" id="search-input" placeholder="Поиск страны или кода...">
+        </div>
+        <div id="tabs">
+            <div class="tab active">Валюты</div>
+            <div class="tab">Крипто</div>
+            <div class="tab">Металлы</div>
+        </div>
+        <div id="assets-list">
+            <!-- Список генерируется JS -->
         </div>
     </div>
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Расширяем на весь экран
+        tg.expand();
 
-        // Переменные для хранения текущего состояния
-        let currentSymbol = "FX_IDC:USDRUB"; // Дефолтная пара со скриншота
+        let currentSymbol = "FX_IDC:USDRUB";
         let currentRange = "1D";
         let currentInterval = "5";
 
-        // База популярных активов для поиска (id, флаг, имя, тикер TradingView)
-        const assets = [
-            { id: 'USD', f: '🇺🇸', n: 'Доллар США', s: 'FX_IDC:USDRUB' },
-            { id: 'EUR', f: '🇪🇺', n: 'Евро', s: 'FX_IDC:EURRUB' },
-            { id: 'BTC', f: '₿', n: 'Bitcoin', s: 'BINANCE:BTCUSDT' },
-            { id: 'TON', f: '💎', n: 'Toncoin', s: 'OKX:TONUSDT' },
-            { id: 'KZT', f: '🇰🇿', n: 'Тенге', s: 'FX_IDC:USDKZT' },
-            { id: 'SBER', f: '🇷🇺', n: 'Сбербанк', s: 'MOEX:SBER' },
-            { id: 'GLDRUB', f: '📀', n: 'Золото', s: 'MOEX:GLDRUB_TOM' }
+        // Расширенная база (Все страны)
+        const allAssets = [
+            { id: 'USD', f: '🇺🇸', n: 'Доллар США', s: 'FX_IDC:USDRUB', type: 'val' },
+            { id: 'EUR', f: '🇪🇺', n: 'Евро', s: 'FX_IDC:EURRUB', type: 'val' },
+            { id: 'KZT', f: '🇰🇿', n: 'Тенге (Казахстан)', s: 'FX_IDC:USDKZT', type: 'val' },
+            { id: 'IRR', f: '🇮🇷', n: 'Иранский риал', s: 'FX_IDC:USDIRR', type: 'val' },
+            { id: 'AFN', f: '🇦🇫', n: 'Афгани', s: 'FX_IDC:USDAFN', type: 'val' },
+            { id: 'AMD', f: '🇦🇲', n: 'Армянский драм', s: 'FX_IDC:USDAMD', type: 'val' },
+            { id: 'TRY', f: '🇹🇷', n: 'Турецкая лира', s: 'FX_IDC:USDTRY', type: 'val' },
+            { id: 'AED', f: '🇦🇪', n: 'Дирхам (ОАЭ)', s: 'FX_IDC:USDAED', type: 'val' },
+            { id: 'CNY', f: '🇨🇳', n: 'Китайский юань', s: 'FX_IDC:CNYRUB', type: 'val' },
+            { id: 'SBER', f: '🇷🇺', n: 'Сбербанк (MOEX)', s: 'MOEX:SBER', type: 'val' },
+            { id: 'BTC', f: '₿', n: 'Bitcoin', s: 'BINANCE:BTCUSDT', type: 'crypto' },
+            { id: 'ETH', f: '💎', n: 'Ethereum', s: 'BINANCE:ETHUSDT', type: 'crypto' },
+            { id: 'TON', f: '💎', n: 'Toncoin', s: 'OKX:TONUSDT', type: 'crypto' },
+            { id: 'GOLD', f: '📀', n: 'Золото', s: 'OANDA:XAUUSD', type: 'metal' },
+            { id: 'SILV', f: '⚪', n: 'Серебро', s: 'OANDA:XAGUSD', type: 'metal' }
         ];
 
-        // Функция создания виджета TradingView
         function createWidget() {
-            // Сначала очищаем контейнер, если виджет уже был создан
             document.getElementById('tv-chart').innerHTML = '';
-
             new TradingView.widget({
                 "autosize": true,
                 "symbol": currentSymbol,
                 "interval": currentInterval,
                 "range": currentRange,
-                "timezone": "Europe/Moscow",
                 "theme": "light",
-                "style": "3", // Area (Область), как на скриншоте
+                "style": "3",
                 "locale": "ru",
-                "toolbar_bg": "#f1f3f6",
-                "enable_publishing": false,
-                "hide_top_toolbar": true, // Прячем все лишние меню TradingView
-                "hide_legend": true, // Прячем легенду
-                "save_image": false,
                 "container_id": "tv-chart",
-                "hide_side_toolbar": true, // Чрезвычайно важно: прячем боковую панель для iOS стиля
-                "allow_symbol_change": false,
-                "details": false,
-                "hotlist": false,
-                "calendar": false,
-                "show_popup_button": false,
-                "backgroundColor": "#ffffff",
-                "gridColor": "rgba(240, 240, 240, 0.5)" // Бледная сетка
+                "hide_top_toolbar": true,
+                "hide_legend": true,
+                "hide_side_toolbar": true,
+                "backgroundColor": "#ffffff"
             });
         }
 
-        // Инициализация при загрузке страницы
         createWidget();
 
-        // Обработка кнопок выбора периода (внизу)
-        document.querySelectorAll('.period-btn').forEach(btn => {
-            btn.onclick = function() {
-                // Убираем класс active у всех кнопок
-                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-                // Добавляем класс active текущей кнопке
-                this.classList.add('active');
+        // Управление модалкой
+        const header = document.getElementById('header-selector');
+        const modal = document.getElementById('modal-overlay');
+        const closeBtn = document.getElementById('close-modal');
+        const listContainer = document.getElementById('assets-list');
 
-                // Получаем параметры из data-атрибутов
-                currentRange = this.dataset.range;
-                currentInterval = this.dataset.int;
+        header.onclick = () => { modal.classList.add('open'); renderList(allAssets); };
+        closeBtn.onclick = () => modal.classList.remove('open');
 
-                // Перерисовываем график с новыми параметрами
-                createWidget();
-            };
-        });
-
-        // Логика поиска активов
-        const input = document.getElementById('search-input');
-        const suggs = document.getElementById('suggestions');
-
-        input.oninput = function() {
-            const val = this.value.toUpperCase(); // Переводим в верхний регистр
-            suggs.innerHTML = ''; // Очищаем старые подсказки
-
-            if (!val) {
-                suggs.style.display = 'none';
-                return;
-            }
-
-            // Фильтруем базу по введенному значению (по ID или Имени)
-            const filtered = assets.filter(a => a.id.includes(val) || a.n.toUpperCase().includes(val));
-            
-            // Создаем элементы списка подсказок
-            filtered.forEach(item => {
+        function renderList(data) {
+            listContainer.innerHTML = '';
+            data.forEach(item => {
                 const div = document.createElement('div');
-                div.className = 'suggest-item';
-                div.innerHTML = `<span>${item.f} ${item.id}</span> <span style="color:#999;font-size:12px;margin-left:8px;">${item.n}</span>`;
-                
-                // Обработка клика на подсказку
+                div.className = 'asset-item';
+                div.innerHTML = `
+                    <div class="asset-flag">${item.f}</div>
+                    <div class="asset-info">
+                        <span class="asset-code">${item.id}</span>
+                        <span class="asset-full-name">${item.n}</span>
+                    </div>
+                `;
                 div.onclick = () => {
-                    // Обновляем текущий тикер
                     currentSymbol = item.s;
-                    // Обновляем шапку (Флаг и Заголовок)
-                    document.getElementById('country-flag').textContent = item.f;
-                    document.getElementById('base-asset').textContent = item.id;
-                    document.getElementById('quote-asset').textContent = item.id.includes('USDT') || item.id.includes('BTC') ? '/ USDT' : '/ RUB';
-
-                    // Перерисовываем график, прячем поиск
+                    document.getElementById('current-flag').textContent = item.f;
+                    document.getElementById('current-name').innerHTML = `${item.id} <span style="color:#8e8e93; font-weight:400;">/ ${item.s.includes('RUB') ? 'RUB' : (item.s.includes('USD') ? 'USD' : 'USDT')}</span>`;
+                    document.getElementById('current-sub').textContent = item.n;
                     createWidget();
-                    suggs.style.display = 'none';
-                    input.value = ''; // Очищаем поле ввода
+                    modal.classList.remove('open');
                 };
-                suggs.appendChild(div);
+                listContainer.appendChild(div);
             });
+        }
 
-            // Показываем блок, если есть результаты
-            suggs.style.display = filtered.length ? 'block' : 'none';
+        // Поиск в модалке
+        document.getElementById('search-input').oninput = function() {
+            const val = this.value.toUpperCase();
+            const filtered = allAssets.filter(a => a.id.includes(val) || a.n.toUpperCase().includes(val));
+            renderList(filtered);
         };
 
-        // Закрываем поиск, если кликнули мимо него
-        document.addEventListener('click', (e) => {
-            if (!document.getElementById('search-box').contains(e.target)) {
-                suggs.style.display = 'none';
-            }
+        // Кнопки периодов
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.onclick = function() {
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentRange = this.dataset.range;
+                currentInterval = this.dataset.int;
+                createWidget();
+            };
         });
     </script>
 </body>
