@@ -3,89 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoPulse Pro Max</title>
+    <title>CryptoPulse Pro</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-                /* Улучшенный выпадающий список */
-        #suggestions {
-            border: none;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.12); /* Мягкая тень */
-            margin-top: 8px; /* Небольшой отступ от поля ввода */
-            border-radius: 16px; /* Закругляем под стиль iOS */
-            overflow: hidden; /* Чтобы углы элементов не вылезали */
-            animation: fadeIn 0.2s ease-out; /* Плавное появление */
-        }
-
-        .suggest-item {
-            transition: background 0.2s; /* Плавный переход цвета при клике */
-        }
-
-        .suggest-item:active {
-            background-color: #f0f0f0; /* Цвет при нажатии пальцем */
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
         :root { --font: 'Inter', sans-serif; --accent: #007AFF; }
         body { margin: 0; padding: 20px; background: #fff; color: #000; font-family: var(--font); -webkit-font-smoothing: antialiased; }
-        
-        /* Поиск с подсказками */
         #search-box { position: relative; margin-bottom: 20px; }
         #search-input { width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #efefef; outline: none; box-sizing: border-box; font-size: 16px; background: #f9f9f9; }
-        #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 200px; overflow-y: auto; display: none; border: 1px solid #eee; }
+        #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 200px; overflow-y: auto; display: none; border: 1px solid #eee; margin-top: 8px; animation: fadeIn 0.2s ease-out; }
         .suggest-item { padding: 12px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; cursor: pointer; }
-        .suggest-item:last-child { border: none; }
         .suggest-name { font-weight: 600; }
         .suggest-desc { font-size: 12px; color: #888; }
-
-        /* Интерактивный заголовок */
-        #pair-display { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; cursor: pointer; }
-        .asset-btn { font-size: 24px; font-weight: 800; border-bottom: 2px dashed #ccc; padding-bottom: 2px; transition: 0.2s; }
-        .asset-btn:active { color: var(--accent); border-color: var(--accent); }
-        .separator { font-size: 20px; color: #ccc; font-weight: 300; }
-
-        #current-price { font-size: 38px; font-weight: 900; letter-spacing: -1.5px; display: block; }
-        #price-change { font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: inline-block; margin-top: 5px; margin-bottom: 20px; }
-        
+        #pair-display { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .asset-btn { font-size: 24px; font-weight: 800; border-bottom: 2px dashed #ccc; }
+        #current-price { font-size: 38px; font-weight: 900; letter-spacing: -1.5px; display: block; margin: 10px 0; }
+        #price-change { font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: inline-block; margin-bottom: 20px; }
         #chart-container { width: 100%; height: 240px; margin-bottom: 20px; }
-        
         #periods { display: flex; justify-content: space-between; background: #f0f0f0; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
-        .period-btn { background: none; border: none; color: #666; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 800; flex: 1; }
+        .period-btn { background: none; border: none; color: #666; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 800; flex: 1; cursor: pointer; }
         .period-btn.active { background: #000; color: #fff; }
-
         #stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-card { background: #f9f9f9; padding: 12px; border-radius: 14px; border: 1px solid #f0f0f0; }
-        .stat-label { font-size: 10px; color: #999; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+        .stat-label { font-size: 10px; color: #999; text-transform: uppercase; font-weight: 700; }
         .stat-value { font-size: 15px; font-weight: 700; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
-
     <div id="search-box">
-        <input type="text" id="search-input" placeholder="Поиск (BTC, SBER, USD)..." autocomplete="off">
+        <input type="text" id="search-input" placeholder="Поиск (BTC, SBER, USD)...">
         <div id="suggestions"></div>
     </div>
-
-    <div id="pair-display">
-        <span class="asset-btn" id="base-asset">BTC</span>
-        <span class="separator">/</span>
-        <span class="asset-btn" id="quote-asset">USDT</span>
-    </div>
-    
-    <div id="price-container">
-        <span id="current-price">0.00</span>
-        <span id="price-change">0.00%</span>
-    </div>
-
-    <div id="chart-container">
-        <canvas id="mainChart"></canvas>
-    </div>
-
+    <div id="pair-display"><span class="asset-btn" id="base-asset">BTC</span><span>/</span><span id="quote-asset">USDT</span></div>
+    <span id="current-price">Загрузка...</span>
+    <span id="price-change">0.00%</span>
+    <div id="chart-container"><canvas id="mainChart"></canvas></div>
     <div id="periods">
         <button class="period-btn active" data-days="1">1D</button>
         <button class="period-btn" data-days="7">1W</button>
@@ -93,211 +47,87 @@
         <button class="period-btn" data-days="90">3M</button>
         <button class="period-btn" data-days="365">1Y</button>
     </div>
-
     <div id="stats">
-        <div class="stat-card">
-            <div class="stat-label">Источник</div>
-            <div class="stat-value" id="data-source">Binance API</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Биржа</div>
-            <div class="stat-value" id="market-name">Crypto</div>
-        </div>
+        <div class="stat-card"><div class="stat-label">Источник</div><div class="stat-value" id="data-source">Binance API</div></div>
+        <div class="stat-card"><div class="stat-label">Биржа</div><div class="stat-value" id="market-name">Crypto</div></div>
     </div>
 
 <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    let base = 'BTC';
-    let quote = 'USDT';
-    let mode = 'crypto'; 
-    let myChart = null;
-
-    // Расширенная база данных: Тикер + Название + Страна + Флаг
     const assets = [
-        { id: 'BTC', name: 'Bitcoin', type: 'crypto', desc: '🪙 Криптовалюта', country: '' },
-        { id: 'ETH', name: 'Ethereum', type: 'crypto', desc: '💎 Криптовалюта', country: '' },
-        { id: 'TON', name: 'Toncoin', type: 'crypto', desc: '💎 Telegram Coin', country: '' },
-        { id: 'SBER', name: 'Сбербанк', type: 'moex', desc: '🏦 Акция (MOEX)', country: 'Россия Russia' },
-        { id: 'GAZP', name: 'Газпром', type: 'moex', desc: '🔥 Акция (MOEX)', country: 'Россия Russia' },
-        { id: 'USD', name: 'Доллар США', type: 'moex', desc: '🇺🇸 Валюта (USDRUB)', country: 'США USA America Соединенные Штаты' },
-        { id: 'EUR', name: 'Евро', type: 'moex', desc: '🇪🇺 Валюта (EURRUB)', country: 'Европа Europe Евросоюз Германия Франция' },
-        { id: 'CNY', name: 'Юань', type: 'moex', desc: '🇨🇳 Валюта (CNYRUB)', country: 'Китай China' },
-        { id: 'TRY', name: 'Лира', type: 'moex', desc: '🇹🇷 Валюта (TRYRUB)', country: 'Турция Turkey' },
-        { id: 'KZT', name: 'Тенге', type: 'moex', desc: '🇰🇿 Валюта (KZTRUB)', country: 'Казахстан Kazakhstan' },
-        { id: 'SOL', name: 'Solana', type: 'crypto', desc: '⚡ Криптовалюта', country: '' },
-        { id: 'XRP', name: 'Ripple', type: 'crypto', desc: '💧 Криптовалюта', country: '' }
+        { id: 'BTC', name: 'Bitcoin', type: 'crypto', desc: '🪙 Крипто', country: '' },
+        { id: 'ETH', name: 'Ethereum', type: 'crypto', desc: '💎 Крипто', country: '' },
+        { id: 'SBER', name: 'Сбербанк', type: 'moex', desc: '🏦 Акция РФ', country: 'Россия Russia' },
+        { id: 'USD', name: 'Доллар', type: 'moex', desc: '🇺🇸 USD/RUB', country: 'США USA' },
+        { id: 'TON', name: 'Toncoin', type: 'crypto', desc: '💎 TON', country: '' }
     ];
 
-    const input = document.getElementById('search-input');
-    const suggBox = document.getElementById('suggestions');
+    let base = 'BTC', quote = 'USDT', mode = 'crypto', currentDays = 1, myChart = null;
 
-    // Умный поиск по всем полям
-    input.addEventListener('input', (e) => {
-        const val = e.target.value.toLowerCase().trim();
-        suggBox.innerHTML = '';
-        
-        if (val.length < 1) { 
-            suggBox.style.display = 'none'; 
-            return; 
-        }
-
-        const filtered = assets.filter(a => 
-            a.id.toLowerCase().includes(val) || 
-            a.name.toLowerCase().includes(val) || 
-            a.country.toLowerCase().includes(val)
-        );
-
-        if (filtered.length > 0) {
-            filtered.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'suggest-item';
-                div.innerHTML = `
-                    <div>
-                        <div class="suggest-name">${item.id}</div>
-                        <div class="suggest-desc">${item.name}</div>
-                    </div>
-                    <div class="suggest-desc" style="text-align:right">${item.desc}</div>
-                `;
-                div.onclick = () => selectAsset(item);
-                suggBox.appendChild(div);
-            });
-            suggBox.style.display = 'block';
-        } else {
-            suggBox.style.display = 'none';
-        }
-    });
-
-    function selectAsset(item) {
-        if (item.type === 'moex' || item.type === 'fiat') {
-<script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    let base = 'BTC';
-    let quote = 'USDT';
-    let mode = 'crypto'; 
-    let currentDays = 1; // По умолчанию 1 день
-    let myChart = null;
-
-    const assets = [
-        { id: 'BTC', name: 'Bitcoin', type: 'crypto', desc: '🪙 Криптовалюта', country: '' },
-        { id: 'ETH', name: 'Ethereum', type: 'crypto', desc: '💎 Криптовалюта', country: '' },
-        { id: 'TON', name: 'Toncoin', type: 'crypto', desc: '💎 Telegram Coin', country: '' },
-        { id: 'SBER', name: 'Сбербанк', type: 'moex', desc: '🏦 Акция (MOEX)', country: 'Россия Russia' },
-        { id: 'GAZP', name: 'Газпром', type: 'moex', desc: '🔥 Акция (MOEX)', country: 'Россия Russia' },
-        { id: 'USD', name: 'Доллар США', type: 'moex', desc: '🇺🇸 Валюта (USDRUB)', country: 'США USA America Соединенные Штаты' },
-        { id: 'EUR', name: 'Евро', type: 'moex', desc: '🇪🇺 Валюта (EURRUB)', country: 'Европа Europe Евросоюз Германия Франция' },
-        { id: 'CNY', name: 'Юань', type: 'moex', desc: '🇨🇳 Валюта (CNYRUB)', country: 'Китай China' },
-        { id: 'TRY', name: 'Лира', type: 'moex', desc: '🇹🇷 Валюта (TRYRUB)', country: 'Турция Turkey' },
-        { id: 'KZT', name: 'Тенге', type: 'moex', desc: '🇰🇿 Валюта (KZTRUB)', country: 'Казахстан Kazakhstan' },
-        { id: 'SOL', name: 'Solana', type: 'crypto', desc: '⚡ Криптовалюта', country: '' }
-    ];
-
-    const input = document.getElementById('search-input');
-    const suggBox = document.getElementById('suggestions');
-
-    // Настройка кнопок периодов
+    // Инициализация кнопок
     document.querySelectorAll('.period-btn').forEach(btn => {
-        btn.onclick = function() {
+        btn.addEventListener('click', function() {
             document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentDays = parseInt(this.dataset.days);
+            currentDays = parseInt(this.getAttribute('data-days'));
             fetchData();
-        };
+        });
     });
-
-    input.addEventListener('input', (e) => {
-        const val = e.target.value.toLowerCase().trim();
-        suggBox.innerHTML = '';
-        if (val.length < 1) { suggBox.style.display = 'none'; return; }
-
-        const filtered = assets.filter(a => a.id.toLowerCase().includes(val) || a.name.toLowerCase().includes(val) || a.country.toLowerCase().includes(val));
-        if (filtered.length > 0) {
-            filtered.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'suggest-item';
-                div.innerHTML = `<div><div class="suggest-name">${item.id}</div><div class="suggest-desc">${item.name}</div></div><div class="suggest-desc" style="text-align:right">${item.desc}</div>`;
-                div.onclick = () => selectAsset(item);
-                suggBox.appendChild(div);
-            });
-            suggBox.style.display = 'block';
-        } else { suggBox.style.display = 'none'; }
-    });
-
-    function selectAsset(item) {
-        if (item.type === 'moex' || item.id === 'USD' || item.id === 'EUR' || item.id === 'CNY' || item.id === 'TRY' || item.id === 'KZT') {
-            base = item.id; quote = 'RUB'; mode = 'moex';
-        } else {
-            base = item.id; quote = 'USDT'; mode = 'crypto';
-        }
-        document.getElementById('base-asset').textContent = base;
-        document.getElementById('quote-asset').textContent = quote;
-        document.getElementById('data-source').textContent = mode === 'moex' ? 'MOEX API' : 'Binance API';
-        document.getElementById('market-name').textContent = mode === 'moex' ? 'Moscow Exchange' : 'Crypto Market';
-        suggBox.style.display = 'none';
-        input.value = '';
-        fetchData();
-    }
 
     async function fetchData() {
-        document.getElementById('current-price').textContent = "Загрузка...";
-        mode === 'crypto' ? fetchBinance() : fetchMOEX();
+        try {
+            if (mode === 'crypto') await fetchBinance();
+            else await fetchMOEX();
+        } catch (e) {
+            document.getElementById('current-price').textContent = "Ошибка сети";
+            console.error(e);
+        }
     }
 
     async function fetchBinance() {
         const symbol = base + quote;
-        const interval = currentDays <= 1 ? '1h' : (currentDays <= 30 ? '4h' : '1d');
-        try {
-            const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
-            const ticker = await res.json();
-            renderPrice(ticker.lastPrice, ticker.priceChangePercent);
-            
-            const chartRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=100`);
-            const klines = await chartRes.json();
-            renderChart(klines.map(k => ({ t: k[0], y: parseFloat(k[4]) })));
-        } catch (e) { document.getElementById('current-price').textContent = "Ошибка API"; }
+        const interval = currentDays <= 1 ? '1h' : '1d';
+        const [tickerRes, chartRes] = await Promise.all([
+            fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`),
+            fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=50`)
+        ]);
+        const ticker = await tickerRes.json();
+        const klines = await chartRes.json();
+        
+        renderPrice(ticker.lastPrice, ticker.priceChangePercent);
+        renderChart(klines.map(k => ({ t: k[0], y: parseFloat(k[4]) })));
     }
 
     async function fetchMOEX() {
-        const isCurrency = ['USD', 'EUR', 'CNY', 'TRY', 'KZT'].includes(base);
+        const isCurrency = base === 'USD';
+        const ticker = isCurrency ? 'USDRUB_TOM' : base;
         const engine = isCurrency ? 'currency' : 'stock';
         const market = isCurrency ? 'selt' : 'shares';
-        const ticker = isCurrency ? (base + 'RUB_TOM') : base;
         
-        try {
-            const res = await fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}.json?iss.meta=off`);
-            const data = await res.json();
-            const price = data.marketdata.data[0][12] || data.marketdata.data[0][2] || "—";
-            const prevPrice = data.securities.data[0][3];
-            const change = price !== "—" ? ((price - prevPrice) / prevPrice * 100) : 0;
-            
-            renderPrice(price, change);
-            
-            const interval = currentDays <= 1 ? 60 : 24; // 60 мин или день
-            const chartRes = await fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}/candles.json?interval=${interval}`);
-            const candles = await chartRes.json();
-            renderChart(candles.candles.data.map(c => ({ t: new Date(c[6]).getTime(), y: c[1] })));
-        } catch (e) { document.getElementById('current-price').textContent = "Биржа закрыта"; }
+        const res = await fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}.json?iss.meta=off`);
+        const data = await res.json();
+        
+        const price = data.marketdata.data[0][12] || data.marketdata.data[0][2];
+        const lastClose = data.securities.data[0][3];
+        const change = ((price - lastClose) / lastClose * 100);
+        
+        renderPrice(price, change);
+
+        const candleRes = await fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}/candles.json?interval=${currentDays <= 1 ? 60 : 24}`);
+        const candleData = await candleRes.json();
+        renderChart(candleData.candles.data.map(c => ({ t: new Date(c[6]).getTime(), y: c[1] })));
     }
 
     function renderPrice(price, change) {
-        const val = parseFloat(price);
-        document.getElementById('current-price').textContent = isNaN(val) ? price : val.toLocaleString(undefined, {minimumFractionDigits: 2});
+        document.getElementById('current-price').textContent = parseFloat(price).toLocaleString();
         const el = document.getElementById('price-change');
-        el.textContent = (change > 0 ? '+' : '') + parseFloat(change).toFixed(2) + '%';
-        el.style.background = change >= 0 ? '#E8F5E9' : '#FFEBEE';
+        el.textContent = (change >= 0 ? '+' : '') + parseFloat(change).toFixed(2) + '%';
         el.style.color = change >= 0 ? '#2E7D32' : '#C62828';
+        el.style.background = change >= 0 ? '#E8F5E9' : '#FFEBEE';
     }
 
     function renderChart(dataPoints) {
         const ctx = document.getElementById('mainChart').getContext('2d');
         if (myChart) myChart.destroy();
-        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
-        gradient.addColorStop(0, 'rgba(0,0,0,0.05)');
-        gradient.addColorStop(1, 'rgba(255,255,255,0)');
-
         myChart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -307,29 +137,45 @@
                     borderColor: '#000',
                     borderWidth: 2,
                     pointRadius: 0,
-                    fill: true,
-                    backgroundColor: gradient,
-                    tension: 0.2
+                    tension: 0.2,
+                    fill: false
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: false },
-                scales: { 
-                    x: { display: false }, 
-                    y: { position: 'right', grid: { color: '#f5f5f5' }, ticks: { font: { size: 10 } } } 
-                }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: false }, scales: { x: { display: false }, y: { position: 'right' } } }
         });
     }
 
-    document.addEventListener('click', (e) => {
-        if (!document.getElementById('search-box').contains(e.target)) { suggBox.style.display = 'none'; }
+    // Поиск
+    const searchInput = document.getElementById('search-input');
+    const suggestions = document.getElementById('suggestions');
+
+    searchInput.addEventListener('input', (e) => {
+        const val = e.target.value.toLowerCase();
+        suggestions.innerHTML = '';
+        if (!val) { suggestions.style.display = 'none'; return; }
+        
+        const filtered = assets.filter(a => a.id.toLowerCase().includes(val) || a.country.toLowerCase().includes(val));
+        filtered.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'suggest-item';
+            div.innerHTML = `<span><b>${item.id}</b> <small>${item.name}</small></span><span class="suggest-desc">${item.desc}</span>`;
+            div.onclick = () => {
+                base = item.id;
+                mode = item.type;
+                quote = mode === 'crypto' ? 'USDT' : 'RUB';
+                document.getElementById('base-asset').textContent = base;
+                document.getElementById('quote-asset').textContent = quote;
+                document.getElementById('data-source').textContent = mode === 'moex' ? 'MOEX API' : 'Binance API';
+                suggestions.style.display = 'none';
+                searchInput.value = '';
+                fetchData();
+            };
+            suggestions.appendChild(div);
+        });
+        suggestions.style.display = filtered.length ? 'block' : 'none';
     });
 
     window.onload = fetchData;
 </script>
-
 </body>
 </html>
