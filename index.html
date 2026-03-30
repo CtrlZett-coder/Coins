@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Global Market Terminal</title>
+    <title>Ultimate Global Terminal</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -11,16 +11,14 @@
         html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #fff; font-family: var(--font); }
         body { display: flex; flex-direction: column; padding: 12px; box-sizing: border-box; }
 
-        /* ПОИСК */
         #search-box { position: relative; margin-bottom: 8px; z-index: 10001; }
         #search-input { 
             width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #e5e5ea; 
             outline: none; font-size: 16px; background: #f2f2f7; box-sizing: border-box;
         }
 
-        /* ШАПКА */
         #header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; z-index: 10000; }
-        #pair-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
+        #pair-title { font-size: 24px; font-weight: 800; }
         
         #currency-selector { display: flex; background: #f2f2f7; padding: 2px; border-radius: 10px; }
         .curr-btn { 
@@ -29,31 +27,26 @@
         }
         .curr-btn.active { background: #fff; color: #000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        /* ГРАФИК */
         #chart-wrapper { flex-grow: 1; border-radius: 16px; overflow: hidden; border: 1px solid #f2f2f7; z-index: 1; }
         #tv-chart { width: 100%; height: 100%; }
 
-        /* ПЕРИОДЫ */
         #controls { padding-top: 12px; z-index: 10000; }
         #periods { display: flex; justify-content: space-between; background: #f2f2f7; padding: 4px; border-radius: 12px; }
-        .period-btn { background: none; border: none; color: #8e8e93; padding: 10px 0; border-radius: 9px; font-size: 12px; font-weight: 700; flex: 1; outline: none; }
+        .period-btn { background: none; border: none; color: #8e8e93; padding: 10px 0; border-radius: 9px; font-size: 12px; font-weight: 700; flex: 1; }
         .period-btn.active { background: #000; color: #fff; }
 
-        /* ПОДСКАЗКИ */
         #suggestions { 
             position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 12px; 
             box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none; margin-top: 4px; 
             max-height: 350px; overflow-y: auto; z-index: 10002; border: 1px solid #e5e5ea;
         }
         .suggest-item { padding: 12px 16px; border-bottom: 1px solid #f2f2f7; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .suggest-item b { font-size: 15px; }
-        .suggest-item i { font-style: normal; font-size: 11px; color: #8e8e93; }
     </style>
 </head>
 <body>
 
     <div id="search-box">
-        <input type="text" id="search-input" placeholder="Поиск (BTC, Тенге, Сбер, Apple...)" autocomplete="off">
+        <input type="text" id="search-input" placeholder="Введите код (KZT, SBER, USD, BTC...)" autocomplete="off">
         <div id="suggestions"></div>
     </div>
 
@@ -91,24 +84,20 @@
         let currentRange = "1M";
         let currentInterval = "240";
 
-        // База: Крипта + Мосбиржа + Мировые валюты (FOREX)
-        const assets = [
-            { id: 'BTC', n: 'Биткоин', s: 'BINANCE:BTCUSDT' },
-            { id: 'ETH', n: 'Эфириум', s: 'BINANCE:ETHUSDT' },
+        // Популярные активы для подсказок (остальные доступны через поиск)
+        const quickAssets = [
+            { id: 'BTC', n: 'Bitcoin', s: 'BINANCE:BTCUSDT' },
             { id: 'TON', n: 'Toncoin', s: 'OKX:TONUSDT' },
-            { id: 'SBER', n: 'Сбербанк (MOEX)', s: 'MOEX:SBER' },
-            { id: 'GAZP', n: 'Газпром (MOEX)', s: 'MOEX:GAZP' },
-            { id: 'LKOH', n: 'Лукойл (MOEX)', s: 'MOEX:LKOH' },
-            { id: 'IMOEX', n: 'Индекс Мосбиржи', s: 'MOEX:IMOEX' },
-            { id: 'KZT', n: 'Тенге (Казахстан)', s: 'FX_IDC:USDKZT' },
-            { id: 'USD', n: 'Доллар/Рубль', s: 'FX_IDC:USDRUB' },
-            { id: 'EUR', n: 'Евро/Рубль', s: 'FX_IDC:EURRUB' },
-            { id: 'CNY', n: 'Юань (Китай)', s: 'FX_IDC:CNYRUB' },
-            { id: 'AED', n: 'Дирхам (ОАЭ)', s: 'FX_IDC:USDAED' },
-            { id: 'TRY', n: 'Лира (Турция)', s: 'FX_IDC:USDTRY' },
+            { id: 'SBER', n: 'Сбербанк', s: 'MOEX:SBER' },
+            { id: 'GAZP', n: 'Газпром', s: 'MOEX:GAZP' },
+            { id: 'LKOH', n: 'Лукойл', s: 'MOEX:LKOH' },
+            { id: 'KZT', n: 'Тенге', s: 'FX_IDC:USDKZT' },
+            { id: 'USD', n: 'Доллар', s: 'FX_IDC:USDRUB' },
+            { id: 'EUR', n: 'Евро', s: 'FX_IDC:EURRUB' },
             { id: 'KGS', n: 'Сом (Киргизия)', s: 'FX_IDC:USDKGS' },
-            { id: 'AAPL', n: 'Apple (USA)', s: 'NASDAQ:AAPL' },
-            { id: 'GLDRUB', n: 'Золото в рублях', s: 'MOEX:GLDRUB_TOM' }
+            { id: 'AMD', n: 'Драм (Армения)', s: 'FX_IDC:USDAMD' },
+            { id: 'BYN', n: 'Бел. Рубль', s: 'FX_IDC:USDBYN' },
+            { id: 'AED', n: 'Дирхам (ОАЭ)', s: 'FX_IDC:USDAED' }
         ];
 
         function createWidget() {
@@ -125,15 +114,14 @@
                 "hide_top_toolbar": true,
                 "hide_legend": true,
                 "hide_side_toolbar": true,
-                "save_image": false,
-                "currency": displayCurrency, // Это заставляет график конвертировать цену
+                "currency": displayCurrency, 
                 "backgroundColor": "#ffffff"
             });
         }
 
         createWidget();
 
-        // Кнопки валюты (USDT / USD / RUB)
+        // Переключатели валюты измерения
         document.querySelectorAll('.curr-btn').forEach(btn => {
             btn.addEventListener('touchstart', function() {
                 document.querySelectorAll('.curr-btn').forEach(b => b.classList.remove('active'));
@@ -143,7 +131,7 @@
             });
         });
 
-        // Кнопки периодов
+        // Таймфреймы
         document.querySelectorAll('.period-btn').forEach(btn => {
             btn.addEventListener('touchstart', function() {
                 document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -163,11 +151,13 @@
             suggs.innerHTML = '';
             if (!val) { suggs.style.display = 'none'; return; }
 
-            const filtered = assets.filter(a => a.id.includes(val) || a.n.toUpperCase().includes(val));
+            let filtered = quickAssets.filter(a => a.id.includes(val) || a.n.toUpperCase().includes(val));
             
-            // Если в базе нет, пробуем угадать тикер
-            if (filtered.length === 0 && val.length >= 3) {
-                filtered.push({ id: val, n: 'Поиск по тикеру...', s: val });
+            // Если вводим незнакомый код, формируем универсальный тикер FOREX
+            if (val.length >= 3) {
+                const isStock = ["SBER","GAZP","LKOH","YNDX"].includes(val);
+                const customTicker = isStock ? `MOEX:${val}` : `FX_IDC:USD${val}`;
+                filtered.push({ id: val, n: 'Глобальный поиск...', s: customTicker });
             }
 
             filtered.forEach(item => {
