@@ -21,7 +21,6 @@
             display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* Шапка с двойным выбором */
         #dual-header {
             display: flex; align-items: center; padding: 12px 16px;
             border-bottom: 0.5px solid #e5e5ea; gap: 8px; background: #fff;
@@ -42,11 +41,9 @@
 
         .divider-icon { font-size: 16px; color: var(--ios-secondary); font-weight: 300; }
 
-        /* Контейнер графика */
         #chart-wrapper { flex-grow: 1; position: relative; }
         #tv-chart { width: 100%; height: 100%; }
 
-        /* Подвал с периодами */
         #footer-controls { padding: 12px 12px 24px; border-top: 0.5px solid #e5e5ea; background: #fff; }
         #periods { display: flex; background: var(--ios-gray); padding: 2px; border-radius: 10px; gap: 2px; }
         .period-btn {
@@ -55,7 +52,6 @@
         }
         .period-btn.active { background: #000; color: #fff; }
 
-        /* Модальное окно выбора */
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #fff; z-index: 9999;
@@ -85,18 +81,18 @@
 
     <div id="dual-header">
         <div class="selector-box" onclick="openModal('base')">
-            <span class="sel-flag" id="base-flag">🇰🇿</span>
+            <span class="sel-flag" id="base-flag">🇺🇦</span>
             <div class="sel-label">
-                <span class="sel-code" id="base-code">KZT</span>
+                <span class="sel-code" id="base-code">UAH</span>
                 <span class="sel-desc">Объект</span>
             </div>
             <span class="sel-chevron">▼</span>
         </div>
         <div class="divider-icon">/</div>
         <div class="selector-box" onclick="openModal('quote')">
-            <span class="sel-flag" id="quote-flag">🇺🇸</span>
+            <span class="sel-flag" id="quote-flag">🇪🇺</span>
             <div class="sel-label">
-                <span class="sel-code" id="quote-code">USD</span>
+                <span class="sel-code" id="quote-code">EUR</span>
                 <span class="sel-desc">Валюта</span>
             </div>
             <span class="sel-chevron">▼</span>
@@ -107,12 +103,12 @@
 
     <div id="footer-controls">
         <div id="periods">
-            <button class="period-btn active" onclick="setRange('1M')">1М</button>
-            <button class="period-btn" onclick="setRange('3M')">3М</button>
-            <button class="period-btn" onclick="setRange('6M')">6М</button>
-            <button class="period-btn" onclick="setRange('12M')">1Г</button>
-            <button class="period-btn" onclick="setRange('60M')">5Л</button>
-            <button class="period-btn" onclick="setRange('ALL')">Все</button>
+            <button class="period-btn" onclick="setRange('1D', '5')">1Д</button>
+            <button class="period-btn active" onclick="setRange('1M', 'D')">1М</button>
+            <button class="period-btn" onclick="setRange('3M', 'D')">3М</button>
+            <button class="period-btn" onclick="setRange('6M', 'D')">6М</button>
+            <button class="period-btn" onclick="setRange('12M', 'W')">1Г</button>
+            <button class="period-btn" onclick="setRange('ALL', 'M')">Все</button>
         </div>
     </div>
 
@@ -121,7 +117,7 @@
             <div id="modal-title">Выбор актива</div>
             <div style="color:var(--ios-blue); font-weight:600; cursor:pointer;" onclick="closeModal()">Готово</div>
         </div>
-        <div id="modal-search"><input type="text" id="search-input" placeholder="Поиск по СНГ и миру..."></div>
+        <div id="modal-search"><input type="text" id="search-input" placeholder="Поиск..."></div>
         <div id="tabs">
             <div class="tab active" data-type="cis">СНГ</div>
             <div class="tab" data-type="world">Мировые</div>
@@ -133,63 +129,49 @@
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
-        let base = { id: 'KZT', f: '🇰🇿', type: 'cis' };
-        let quote = { id: 'USD', f: '🇺🇸', type: 'world' };
+        let base = { id: 'UAH', f: '🇺🇦', type: 'cis' };
+        let quote = { id: 'EUR', f: '🇪🇺', type: 'world' };
         let selectionMode = 'base';
         let activeTab = 'cis';
         let currentRange = '1M';
+        let currentInterval = 'D';
 
         const allAssets = [
-            // СНГ
             { id: 'RUB', f: '🇷🇺', n: 'Российский рубль', type: 'cis' },
             { id: 'KZT', f: '🇰🇿', n: 'Казахстанский тенге', type: 'cis' },
+            { id: 'UAH', f: '🇺🇦', n: 'Украинская гривна', type: 'cis' },
             { id: 'BYN', f: '🇧🇾', n: 'Белорусский рубль', type: 'cis' },
             { id: 'UZS', f: '🇺🇿', n: 'Узбекский сум', type: 'cis' },
             { id: 'GEL', f: '🇬🇪', n: 'Грузинский лари', type: 'cis' },
             { id: 'AMD', f: '🇦🇲', n: 'Армянский драм', type: 'cis' },
-            { id: 'KGS', f: '🇰🇬', n: 'Киргизский сом', type: 'cis' },
-            { id: 'AZN', f: '🇦🇿', n: 'Азербайджанский манат', type: 'cis' },
-            { id: 'TJS', f: '🇹🇯', n: 'Таджикский сомони', type: 'cis' },
-            { id: 'MDL', f: '🇲🇩', n: 'Молдавский лей', type: 'cis' },
-            { id: 'UAH', f: '🇺🇦', n: 'Украинская гривна', type: 'cis' },
-            // МИРОВЫЕ
             { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'world' },
             { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'world' },
             { id: 'CNY', f: '🇨🇳', n: 'Китайский юань', type: 'world' },
-            { id: 'TRY', f: '🇹🇷', n: 'Турецкая лира', type: 'world' },
-            { id: 'AED', f: '🇦🇪', n: 'Дирхам ОАЭ', type: 'world' },
-            { id: 'GBP', f: '🇬🇧', n: 'Фунт стерлингов', type: 'world' },
-            // КРИПТО
             { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
             { id: 'ETH', f: '💎', n: 'Ethereum', type: 'crypto' },
             { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' },
-            { id: 'SOL', f: '☀️', n: 'Solana', type: 'crypto' },
-            // МЕТАЛЛЫ
-            { id: 'GOLD', f: '📀', n: 'Золото', type: 'metal' },
-            { id: 'SILVER', f: '⚪', n: 'Серебро', type: 'metal' }
+            { id: 'GOLD', f: '📀', n: 'Золото', type: 'metal' }
         ];
 
         function createWidget() {
             let symbol = "";
             
-            // 1. Умный движок тикеров
+            // Прямые проверки для избежания "кривых" делений
             if (base.type === 'crypto') {
                 symbol = `BINANCE:${base.id}${quote.id === 'USD' ? 'USDT' : quote.id}`;
             } else if (base.id === 'GOLD') {
                 symbol = `OANDA:XAU${quote.id}`;
-            } else if (base.id === 'SILVER') {
-                symbol = `OANDA:XAG${quote.id}`;
             } else {
-                // Если оба - валюты, проверяем наличие прямой пары или строим кросс-курс
-                if (quote.id === 'USD') {
-                    // Самый частый случай: RUB/USD, KZT/USD и т.д.
-                    symbol = `FX_IDC:USD${base.id}`; 
+                // ЛОГИКА ДЛЯ ВАЛЮТ
+                if (quote.id === 'UAH' || base.id === 'UAH') {
+                    // Для гривны лучше всего работают прямые форекс-пары
+                    symbol = `FX_IDC:${quote.id}${base.id}`;
                 } else if (quote.id === 'RUB') {
-                    // Пары к рублю на MOEX самые ликвидные
                     symbol = `MOEX:${base.id}RUB_TOM`;
+                } else if (quote.id === 'USD') {
+                    symbol = `FX_IDC:USD${base.id}`;
                 } else {
-                    // КРОСС-КУРС (Магия исправления "Нет инструмента")
-                    // Формула: (USD/Base) / (USD/Quote) = Quote/Base
+                    // Жесткий кросс-курс: (Базовая к USD) / (Валюта к USD)
                     symbol = `FX_IDC:USD${base.id}/FX_IDC:USD${quote.id}`;
                 }
             }
@@ -198,7 +180,7 @@
             new TradingView.widget({
                 "autosize": true,
                 "symbol": symbol,
-                "interval": "D",
+                "interval": currentInterval,
                 "timezone": "Etc/UTC",
                 "theme": "light",
                 "style": "3",
@@ -207,26 +189,21 @@
                 "container_id": "tv-chart",
                 "hide_top_toolbar": true,
                 "hide_legend": true,
-                "save_image": false,
                 "backgroundColor": "#ffffff"
             });
         }
 
-        function setRange(r) {
-            currentRange = r;
-            document.querySelectorAll('.period-btn').forEach(b => {
-                b.classList.remove('active');
-                if(b.innerText.includes(r.replace('M','').replace('12','1Г').replace('60','5Л'))) b.classList.add('active');
-            });
-            // Переключаем активный класс вручную по тексту кнопки для простоты
-            event.target.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        function setRange(range, interval) {
+            currentRange = range;
+            currentInterval = interval;
+            document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             createWidget();
         }
 
         function openModal(mode) {
             selectionMode = mode;
-            document.getElementById('modal-title').innerText = mode === 'base' ? 'Что анализируем?' : 'В какой валюте?';
+            document.getElementById('modal-title').innerText = mode === 'base' ? 'Что анализируем?' : 'В чем измеряем?';
             document.getElementById('modal-overlay').classList.add('open');
             renderList();
         }
@@ -276,8 +253,6 @@
         });
 
         document.getElementById('search-input').oninput = (e) => renderList(e.target.value);
-
-        // Инициализация
         createWidget();
     </script>
 </body>
