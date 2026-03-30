@@ -1,134 +1,81 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoGenius Pro</title>
+    <title>Debug Mode</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://s3.tradingview.com/tv.js"></script>
-    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <style>
-        :root { --font: 'Inter', sans-serif; --ios-bg: #ffffff; --ios-gray: #f2f2f7; --ios-blue: #007AFF; --ios-secondary: #8e8e93; }
-        body { margin: 0; padding: 0; height: 100vh; background: var(--ios-bg); font-family: var(--font); display: flex; flex-direction: column; overflow: hidden; }
-        #header { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid #e5e5ea; gap: 8px; background: #fff; }
-        .sel-box { flex: 1; display: flex; align-items: center; background: var(--ios-gray); padding: 8px 10px; border-radius: 12px; cursor: pointer; }
-        .sel-flag { font-size: 20px; margin-right: 8px; }
-        .sel-code { font-weight: 800; font-size: 14px; display: block; }
-        .sel-desc { font-size: 9px; color: var(--ios-secondary); text-transform: uppercase; }
-        #chart-wrapper { flex-grow: 1; position: relative; background: #fff; }
-        #tv-chart { width: 100%; height: 100%; }
-        #footer { padding: 12px 12px 24px; border-top: 0.5px solid #e5e5ea; background: #fff; }
-        #periods { display: flex; background: var(--ios-gray); padding: 2px; border-radius: 10px; gap: 2px; }
-        .p-btn { flex: 1; border: none; background: none; padding: 10px 0; font-size: 11px; font-weight: 700; border-radius: 8px; color: var(--ios-secondary); }
-        .p-btn.active { background: #000; color: #fff; }
-        #modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff; z-index: 9999; transform: translateY(100%); transition: 0.3s; display: flex; flex-direction: column; }
-        #modal.open { transform: translateY(0); }
-        .asset-item { display: flex; align-items: center; padding: 16px; border-bottom: 0.5px solid #f2f2f7; font-size: 16px; }
+        body { margin: 0; font-family: sans-serif; background: #fff; display: flex; flex-direction: column; height: 100vh; }
+        #debug-log { position: fixed; top: 0; left: 0; width: 100%; background: rgba(255,0,0,0.1); color: red; font-size: 10px; z-index: 10000; pointer-events: none; }
+        #header { padding: 15px; display: flex; gap: 10px; border-bottom: 1px solid #eee; }
+        .btn { flex: 1; padding: 10px; background: #f0f0f0; border-radius: 8px; text-align: center; font-weight: bold; cursor: pointer; }
+        #chart-container { flex-grow: 1; background: #fafafa; }
     </style>
 </head>
 <body>
 
+    <div id="debug-log"></div>
+    
     <div id="header">
-        <div class="sel-box" onclick="openModal('base')">
-            <span class="sel-flag" id="b-flag">🇺🇦</span>
-            <div class="sel-label"><span class="sel-code" id="b-code">UAH</span><span class="sel-desc">Объект</span></div>
-        </div>
-        <div style="color: #8e8e93;">/</div>
-        <div class="sel-box" onclick="openModal('quote')">
-            <span class="sel-flag" id="q-flag">🇺🇸</span>
-            <div class="sel-label"><span class="sel-code" id="q-code">USD</span><span class="sel-desc">Валюта</span></div>
-        </div>
+        <div class="btn" onclick="openM()">Выбрать: <span id="cur-val">UAH</span></div>
     </div>
 
-    <div id="chart-wrapper"><div id="tv-chart"></div></div>
-
-    <div id="footer">
-        <div id="periods">
-            <button class="p-btn active" onclick="setRange('1D', '5', event)">1Д</button>
-            <button class="p-btn" onclick="setRange('1M', 'D', event)">1М</button>
-            <button class="p-btn" onclick="setRange('3M', 'D', event)">3М</button>
-            <button class="p-btn" onclick="setRange('12M', 'W', event)">1Г</button>
-        </div>
-    </div>
-
-    <div id="modal">
-        <div style="padding: 16px; display: flex; justify-content: space-between; border-bottom: 1px solid #eee;">
-            <b id="m-title">Выбор</b>
-            <div style="color:var(--ios-blue); font-weight:600;" onclick="closeModal()">Закрыть</div>
-        </div>
-        <div id="l-list" style="overflow-y: auto;"></div>
+    <div id="chart-container" id="tv_chart_box">
+        <div id="tv-chart" style="width:100%; height:100%;"></div>
     </div>
 
     <script>
+        // Функция для вывода ошибок на экран телефона
+        window.onerror = function(m, u, l) {
+            document.getElementById('debug-log').innerHTML += `ERR: ${m} Line: ${l}<br>`;
+        };
+
         const tg = window.Telegram.WebApp;
-        tg.ready();
-        tg.expand();
+        
+        try {
+            tg.ready();
+            tg.expand();
+            document.getElementById('debug-log').innerHTML += "TG Ready OK<br>";
+        } catch(e) {
+            document.getElementById('debug-log').innerHTML += "TG Init Error<br>";
+        }
 
-        let base = { id: 'UAH', f: '🇺🇦', type: 'cis' };
-        let quote = { id: 'USD', f: '🇺🇸', type: 'world' };
-        let curRange = '1D', curInt = '5', mode = 'base';
-
-        const assets = [
-            { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
-            { id: 'RUB', f: '🇷🇺', n: 'Рубль', type: 'cis' },
-            { id: 'KZT', f: '🇰🇿', n: 'Тенге', type: 'cis' },
-            { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'world' },
-            { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'world' },
-            { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
-            { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' }
-        ];
-
-        function createWidget() {
+        function loadChart(symbol = "FX_IDC:USDUAH") {
             try {
-                let sym = base.type === 'crypto' 
-                    ? `BINANCE:${base.id}${quote.id === 'USD' ? 'USDT' : quote.id}`
-                    : `1/(FX_IDC:USD${base.id}/FX_IDC:USD${quote.id})`;
-
                 document.getElementById('tv-chart').innerHTML = '';
                 new TradingView.widget({
-                    "autosize": true, "symbol": sym, "interval": curInt,
-                    "timezone": "Etc/UTC", "theme": "light", "style": "3", "locale": "ru",
-                    "container_id": "tv-chart", "hide_top_toolbar": true, "range": curRange
+                    "autosize": true,
+                    "symbol": symbol,
+                    "interval": "D",
+                    "timezone": "Etc/UTC",
+                    "theme": "light",
+                    "style": "1",
+                    "locale": "ru",
+                    "toolbar_bg": "#f1f3f6",
+                    "enable_publishing": false,
+                    "hide_top_toolbar": true,
+                    "container_id": "tv-chart"
                 });
-            } catch (e) { alert("Ошибка графика: " + e); }
+                document.getElementById('debug-log').innerHTML += "Widget Load Attempt...<br>";
+            } catch(e) {
+                document.getElementById('debug-log').innerHTML += "Widget Error: " + e + "<br>";
+            }
         }
 
-        function openModal(m) {
-            mode = m;
-            const list = document.getElementById('l-list');
-            list.innerHTML = '';
-            assets.forEach(a => {
-                const d = document.createElement('div');
-                d.className = 'asset-item';
-                d.innerHTML = `<span style="margin-right:10px">${a.f}</span> <b>${a.id}</b> <span style="margin-left:10px; color:#888; font-size:12px">${a.n}</span>`;
-                d.onclick = () => {
-                    if(mode === 'base') {
-                        base = a;
-                        document.getElementById('b-flag').innerText = a.f;
-                        document.getElementById('b-code').innerText = a.id;
-                    } else {
-                        quote = a;
-                        document.getElementById('q-flag').innerText = a.f;
-                        document.getElementById('q-code').innerText = a.id;
-                    }
-                    closeModal();
-                    createWidget();
-                };
-                list.appendChild(d);
-            });
-            document.getElementById('modal').classList.add('open');
+        function openM() {
+            const sym = prompt("Введите код валюты (например, RUB или EUR):", "RUB");
+            if(sym) {
+                document.getElementById('cur-val').innerText = sym;
+                loadChart("FX_IDC:USD" + sym.toUpperCase());
+            }
         }
 
-        function closeModal() { document.getElementById('modal').classList.remove('open'); }
-
-        function setRange(r, i, e) {
-            curRange = r; curInt = i;
-            document.querySelectorAll('.p-btn').forEach(b => b.classList.remove('active'));
-            e.target.classList.add('active');
-            createWidget();
-        }
-
-        window.onload = () => setTimeout(createWidget, 300);
+        // Запуск через 1 секунду после загрузки
+        setTimeout(() => {
+            loadChart();
+        }, 1000);
     </script>
 </body>
 </html>
