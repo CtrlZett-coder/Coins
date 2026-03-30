@@ -3,131 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoPulse Pro</title>
+    <title>CryptoPulse Elite</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --font: 'Inter', sans-serif; --accent: #007AFF; }
-        body { margin: 0; padding: 15px; background: #fff; color: #000; font-family: var(--font); overflow: hidden; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
+        body { 
+            margin: 0; padding: 20px; background: #fff; color: #000; 
+            font-family: var(--font); -webkit-font-smoothing: antialiased;
+            display: flex; flex-direction: column; height: 100vh; box-sizing: border-box;
+        }
         
         /* Поиск */
-        #search-box { position: relative; margin-bottom: 15px; flex-shrink: 0; }
-        #search-input { width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #efefef; outline: none; font-size: 16px; background: #f9f9f9; box-sizing: border-box; transition: 0.3s; }
-        #search-input:focus { background: #fff; border-color: var(--accent); box-shadow: 0 0 0 4px rgba(0,122,255,0.1); }
-        
-        #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 1000; display: none; margin-top: 8px; max-height: 250px; overflow-y: auto; border: 1px solid #eee; }
-        .suggest-item { padding: 14px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .suggest-item:active { background: #f0f0f0; }
-        .s-id { font-weight: 800; font-size: 16px; color: #000; }
-        .s-name { font-size: 12px; color: #888; margin-left: 8px; font-weight: 500; }
-        
-        /* Контейнер графика */
-        #chart-wrapper { flex-grow: 1; width: 100%; border-radius: 18px; overflow: hidden; border: 1px solid #eee; background: #fcfcfc; position: relative; }
-        #tradingview_widget { width: 100%; height: 100%; }
+        #search-box { position: relative; margin-bottom: 15px; }
+        #search-input { 
+            width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #efefef; 
+            outline: none; font-size: 16px; background: #f9f9f9; box-sizing: border-box; 
+        }
+        #suggestions { 
+            position: absolute; top: 100%; left: 0; right: 0; background: #fff; 
+            border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
+            z-index: 1000; display: none; margin-top: 8px; max-height: 200px; overflow-y: auto; 
+        }
+        .suggest-item { padding: 14px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; }
 
-        /* Анимация появления */
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .fade { animation: fadeIn 0.5s ease-in-out; }
+        /* Заголовок (как на фото) */
+        #pair-info { margin-bottom: 20px; }
+        #pair-title { font-size: 28px; font-weight: 800; }
+        #pair-subtitle { color: #888; font-weight: 500; margin-left: 5px; }
+
+        /* Контейнер графика */
+        #chart-wrapper { 
+            flex-grow: 1; width: 100%; min-height: 300px;
+            border-radius: 20px; overflow: hidden; margin-bottom: 20px;
+        }
+
+        /* Твои кнопки периодов (упорядоченные) */
+        #periods { 
+            display: flex; justify-content: space-between; 
+            background: #f0f0f0; padding: 4px; border-radius: 12px; 
+            margin-bottom: 10px;
+        }
+        .period-btn { 
+            background: none; border: none; color: #666; padding: 10px 0; 
+            border-radius: 10px; font-size: 12px; font-weight: 800; 
+            flex: 1; cursor: pointer; text-align: center;
+        }
+        .period-btn.active { background: #000; color: #fff; }
+
+        /* Инфо-панель снизу */
+        .info-footer { font-size: 12px; color: #aaa; text-align: center; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div id="search-box">
-        <input type="text" id="search-input" placeholder="Поиск: BTC, SBER, USD, GOLD..." autocomplete="off">
+        <input type="text" id="search-input" placeholder="Поиск актива..." autocomplete="off">
         <div id="suggestions"></div>
     </div>
 
-    <div id="chart-wrapper">
-        <!-- Сюда вставляется график -->
-        <div id="tradingview_widget"></div>
+    <div id="pair-info">
+        <span id="pair-title">BTC</span><span id="pair-subtitle">/ USDT</span>
     </div>
 
-    <!-- Подключаем библиотеку TradingView -->
+    <div id="chart-wrapper">
+        <div id="tv-chart"></div>
+    </div>
+
+    <div id="periods">
+        <button class="period-btn" data-range="1D" data-int="5">1Д</button>
+        <button class="period-btn" data-range="1W" data-int="60">1Н</button>
+        <button class="period-btn active" data-range="1M" data-int="240">1М</button>
+        <button class="period-btn" data-range="3M" data-int="D">3М</button>
+        <button class="period-btn" data-range="6M" data-int="D">6М</button>
+        <button class="period-btn" data-range="12M" data-int="W">1Г</button>
+        <button class="period-btn" data-range="ALL" data-int="M">Все</button>
+    </div>
+
+    <div class="info-footer">Нажмите на график для просмотра цены в точке</div>
+
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.ready();
 
-        // База активов (Symbol для TradingView)
+        let currentSymbol = "BINANCE:BTCUSDT";
+        let currentRange = "1M";
+        let currentInterval = "240";
+
         const assets = [
-            { id: 'BTC', sym: 'BINANCE:BTCUSDT', name: 'Bitcoin', desc: 'Крипто' },
-            { id: 'ETH', sym: 'BINANCE:ETHUSDT', name: 'Ethereum', desc: 'Крипто' },
-            { id: 'TON', sym: 'OKX:TONUSDT', name: 'Toncoin', desc: 'Крипто' },
-            { id: 'SBER', sym: 'MOEX:SBER', name: 'Сбербанк', desc: 'Акция РФ' },
-            { id: 'GAZP', sym: 'MOEX:GAZP', name: 'Газпром', desc: 'Акция РФ' },
-            { id: 'USD', sym: 'MOEX:USDRUB_TOM', name: 'Доллар/Рубль', desc: 'Валюта' },
-            { id: 'EUR', sym: 'MOEX:EURRUB_TOM', name: 'Евро/Рубль', desc: 'Валюта' },
-            { id: 'GOLD', sym: 'OANDA:XAUUSD', name: 'Золото', desc: 'Металл' }
+            { id: 'BTC', sym: 'BINANCE:BTCUSDT', name: 'Bitcoin' },
+            { id: 'ETH', sym: 'BINANCE:ETHUSDT', name: 'Ethereum' },
+            { id: 'TON', sym: 'OKX:TONUSDT', name: 'Toncoin' },
+            { id: 'SBER', sym: 'MOEX:SBER', name: 'Сбербанк' },
+            { id: 'USD', sym: 'MOEX:USDRUB_TOM', name: 'Доллар/Рубль' },
+            { id: 'GOLD', sym: 'OANDA:XAUUSD', name: 'Золото' }
         ];
 
-        // Функция создания/обновления графика
-        function loadChart(symbol) {
-            // Очищаем контейнер перед созданием нового виджета (чтобы не "липло")
-            document.getElementById('tradingview_widget').innerHTML = '';
-            
+        function createWidget(symbol, range, interval) {
+            document.getElementById('tv-chart').innerHTML = '';
             new TradingView.widget({
                 "autosize": true,
                 "symbol": symbol,
-                "interval": "D",
+                "interval": interval,
+                "range": range,
                 "timezone": "Europe/Moscow",
                 "theme": "light",
-                "style": "3", // Вид: Область (Area)
+                "style": "3", // Область
                 "locale": "ru",
-                "toolbar_bg": "#f1f3f6",
+                "toolbar_bg": "#ffffff",
                 "enable_publishing": false,
-                "hide_top_toolbar": false, // Показывает кнопки интервалов (1m, 1h, D)
-                "hide_legend": false,
+                "hide_top_toolbar": true,   // Прячем их кнопки
+                "hide_legend": true,        // Прячем легенду
                 "save_image": false,
-                "container_id": "tradingview_widget",
-                "hide_side_toolbar": true,
+                "container_id": "tv-chart",
+                "hide_side_toolbar": true,  // Чистый график
                 "allow_symbol_change": false,
                 "details": false,
                 "hotlist": false,
                 "calendar": false,
-                "show_popup_button": false
+                "show_popup_button": false,
+                "backgroundColor": "#ffffff",
+                "gridColor": "rgba(240, 240, 240, 0.5)"
             });
         }
 
-        // Загрузка по умолчанию
-        loadChart("BINANCE:BTCUSDT");
+        // Инициализация
+        createWidget(currentSymbol, currentRange, currentInterval);
 
-        // Логика поиска
+        // Обработка твоих кнопок периодов
+        document.querySelectorAll('.period-btn').forEach(btn => {
+            btn.onclick = function() {
+                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                currentRange = this.dataset.range;
+                currentInterval = this.dataset.int;
+                
+                createWidget(currentSymbol, currentRange, currentInterval);
+            };
+        });
+
+        // Поиск
         const input = document.getElementById('search-input');
         const suggs = document.getElementById('suggestions');
 
-        input.addEventListener('input', (e) => {
-            const val = e.target.value.toUpperCase().trim();
+        input.oninput = function() {
+            const val = this.value.toUpperCase();
             suggs.innerHTML = '';
             if (!val) { suggs.style.display = 'none'; return; }
 
-            const filtered = assets.filter(a => a.id.includes(val) || a.name.toUpperCase().includes(val));
-            
-            filtered.forEach(item => {
+            assets.filter(a => a.id.includes(val)).forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'suggest-item';
-                div.innerHTML = `
-                    <div><span class="s-id">${item.id}</span><span class="s-name">${item.name}</span></div>
-                    <span style="font-size:10px; color:#aaa; font-weight:700;">${item.desc}</span>
-                `;
+                div.innerHTML = `<b>${item.id}</b> <span style="color:#999;font-size:12px">${item.name}</span>`;
                 div.onclick = () => {
-                    loadChart(item.sym); // Меняем график
+                    currentSymbol = item.sym;
+                    document.getElementById('pair-title').textContent = item.id;
+                    document.getElementById('pair-subtitle').textContent = item.id === 'USD' || item.id === 'SBER' ? '/ RUB' : '/ USDT';
+                    createWidget(currentSymbol, currentRange, currentInterval);
                     suggs.style.display = 'none';
                     input.value = '';
-                    input.blur(); // Скрываем клавиатуру
                 };
                 suggs.appendChild(div);
             });
-            suggs.style.display = filtered.length ? 'block' : 'none';
-        });
-
-        // Закрытие поиска при клике на график
-        document.addEventListener('click', (e) => {
-            if (!document.getElementById('search-box').contains(e.target)) {
-                suggs.style.display = 'none';
-            }
-        });
+            suggs.style.display = 'block';
+        };
     </script>
 </body>
 </html>
