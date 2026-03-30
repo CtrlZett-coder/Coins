@@ -6,7 +6,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 # Токен твоего нового бота
 TOKEN = "8698978039:AAGJnlo6wdHE8k7I1Jie8XMKE8Di0EmRshw"
 # Ссылка на твой будущий GitHub Pages с графиками
-BASE_URL = "https://yourusername.github.io/crypto_charts/" 
+BASE_URL = "https://Ctrlzett-coder.github.io/Coins/"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
