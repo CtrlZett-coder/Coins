@@ -3,89 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoPulse Ultra Interactive</title>
+    <title>Global Market Terminal</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --font: 'Inter', sans-serif; --accent: #007AFF; }
-        html, body { 
-            margin: 0; padding: 0; height: 100%; overflow: hidden; 
-            background: #fff; font-family: var(--font);
-        }
-        body { display: flex; flex-direction: column; padding: 15px; box-sizing: border-box; }
-        
-        /* ВЕРХНИЙ СЛОЙ (ПОИСК) */
-        #search-box { position: relative; margin-bottom: 10px; z-index: 10001; }
+        :root { --font: 'Inter', sans-serif; --bg: #ffffff; --ui-bg: #f2f2f7; }
+        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: var(--bg); font-family: var(--font); }
+        body { display: flex; flex-direction: column; padding: 12px; box-sizing: border-box; }
+
+        /* Поиск - Самый верхний слой */
+        #search-box { position: relative; margin-bottom: 8px; z-index: 10001; }
         #search-input { 
-            width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #ddd; 
-            outline: none; font-size: 16px; background: #f8f8f8; box-sizing: border-box; 
-            -webkit-appearance: none; /* Для iOS */
+            width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #e5e5ea; 
+            outline: none; font-size: 16px; background: var(--ui-bg); box-sizing: border-box;
         }
 
-        /* СРЕДНИЙ СЛОЙ (ШАПКА) */
-        #header-row { 
-            display: flex; justify-content: space-between; align-items: center; 
-            margin-bottom: 12px; position: relative; z-index: 10000; 
-        }
-        #pair-title { font-size: 28px; font-weight: 900; pointer-events: none; }
+        /* Шапка с выбором валюты */
+        #header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; z-index: 10000; }
+        #pair-title { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
         
-        #currency-selector { 
-            display: flex; background: #f0f0f0; padding: 4px; border-radius: 10px; 
-            pointer-events: auto; /* Разрешаем клики */
-        }
+        #currency-selector { display: flex; background: var(--ui-bg); padding: 2px; border-radius: 10px; }
         .curr-btn { 
-            border: none; background: none; font-size: 12px; font-weight: 800; 
-            padding: 8px 15px; border-radius: 8px; cursor: pointer; color: #666;
-            z-index: 10002;
+            border: none; background: none; font-size: 11px; font-weight: 700; 
+            padding: 6px 10px; border-radius: 8px; cursor: pointer; color: #8e8e93;
         }
         .curr-btn.active { background: #fff; color: #000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        /* ГРАФИК (НИЖНИЙ СЛОЙ) */
-        #chart-wrapper { 
-            flex-grow: 1; width: 100%; border-radius: 18px; 
-            overflow: hidden; border: 1px solid #f0f0f0; 
-            position: relative; z-index: 1; /* Опускаем график вниз */
-        }
+        /* Контейнер графика */
+        #chart-wrapper { flex-grow: 1; border-radius: 16px; overflow: hidden; border: 1px solid #f2f2f7; z-index: 1; }
         #tv-chart { width: 100%; height: 100%; }
 
-        /* НИЖНИЙ СЛОЙ (ПЕРИОДЫ) */
-        #controls { 
-            flex-shrink: 0; padding-top: 15px; 
-            position: relative; z-index: 10000; 
-        }
-        #periods { 
-            display: flex; justify-content: space-between; 
-            background: #f0f0f0; padding: 4px; border-radius: 14px; 
-            pointer-events: auto;
-        }
-        .period-btn { 
-            background: none; border: none; color: #666; padding: 12px 0; 
-            border-radius: 11px; font-size: 13px; font-weight: 800; 
-            flex: 1; cursor: pointer; z-index: 10002;
-        }
+        /* Периоды */
+        #controls { padding-top: 12px; z-index: 10000; }
+        #periods { display: flex; justify-content: space-between; background: var(--ui-bg); padding: 4px; border-radius: 12px; }
+        .period-btn { background: none; border: none; color: #8e8e93; padding: 10px 0; border-radius: 9px; font-size: 12px; font-weight: 700; flex: 1; }
         .period-btn.active { background: #000; color: #fff; }
 
-        /* ПОДСКАЗКИ ПОИСКА */
+        /* Подсказки */
         #suggestions { 
-            position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 14px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: none; margin-top: 5px; 
-            max-height: 250px; overflow-y: auto; z-index: 10005; border: 1px solid #eee;
+            position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 12px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15); display: none; margin-top: 4px; 
+            max-height: 300px; overflow-y: auto; z-index: 10002; border: 1px solid #e5e5ea;
         }
-        .suggest-item { padding: 15px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; cursor: pointer; }
+        .suggest-item { padding: 12px 16px; border-bottom: 1px solid #f2f2f7; display: flex; justify-content: space-between; align-items: center; }
+        .suggest-item b { font-size: 15px; }
+        .suggest-item i { font-style: normal; font-size: 11px; color: #8e8e93; }
     </style>
 </head>
 <body>
 
     <div id="search-box">
-        <input type="text" id="search-input" placeholder="Поиск (BTC, Тенге, Сбер...)" autocomplete="off">
+        <input type="text" id="search-input" placeholder="Поиск (Сбер, Apple, BTC, Тенге...)" autocomplete="off">
         <div id="suggestions"></div>
     </div>
 
     <div id="header-row">
-        <div id="pair-info"><span id="pair-title">BTC</span></div>
+        <div id="pair-title">BTC</div>
         <div id="currency-selector">
-            <button class="curr-btn active" data-curr="USDT">USDT</button>
-            <button class="curr-btn" data-curr="RUB">RUB</button>
+            <button class="curr-btn active" data-val="USDT">USDT</button>
+            <button class="curr-btn" data-val="USD">USD</button>
+            <button class="curr-btn" data-val="RUB">RUB</button>
         </div>
     </div>
 
@@ -99,7 +76,6 @@
             <button class="period-btn" data-range="1W" data-int="60">1Н</button>
             <button class="period-btn active" data-range="1M" data-int="240">1М</button>
             <button class="period-btn" data-range="3M" data-int="D">3М</button>
-            <button class="period-btn" data-range="6M" data-int="D">6М</button>
             <button class="period-btn" data-range="12M" data-int="W">1Г</button>
             <button class="period-btn" data-range="ALL" data-int="M">Все</button>
         </div>
@@ -110,33 +86,33 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let currentAsset = "BTC";
-        let quoteCurrency = "USDT";
+        let currentSymbol = "BINANCE:BTCUSDT";
+        let displayCurrency = "USDT";
         let currentRange = "1M";
         let currentInterval = "240";
 
-        const assetsBase = [
-            { id: 'BTC', n: 'Биткоин Bitcoin' },
-            { id: 'ETH', n: 'Эфириум Ethereum' },
-            { id: 'TON', n: 'Тонкоин Toncoin' },
-            { id: 'USD', n: 'Доллар США USA' },
-            { id: 'KZT', n: 'Тенге Казахстан' },
-            { id: 'SBER', n: 'Сбербанк Sber' },
-            { id: 'GOLD', n: 'Золото Gold' }
+        // База данных активов (Крипта, Мосбиржа, Мировые валюты)
+        const assets = [
+            { id: 'BTC', n: 'Bitcoin', s: 'BINANCE:BTCUSDT' },
+            { id: 'ETH', n: 'Ethereum', s: 'BINANCE:ETHUSDT' },
+            { id: 'TON', n: 'Toncoin', s: 'OKX:TONUSDT' },
+            { id: 'SBER', n: 'Сбербанк', s: 'MOEX:SBER' },
+            { id: 'GAZP', n: 'Газпром', s: 'MOEX:GAZP' },
+            { id: 'LKOH', n: 'Лукойл', s: 'MOEX:LKOH' },
+            { id: 'USD', n: 'Доллар США', s: 'FX_IDC:USDRUB' },
+            { id: 'EUR', n: 'Евро', s: 'FX_IDC:EURRUB' },
+            { id: 'KZT', n: 'Тенге (KZT)', s: 'FX_IDC:KZTRUB' },
+            { id: 'CNY', n: 'Юань (Китай)', s: 'FX_IDC:CNYRUB' },
+            { id: 'TRY', n: 'Лира (Турция)', s: 'FX_IDC:TRYRUB' },
+            { id: 'AAPL', n: 'Apple', s: 'NASDAQ:AAPL' },
+            { id: 'GOLD', n: 'Золото', s: 'OANDA:XAUUSD' }
         ];
-
-        function getSymbol() {
-            if (currentAsset === 'SBER') return `MOEX:SBER`;
-            if (currentAsset === 'GOLD') return quoteCurrency === 'RUB' ? 'MOEX:GLDRUB_TOM' : 'OANDA:XAUUSD';
-            if (['USD','KZT','RUB'].includes(currentAsset)) return `FX_IDC:${currentAsset}${quoteCurrency}`;
-            return `BINANCE:${currentAsset}${quoteCurrency}`;
-        }
 
         function createWidget() {
             document.getElementById('tv-chart').innerHTML = '';
             new TradingView.widget({
                 "autosize": true,
-                "symbol": getSymbol(),
+                "symbol": currentSymbol,
                 "interval": currentInterval,
                 "range": currentRange,
                 "theme": "light",
@@ -145,25 +121,26 @@
                 "container_id": "tv-chart",
                 "hide_top_toolbar": true,
                 "hide_legend": true,
+                "save_image": false,
                 "hide_side_toolbar": true,
+                "currency": displayCurrency, // Магия конвертации здесь
                 "backgroundColor": "#ffffff"
             });
         }
 
         createWidget();
 
-        // ОБРАБОТЧИКИ (ВАЛЮТА)
+        // Обработка кнопок валюты измерения (USDT / USD / RUB)
         document.querySelectorAll('.curr-btn').forEach(btn => {
-            btn.addEventListener('touchstart', function() { // Используем touchstart для скорости в Telegram
+            btn.addEventListener('touchstart', function(e) {
                 document.querySelectorAll('.curr-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                quoteCurrency = this.dataset.curr;
+                displayCurrency = this.dataset.val;
                 createWidget();
             });
-            btn.onclick = (e) => e.preventDefault(); 
         });
 
-        // ОБРАБОТЧИКИ (ПЕРИОДЫ)
+        // Периоды времени
         document.querySelectorAll('.period-btn').forEach(btn => {
             btn.addEventListener('touchstart', function() {
                 document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
@@ -172,23 +149,30 @@
                 currentInterval = this.dataset.int;
                 createWidget();
             });
-            btn.onclick = (e) => e.preventDefault();
         });
 
-        // ПОИСК
+        // Поиск на русском и по кодам
         const input = document.getElementById('search-input');
         const suggs = document.getElementById('suggestions');
+
         input.oninput = function() {
-            const val = this.value.toLowerCase().trim();
+            const val = this.value.toUpperCase().trim();
             suggs.innerHTML = '';
             if (!val) { suggs.style.display = 'none'; return; }
-            const filtered = assetsBase.filter(a => a.id.toLowerCase().includes(val) || a.n.toLowerCase().includes(val));
+
+            const filtered = assets.filter(a => a.id.includes(val) || a.n.toUpperCase().includes(val));
+            
+            // Если в базе нет, позволяем искать любой тикер напрямую
+            if (filtered.length === 0 && val.length > 2) {
+                filtered.push({ id: val, n: 'Прямой поиск тикера', s: val });
+            }
+
             filtered.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'suggest-item';
-                div.innerHTML = `<b>${item.id}</b><span>${item.n.split(' ')[0]}</span>`;
-                div.addEventListener('touchstart', (e) => {
-                    currentAsset = item.id;
+                div.innerHTML = `<b>${item.id}</b><i>${item.n}</i>`;
+                div.addEventListener('touchstart', () => {
+                    currentSymbol = item.s;
                     document.getElementById('pair-title').textContent = item.id;
                     createWidget();
                     suggs.style.display = 'none';
@@ -197,8 +181,13 @@
                 });
                 suggs.appendChild(div);
             });
-            suggs.style.display = filtered.length ? 'block' : 'none';
+            suggs.style.display = 'block';
         };
+
+        // Закрытие поиска при клике на график
+        document.addEventListener('touchstart', (e) => {
+            if (!document.getElementById('search-box').contains(e.target)) suggs.style.display = 'none';
+        });
     </script>
 </body>
 </html>
