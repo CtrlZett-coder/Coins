@@ -95,12 +95,13 @@
         updateUI(ticker.lastPrice, ticker.priceChangePercent, points);
     }
 
-    async function fetchMOEX() {
-        const isCur = (base === 'USD');
-        const ticker = isCur ? 'USDRUB_TOM' : base;
-        const engine = isCur ? 'currency' : 'stock';
-        const market = isCur ? 'selt' : 'shares';
-        
+async function fetchMOEX() {
+    const isCur = (base === 'USD');
+    const ticker = isCur ? 'USDRUB_TOM' : base;
+    const engine = isCur ? 'currency' : 'stock';
+    const market = isCur ? 'selt' : 'shares';
+    
+    try {
         const [tRes, cRes] = await Promise.all([
             fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}.json?iss.meta=off`),
             fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}/candles.json?interval=${mInterval}`)
@@ -109,13 +110,25 @@
         const tData = await tRes.json();
         const cData = await cRes.json();
         
-        const price = tData.marketdata.data[0][12] || tData.marketdata.data[0][2] || cData.candles.data[cData.candles.data.length - 1][1];
-        const lastClose = tData.securities.data[0][3];
-        const change = ((price - lastClose) / lastClose * 100);
+        // ПРОВЕРКА: Если свечи пришли, берем цену оттуда как запасную
+        let lastCandlePrice = 0;
+        if (cData.candles && cData.candles.data.length > 0) {
+            lastCandlePrice = cData.candles.data[cData.candles.data.length - 1][1];
+        }
+
+        // Берем живую цену, если её нет — цену последней свечи
+        const price = tData.marketdata.data[0][12] || tData.marketdata.data[0][2] || lastCandlePrice;
+        const lastClose = tData.securities.data[0][3] || lastCandlePrice;
+        const change = lastClose ? ((price - lastClose) / lastClose * 100) : 0;
+        
         const points = cData.candles.data.map(c => ({ t: new Date(c[6]).getTime(), y: c[1] }));
         
-        updateUI(price, change, points);
+        updateUI(price || "Торги закр.", change, points);
+    } catch (e) {
+        console.error("MOEX Error:", e);
+        document.getElementById('current-price').textContent = "Биржа отдыхает";
     }
+}
 
     function updateUI(price, change, points) {
         const p = parseFloat(price);
