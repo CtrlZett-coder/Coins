@@ -8,59 +8,38 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root {
-            --font-family: 'Inter', sans-serif;
-            --bg-color: #ffffff;
-        }
-        body {
-            margin: 0; padding: 20px;
-            background-color: var(--bg-color);
-            color: #000; font-family: var(--font-family);
-            display: flex; flex-direction: column;
-        }
-        #search-input {
-            width: 100%; padding: 12px; border-radius: 12px;
-            border: 1px solid #e0e0e0; font-size: 16px;
-            margin-bottom: 20px; outline: none; box-sizing: border-box;
-        }
-        #header { display: flex; align-items: center; margin-bottom: 10px; }
-        #coin-icon { width: 32px; height: 32px; margin-right: 10px; border-radius: 50%; }
-        #coin-name { font-size: 22px; font-weight: 700; }
-        #price-container { margin-bottom: 20px; }
-        #current-price { font-size: 32px; font-weight: 800; }
+        :root { --font-family: 'Inter', sans-serif; }
+        body { margin: 0; padding: 20px; background: #fff; color: #000; font-family: var(--font-family); }
+        #search-input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #eee; margin-bottom: 20px; outline: none; box-sizing: border-box; font-size: 16px; }
+        #header { display: flex; align-items: center; margin-bottom: 5px; }
+        #coin-icon { width: 30px; height: 30px; margin-right: 10px; border-radius: 50%; background: #f0f0f0; }
+        #coin-name { font-size: 20px; font-weight: 700; }
+        #price-container { margin-bottom: 15px; }
+        #current-price { font-size: 32px; font-weight: 800; display: block; }
         #price-change { font-size: 14px; font-weight: 600; }
-        #chart-container { width: 100%; height: 250px; margin-bottom: 20px; }
-        #periods {
-            display: flex; justify-content: space-between;
-            background: #f5f5f5; padding: 4px; border-radius: 12px; margin-bottom: 20px;
-        }
-        .period-btn {
-            background: none; border: none; color: #888;
-            padding: 8px 12px; border-radius: 10px;
-            font-size: 13px; font-weight: 600; cursor: pointer;
-        }
+        #chart-container { width: 100%; height: 220px; margin-bottom: 20px; background: #fafafa; border-radius: 10px; }
+        #periods { display: flex; justify-content: space-between; background: #f5f5f5; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
+        .period-btn { background: none; border: none; color: #888; padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; flex: 1; }
         .period-btn.active { background: #000; color: #fff; }
-        #stats {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
-            background: #f9f9f9; padding: 15px; border-radius: 16px; border: 1px solid #eee;
-        }
-        .stat-label { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 4px; }
-        .stat-value { font-size: 16px; font-weight: 600; }
+        #stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f9f9f9; padding: 15px; border-radius: 15px; }
+        .stat-label { font-size: 10px; color: #999; text-transform: uppercase; margin-bottom: 4px; }
+        .stat-value { font-size: 15px; font-weight: 700; }
+        #error-msg { color: red; font-size: 12px; text-align: center; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
 
-    <input type="text" id="search-input" placeholder="Поиск (например, bitcoin)..." list="coins-list">
+    <input type="text" id="search-input" placeholder="Поиск монеты (id)..." list="coins-list">
     <datalist id="coins-list"></datalist>
 
     <div id="header">
-        <img id="coin-icon" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=">
+        <img id="coin-icon" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
         <span id="coin-name">Загрузка...</span>
     </div>
     
     <div id="price-container">
-        <div id="current-price">$0.00</div>
-        <div id="price-change">0.00%</div>
+        <span id="current-price">$0.00</span>
+        <span id="price-change">0.00%</span>
     </div>
 
     <div id="chart-container">
@@ -70,125 +49,109 @@
     <div id="periods">
         <button class="period-btn active" data-days="1">1D</button>
         <button class="period-btn" data-days="7">1W</button>
+        <button class="period-btn" data-days="30">1M</button>
         <button class="period-btn" data-days="90">3M</button>
-        <button class="period-btn" data-days="180">6M</button>
         <button class="period-btn" data-days="365">1Y</button>
         <button class="period-btn" data-days="max">ALL</button>
     </div>
 
     <div id="stats">
         <div class="stat-item">
-            <div class="stat-label">Пик за период</div>
+            <div class="stat-label">Пик</div>
             <div class="stat-value" id="peak-price">$0.00</div>
         </div>
         <div class="stat-item">
-            <div class="stat-label">Дата пика</div>
+            <div class="stat-label">Когда</div>
             <div class="stat-value" id="peak-date">---</div>
         </div>
     </div>
+    <div id="error-msg"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
-        tg.ready();
 
         let currentCoin = 'bitcoin';
         let currentDays = '1';
         let myChart = null;
 
-        const ctx = document.getElementById('mainChart').getContext('2d');
-
-        async function fetchTopCoins() {
-            try {
-                const res = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=150&page=1');
-                const coins = await res.json();
-                const list = document.getElementById('coins-list');
-                coins.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id;
-                    opt.textContent = c.name;
-                    list.appendChild(opt);
-                });
-            } catch (e) { console.error(e); }
+        async function apiCall(url) {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('Лимит API исчерпан. Подождите 1 мин.');
+            return res.json();
         }
 
-        async function loadCoinData() {
+        async function loadAll() {
+            document.getElementById('error-msg').style.display = 'none';
             try {
-                const infoRes = await fetch(`https://api.coingecko.com/api/v3/coins/${currentCoin}?localization=false&market_data=true`);
-                const coin = await infoRes.json();
+                // Данные монеты
+                const data = await apiCall(`https://api.coingecko.com/api/v3/coins/${currentCoin}?localization=false&market_data=true`);
+                document.getElementById('coin-icon').src = data.image.small;
+                document.getElementById('coin-name').textContent = data.name;
+                document.getElementById('current-price').textContent = `$${data.market_data.current_price.usd.toLocaleString()}`;
                 
-                document.getElementById('coin-icon').src = coin.image.small;
-                document.getElementById('coin-name').textContent = coin.name;
-                document.getElementById('current-price').textContent = `$${coin.market_data.current_price.usd.toLocaleString()}`;
-                
-                const change = coin.market_data.price_change_percentage_24h;
-                const changeEl = document.getElementById('price-change');
-                changeEl.textContent = `${change.toFixed(2)}%`;
-                changeEl.style.color = change >= 0 ? '#4caf50' : '#f44336';
+                const ch = data.market_data.price_change_percentage_24h;
+                document.getElementById('price-change').textContent = `${ch.toFixed(2)}%`;
+                document.getElementById('price-change').style.color = ch >= 0 ? 'green' : 'red';
 
-                const chartRes = await fetch(`https://api.coingecko.com/api/v3/coins/${currentCoin}/market_chart?vs_currency=usd&days=${currentDays}`);
-                const chartData = await chartRes.json();
-                updateChart(chartData.prices);
-            } catch (e) { console.error(e); }
+                // График
+                const chartData = await apiCall(`https://api.coingecko.com/api/v3/coins/${currentCoin}/market_chart?vs_currency=usd&days=${currentDays}`);
+                renderChart(chartData.prices);
+            } catch (err) {
+                document.getElementById('error-msg').textContent = err.message;
+                document.getElementById('error-msg').style.display = 'block';
+            }
         }
 
-        function updateChart(prices) {
+        function renderChart(prices) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
             const labels = prices.map(p => new Date(p[0]));
-            const data = prices.map(p => p[1]);
+            const values = prices.map(p => p[1]);
 
-            let maxP = Math.max(...data);
-            let maxIdx = data.indexOf(maxP);
-            document.getElementById('peak-price').textContent = `$${maxP.toLocaleString()}`;
-            document.getElementById('peak-date').textContent = labels[maxIdx].toLocaleDateString();
+            const maxPrice = Math.max(...values);
+            document.getElementById('peak-price').textContent = `$${maxPrice.toLocaleString()}`;
+            document.getElementById('peak-date').textContent = labels[values.indexOf(maxPrice)].toLocaleDateString();
 
             if (myChart) myChart.destroy();
-
-            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
-            gradient.addColorStop(0, 'rgba(0,0,0,0.05)');
-            gradient.addColorStop(1, 'rgba(255,255,255,0)');
-
             myChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        data: data,
+                        data: values,
                         borderColor: '#000',
                         borderWidth: 2,
-                        fill: true,
-                        backgroundColor: gradient,
                         pointRadius: 0,
+                        fill: true,
+                        backgroundColor: 'rgba(0,0,0,0.03)',
                         tension: 0.1
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { display: false },
-                        y: { position: 'right', grid: { display: false }, ticks: { font: { size: 10 } } }
-                    }
+                    plugins: { legend: false },
+                    scales: { x: { display: false }, y: { position: 'right', ticks: { size: 10 } } }
                 }
             });
         }
 
-        document.getElementById('search-input').addEventListener('change', (e) => {
-            currentCoin = e.target.value;
-            loadCoinData();
-            e.target.value = '';
-        });
-
+        // События
         document.getElementById('periods').addEventListener('click', (e) => {
             if (e.target.classList.contains('period-btn')) {
                 document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
                 e.target.classList.add('active');
                 currentDays = e.target.dataset.days;
-                loadCoinData();
+                loadAll();
             }
         });
 
-        window.onload = () => { fetchTopCoins(); loadCoinData(); };
+        document.getElementById('search-input').addEventListener('change', (e) => {
+            currentCoin = e.target.value.toLowerCase().trim();
+            loadAll();
+        });
+
+        window.onload = loadAll;
     </script>
 </body>
 </html>
