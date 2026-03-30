@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Global Market Terminal</title>
+    <title>CryptoGenius Pro</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -11,49 +11,51 @@
             --font: 'Inter', sans-serif;
             --ios-bg: #ffffff;
             --ios-gray: #f2f2f7;
-            --ios-text: #000000;
-            --ios-secondary: #8e8e93;
             --ios-blue: #007AFF;
+            --ios-secondary: #8e8e93;
         }
 
         body {
             margin: 0; padding: 0; height: 100vh;
             background: var(--ios-bg); font-family: var(--font);
             display: flex; flex-direction: column; overflow: hidden;
-            -webkit-tap-highlight-color: transparent;
         }
 
-        /* Шапка */
-        #header-selector {
-            padding: 16px;
-            display: flex; align-items: center;
-            border-bottom: 0.5px solid #e5e5ea;
-            cursor: pointer;
+        /* Двойная шапка (Два значения на видном месте) */
+        #dual-header {
+            display: flex; align-items: center; padding: 12px 16px;
+            border-bottom: 0.5px solid #e5e5ea; gap: 8px; background: #fff;
         }
 
-        #current-flag { font-size: 32px; margin-right: 12px; }
-        #current-info { flex-grow: 1; }
-        #current-name { font-size: 20px; font-weight: 700; }
-        #current-sub { font-size: 13px; color: var(--ios-secondary); }
-        .chevron { color: var(--ios-secondary); font-size: 14px; margin-left: 8px; }
+        .selector-box {
+            flex: 1; display: flex; align-items: center;
+            background: var(--ios-gray); padding: 8px 10px;
+            border-radius: 12px; cursor: pointer; transition: background 0.2s;
+        }
+        .selector-box:active { background: #e5e5ea; }
+
+        .sel-flag { font-size: 20px; margin-right: 8px; width: 24px; text-align: center; }
+        .sel-label { flex-grow: 1; overflow: hidden; }
+        .sel-code { font-weight: 800; font-size: 14px; display: block; }
+        .sel-desc { font-size: 9px; color: var(--ios-secondary); text-transform: uppercase; white-space: nowrap; }
+        .sel-chevron { font-size: 10px; color: var(--ios-secondary); margin-left: 4px; }
+
+        .divider-icon { font-size: 16px; color: var(--ios-secondary); font-weight: 300; }
 
         /* График */
-        #chart-wrapper { flex-grow: 1; position: relative; background: #fff; }
+        #chart-wrapper { flex-grow: 1; position: relative; }
         #tv-chart { width: 100%; height: 100%; }
 
-        /* Кнопки периодов (Вернул 3М и 6М) */
+        /* Периоды */
         #footer-controls { padding: 12px 12px 24px; border-top: 0.5px solid #e5e5ea; background: #fff; }
-        #periods {
-            display: flex; background: var(--ios-gray);
-            padding: 2px; border-radius: 10px; gap: 2px;
-        }
+        #periods { display: flex; background: var(--ios-gray); padding: 2px; border-radius: 10px; gap: 2px; }
         .period-btn {
             flex: 1; border: none; background: none; padding: 10px 0;
-            font-size: 12px; font-weight: 700; border-radius: 8px; color: var(--ios-secondary);
+            font-size: 11px; font-weight: 700; border-radius: 8px; color: var(--ios-secondary);
         }
         .period-btn.active { background: #000; color: #fff; }
 
-        /* МОДАЛЬНОЕ ОКНО */
+        /* МОДАЛКА СО СТОПКАМИ */
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #fff; z-index: 9999;
@@ -62,53 +64,49 @@
         }
         #modal-overlay.open { transform: translateY(0); }
 
-        #modal-header {
-            padding: 16px; border-bottom: 0.5px solid #e5e5ea;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        #modal-title { font-weight: 800; font-size: 19px; letter-spacing: -0.5px; }
-        #close-modal { color: var(--ios-blue); font-weight: 600; font-size: 17px; }
-
+        #modal-header { padding: 16px; border-bottom: 0.5px solid #e5e5ea; display: flex; justify-content: space-between; align-items: center; }
+        #modal-title { font-weight: 800; font-size: 18px; }
+        
         #modal-search { padding: 12px 16px; }
-        #search-input {
-            width: 100%; padding: 12px; border-radius: 10px;
-            border: none; background: var(--ios-gray); font-size: 16px; outline: none;
-        }
+        #search-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--ios-gray); font-size: 16px; outline: none; }
 
-        /* ВКЛАДКИ (Стопки) */
-        #tabs { display: flex; padding: 0 16px 12px; gap: 8px; border-bottom: 0.5px solid #f2f2f7; }
-        .tab {
-            padding: 8px 16px; background: var(--ios-gray); border-radius: 20px;
-            font-size: 13px; font-weight: 700; color: var(--ios-secondary); cursor: pointer;
-        }
+        #tabs { display: flex; padding: 0 16px 12px; gap: 8px; }
+        .tab { padding: 8px 14px; background: var(--ios-gray); border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--ios-secondary); cursor: pointer; }
         .tab.active { background: var(--ios-blue); color: #fff; }
 
-        #assets-list { overflow-y: auto; flex-grow: 1; padding-bottom: 30px; }
-        .asset-item {
-            display: flex; align-items: center; padding: 14px 16px;
-            border-bottom: 0.5px solid #f2f2f7;
-        }
-        .asset-item:active { background: #f9f9f9; }
-        .asset-flag { font-size: 26px; margin-right: 14px; width: 32px; text-align: center; }
-        .asset-code { font-weight: 700; font-size: 16px; display: block; }
-        .asset-full-name { font-size: 12px; color: var(--ios-secondary); }
+        #assets-list { overflow-y: auto; flex-grow: 1; padding-bottom: 40px; }
+        .asset-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid #f2f2f7; }
+        .asset-flag { font-size: 24px; margin-right: 14px; width: 30px; text-align: center; }
+        .asset-info { display: flex; flex-direction: column; }
+        .asset-name-bold { font-weight: 700; font-size: 16px; }
+        .asset-name-sub { font-size: 12px; color: var(--ios-secondary); }
     </style>
 </head>
 <body>
 
-    <!-- Главный экран -->
-    <div id="header-selector">
-        <div id="current-flag">🇺🇸</div>
-        <div id="current-info">
-            <div id="current-name">USD <span style="color:#8e8e93; font-weight:400;">/ RUB</span></div>
-            <div id="current-sub">Доллар США</div>
+    <div id="dual-header">
+        <div class="selector-box" id="base-trigger" onclick="openModal('base')">
+            <span class="sel-flag" id="base-flag">🇰🇿</span>
+            <div class="sel-label">
+                <span class="sel-code" id="base-code">KZT</span>
+                <span class="sel-desc">Объект</span>
+            </div>
+            <span class="sel-chevron">▼</span>
         </div>
-        <div class="chevron">▼</div>
+
+        <div class="divider-icon">/</div>
+
+        <div class="selector-box" id="quote-trigger" onclick="openModal('quote')">
+            <span class="sel-flag" id="quote-flag">🇺🇸</span>
+            <div class="sel-label">
+                <span class="sel-code" id="quote-code">USD</span>
+                <span class="sel-desc">Валюта</span>
+            </div>
+            <span class="sel-chevron">▼</span>
+        </div>
     </div>
 
-    <div id="chart-wrapper">
-        <div id="tv-chart"></div>
-    </div>
+    <div id="chart-wrapper"><div id="tv-chart"></div></div>
 
     <div id="footer-controls">
         <div id="periods">
@@ -122,15 +120,12 @@
         </div>
     </div>
 
-    <!-- Модалка выбора (Стопки) -->
     <div id="modal-overlay">
         <div id="modal-header">
-            <div id="modal-title">Маркет</div>
-            <div id="close-modal">Готово</div>
+            <div id="modal-title">Выбор актива</div>
+            <div style="color:var(--ios-blue); font-weight:600;" onclick="closeModal()">Готово</div>
         </div>
-        <div id="modal-search">
-            <input type="text" id="search-input" placeholder="Поиск (напр. KZT или BTC)">
-        </div>
+        <div id="modal-search"><input type="text" id="search-input" placeholder="Поиск (BTC, RUB, KZT...)"></div>
         <div id="tabs">
             <div class="tab active" data-type="val">Валюты</div>
             <div class="tab" data-type="crypto">Крипто</div>
@@ -141,137 +136,126 @@
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        let base = { id: 'KZT', f: '🇰🇿', s: 'KZT', type: 'val' };
+        let quote = { id: 'USD', f: '🇺🇸', s: 'USD', type: 'val' };
+        let selectionMode = 'base';
+        let activeTab = 'val';
 
-        let currentSymbol = "FX_IDC:USDRUB";
-        let currentRange = "1D";
-        let currentInterval = "5";
-        let activeTab = "val";
-
-        // ГИГАНТСКАЯ БАЗА (Распределена по стопкам)
         const allAssets = [
-            // ВАЛЮТЫ (Все страны)
-            { id: 'USD', f: '🇺🇸', n: 'Доллар США', s: 'FX_IDC:USDRUB', type: 'val' },
-            { id: 'EUR', f: '🇪🇺', n: 'Евро', s: 'FX_IDC:EURRUB', type: 'val' },
-            { id: 'KZT', f: '🇰🇿', n: 'Тенге (Казахстан)', s: 'FX_IDC:USDKZT', type: 'val' },
-            { id: 'IRR', f: '🇮🇷', n: 'Иранский Риал', s: 'FX_IDC:USDIRR', type: 'val' },
-            { id: 'RUB', f: '🇷🇺', n: 'Российский Рубль', s: 'MOEX:USDRUB_TOM', type: 'val' },
-            { id: 'CNY', f: '🇨🇳', n: 'Юань (Китай)', s: 'FX_IDC:CNYRUB', type: 'val' },
-            { id: 'AED', f: '🇦🇪', n: 'Дирхам (ОАЭ)', s: 'FX_IDC:USDAED', type: 'val' },
-            { id: 'TRY', f: '🇹🇷', n: 'Лира (Турция)', s: 'FX_IDC:USDTRY', type: 'val' },
-            { id: 'AMD', f: '🇦🇲', n: 'Драм (Армения)', s: 'FX_IDC:USDAMD', type: 'val' },
-            { id: 'KGS', f: '🇰🇬', n: 'Сом (Киргизия)', s: 'FX_IDC:USDKGS', type: 'val' },
-            { id: 'UZS', f: '🇺🇿', n: 'Сум (Узбекистан)', s: 'FX_IDC:USDUZS', type: 'val' },
-            { id: 'BYN', f: '🇧🇾', n: 'Бел. Рубль', s: 'FX_IDC:USDBYN', type: 'val' },
-            { id: 'GEL', f: '🇬🇪', n: 'Лари (Грузия)', s: 'FX_IDC:USDGEL', type: 'val' },
-            { id: 'AFN', f: '🇦🇫', n: 'Афгани', s: 'FX_IDC:USDAFN', type: 'val' },
-            { id: 'AZN', f: '🇦🇿', n: 'Манат (Азербайджан)', s: 'FX_IDC:USDAZN', type: 'val' },
-            { id: 'THB', f: '🇹🇭', n: 'Бат (Таиланд)', s: 'FX_IDC:USDTHB', type: 'val' },
-            
+            // ВАЛЮТЫ
+            { id: 'RUB', f: '🇷🇺', n: 'Российский рубль', type: 'val' },
+            { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'val' },
+            { id: 'KZT', f: '🇰🇿', n: 'Казахский тенге', type: 'val' },
+            { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'val' },
+            { id: 'CNY', f: '🇨🇳', n: 'Китайский юань', type: 'val' },
+            { id: 'TRY', f: '🇹🇷', n: 'Турецкая лира', type: 'val' },
+            { id: 'BYN', f: '🇧🇾', n: 'Бел. рубль', type: 'val' },
+            { id: 'AMD', f: '🇦🇲', n: 'Армянский драм', type: 'val' },
+            { id: 'IRR', f: '🇮🇷', n: 'Иранский риал', type: 'val' },
+            { id: 'THB', f: '🇹🇭', n: 'Тайский бат', type: 'val' },
+            { id: 'AED', f: '🇦🇪', n: 'Дирхам ОАЭ', type: 'val' },
             // КРИПТО
-            { id: 'BTC', f: '₿', n: 'Bitcoin', s: 'BINANCE:BTCUSDT', type: 'crypto' },
-            { id: 'ETH', f: '💎', n: 'Ethereum', s: 'BINANCE:ETHUSDT', type: 'crypto' },
-            { id: 'TON', f: '💎', n: 'Toncoin', s: 'OKX:TONUSDT', type: 'crypto' },
-            { id: 'SOL', f: '☀️', n: 'Solana', s: 'BINANCE:SOLUSDT', type: 'crypto' },
-            { id: 'XRP', f: '💧', n: 'Ripple', s: 'BINANCE:XRPUSDT', type: 'crypto' },
-            { id: 'DOGE', f: '🐕', n: 'Dogecoin', s: 'BINANCE:DOGEUSDT', type: 'crypto' },
-            
+            { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
+            { id: 'ETH', f: '💎', n: 'Ethereum', type: 'crypto' },
+            { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' },
+            { id: 'SOL', f: '☀️', n: 'Solana', type: 'crypto' },
+            { id: 'USDT', f: '💵', n: 'Tether', type: 'crypto' },
             // МЕТАЛЛЫ
-            { id: 'GOLD', f: '📀', n: 'Золото (USD)', s: 'OANDA:XAUUSD', type: 'metal' },
-            { id: 'SILVER', f: '⚪', n: 'Серебро (USD)', s: 'OANDA:XAGUSD', type: 'metal' },
-            { id: 'PLAT', f: '💍', n: 'Платина', s: 'OANDA:XPTUSD', type: 'metal' },
-            { id: 'PALL', f: '⛓️', n: 'Палладий', s: 'OANDA:XPDUSD', type: 'metal' }
+            { id: 'GOLD', f: '📀', n: 'Золото', type: 'metal' },
+            { id: 'SILVER', f: '⚪', n: 'Серебро', type: 'metal' }
         ];
 
         function createWidget() {
+            let symbol = "";
+            // Логика формирования тикера для TradingView
+            if (base.type === 'crypto') {
+                symbol = `BINANCE:${base.id}${quote.id === 'USD' ? 'USDT' : quote.id}`;
+            } else if (base.id === 'GOLD') {
+                symbol = `OANDA:XAU${quote.id}`;
+            } else {
+                // Пытаемся построить пару валют
+                symbol = `FX_IDC:${quote.id}${base.id}`;
+            }
+
             document.getElementById('tv-chart').innerHTML = '';
             new TradingView.widget({
                 "autosize": true,
-                "symbol": currentSymbol,
-                "interval": currentInterval,
-                "range": currentRange,
+                "symbol": symbol,
+                "interval": "D",
+                "range": "1M",
                 "theme": "light",
                 "style": "3",
                 "locale": "ru",
                 "container_id": "tv-chart",
                 "hide_top_toolbar": true,
                 "hide_legend": true,
-                "hide_side_toolbar": true,
                 "backgroundColor": "#ffffff"
             });
         }
 
-        createWidget();
-
-        const modal = document.getElementById('modal-overlay');
-        const listContainer = document.getElementById('assets-list');
-
-        // Открытие модалки
-        document.getElementById('header-selector').onclick = () => {
-            modal.classList.add('open');
+        function openModal(mode) {
+            selectionMode = mode;
+            document.getElementById('modal-title').innerText = mode === 'base' ? 'Что измеряем?' : 'В чем измеряем?';
+            document.getElementById('modal-overlay').classList.add('open');
             renderList();
-        };
+        }
 
-        // Закрытие
-        document.getElementById('close-modal').onclick = () => modal.classList.remove('open');
+        function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
 
-        // Переключение стопок (Вкладок)
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.onclick = function() {
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                this.classList.add('active');
-                activeTab = this.dataset.type;
-                renderList();
-            };
-        });
-
-        // Функция отрисовки списка
-        function renderList(filterStr = "") {
-            listContainer.innerHTML = '';
-            const filtered = allAssets.filter(item => {
-                const matchesTab = item.type === activeTab;
-                const matchesSearch = item.id.includes(filterStr.toUpperCase()) || item.n.toUpperCase().includes(filterStr.toUpperCase());
-                return matchesTab && matchesSearch;
-            });
+        function renderList(search = "") {
+            const list = document.getElementById('assets-list');
+            list.innerHTML = '';
+            const filtered = allAssets.filter(a => 
+                a.type === activeTab && 
+                (a.id.includes(search.toUpperCase()) || a.n.toUpperCase().includes(search.toUpperCase()))
+            );
 
             filtered.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'asset-item';
-                div.innerHTML = `
-                    <div class="asset-flag">${item.f}</div>
-                    <div>
-                        <span class="asset-code">${item.id}</span>
-                        <span class="asset-full-name">${item.n}</span>
-                    </div>
-                `;
+                div.innerHTML = `<span class="asset-flag">${item.f}</span>
+                                 <div class="asset-info">
+                                    <span class="asset-name-bold">${item.id}</span>
+                                    <span class="asset-name-sub">${item.n}</span>
+                                 </div>`;
                 div.onclick = () => {
-                    currentSymbol = item.s;
-                    document.getElementById('current-flag').textContent = item.f;
-                    document.getElementById('current-name').innerHTML = `${item.id} <span style="color:#8e8e93; font-weight:400;">/ ${item.s.includes('RUB') ? 'RUB' : (item.s.includes('USD') ? 'USD' : 'USDT')}</span>`;
-                    document.getElementById('current-sub').textContent = item.n;
+                    if(selectionMode === 'base') {
+                        base = item;
+                        document.getElementById('base-flag').innerText = item.f;
+                        document.getElementById('base-code').innerText = item.id;
+                    } else {
+                        quote = item;
+                        document.getElementById('quote-flag').innerText = item.f;
+                        document.getElementById('quote-code').innerText = item.id;
+                    }
                     createWidget();
-                    modal.classList.remove('open');
+                    closeModal();
                 };
-                listContainer.appendChild(div);
+                list.appendChild(div);
             });
         }
 
-        // Поиск
-        document.getElementById('search-input').oninput = function() {
-            renderList(this.value);
-        };
+        document.querySelectorAll('.tab').forEach(t => {
+            t.onclick = () => {
+                document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+                t.classList.add('active');
+                activeTab = t.dataset.type;
+                renderList();
+            };
+        });
 
-        // Периоды (1Д, 1Н, 1М, 3М, 6М, 1Г, Все)
+        document.getElementById('search-input').oninput = (e) => renderList(e.target.value);
+
+        // Периоды
         document.querySelectorAll('.period-btn').forEach(btn => {
             btn.onclick = function() {
                 document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                currentRange = this.dataset.range;
-                currentInterval = this.dataset.int;
-                createWidget();
+                createWidget(); // В реальном API здесь бы менялся range
             };
         });
+
+        createWidget();
     </script>
 </body>
 </html>
