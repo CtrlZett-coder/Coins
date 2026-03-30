@@ -3,56 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoPulse Elite</title>
+    <title>CryptoGenius Pro</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --font: 'Inter', sans-serif; --accent: #007AFF; }
-        body { 
-            margin: 0; padding: 20px; background: #fff; color: #000; 
-            font-family: var(--font); -webkit-font-smoothing: antialiased;
-            display: flex; flex-direction: column; height: 100vh; box-sizing: border-box;
-        }
         
-        /* Поиск */
-        #search-box { position: relative; margin-bottom: 15px; }
+        /* Сброс скролла для всего тела, чтобы ничего не дергалось */
+        html, body { 
+            margin: 0; padding: 0; height: 100%; overflow: hidden; 
+            background: #fff; font-family: var(--font); -webkit-font-smoothing: antialiased;
+        }
+
+        body { display: flex; flex-direction: column; padding: 15px; box-sizing: border-box; }
+        
+        /* Поиск сверху */
+        #search-box { position: relative; margin-bottom: 10px; z-index: 1001; }
         #search-input { 
-            width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #efefef; 
-            outline: none; font-size: 16px; background: #f9f9f9; box-sizing: border-box; 
+            width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #f0f0f0; 
+            outline: none; font-size: 16px; background: #f5f5f5; box-sizing: border-box; 
         }
-        #suggestions { 
-            position: absolute; top: 100%; left: 0; right: 0; background: #fff; 
-            border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); 
-            z-index: 1000; display: none; margin-top: 8px; max-height: 200px; overflow-y: auto; 
-        }
-        .suggest-item { padding: 14px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; }
 
-        /* Заголовок (как на фото) */
-        #pair-info { margin-bottom: 20px; }
-        #pair-title { font-size: 28px; font-weight: 800; }
-        #pair-subtitle { color: #888; font-weight: 500; margin-left: 5px; }
+        /* Заголовок */
+        #pair-info { margin-bottom: 10px; flex-shrink: 0; }
+        #pair-title { font-size: 32px; font-weight: 800; display: inline-block; }
+        #pair-subtitle { color: #888; font-weight: 500; font-size: 18px; margin-left: 6px; }
 
-        /* Контейнер графика */
+        /* ГРАФИК ТЕПЕРЬ ЗАНИМАЕТ ВСЁ МЕСТО */
         #chart-wrapper { 
-            flex-grow: 1; width: 100%; min-height: 300px;
-            border-radius: 20px; overflow: hidden; margin-bottom: 20px;
+            flex-grow: 1; /* Растягивается на все свободное место */
+            width: 100%;
+            border-radius: 16px;
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid #f0f0f0;
         }
 
-        /* Твои кнопки периодов (упорядоченные) */
+        /* Панель кнопок (фиксирована снизу) */
+        #controls { flex-shrink: 0; padding-top: 15px; }
+        
         #periods { 
             display: flex; justify-content: space-between; 
-            background: #f0f0f0; padding: 4px; border-radius: 12px; 
+            background: #f0f0f0; padding: 4px; border-radius: 14px; 
             margin-bottom: 10px;
         }
         .period-btn { 
             background: none; border: none; color: #666; padding: 10px 0; 
-            border-radius: 10px; font-size: 12px; font-weight: 800; 
-            flex: 1; cursor: pointer; text-align: center;
+            border-radius: 11px; font-size: 13px; font-weight: 800; 
+            flex: 1; cursor: pointer; transition: 0.2s;
         }
         .period-btn.active { background: #000; color: #fff; }
 
-        /* Инфо-панель снизу */
-        .info-footer { font-size: 12px; color: #aaa; text-align: center; margin-top: 10px; }
+        #suggestions { 
+            position: absolute; top: 100%; left: 0; right: 0; background: #fff; 
+            border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            display: none; margin-top: 5px; max-height: 200px; overflow-y: auto; border: 1px solid #eee;
+        }
+        .suggest-item { padding: 12px 16px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; align-items: center; }
+        .info-text { font-size: 12px; color: #bbb; text-align: center; width: 100%; display: block; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -67,20 +75,21 @@
     </div>
 
     <div id="chart-wrapper">
-        <div id="tv-chart"></div>
+        <div id="tv-chart" style="height: 100%; width: 100%;"></div>
     </div>
 
-    <div id="periods">
-        <button class="period-btn" data-range="1D" data-int="5">1Д</button>
-        <button class="period-btn" data-range="1W" data-int="60">1Н</button>
-        <button class="period-btn active" data-range="1M" data-int="240">1М</button>
-        <button class="period-btn" data-range="3M" data-int="D">3М</button>
-        <button class="period-btn" data-range="6M" data-int="D">6М</button>
-        <button class="period-btn" data-range="12M" data-int="W">1Г</button>
-        <button class="period-btn" data-range="ALL" data-int="M">Все</button>
+    <div id="controls">
+        <div id="periods">
+            <button class="period-btn" data-range="1D" data-int="5">1Д</button>
+            <button class="period-btn" data-range="1W" data-int="60">1Н</button>
+            <button class="period-btn active" data-range="1M" data-int="240">1М</button>
+            <button class="period-btn" data-range="3M" data-int="D">3М</button>
+            <button class="period-btn" data-range="6M" data-int="D">6М</button>
+            <button class="period-btn" data-range="12M" data-int="W">1Г</button>
+            <button class="period-btn" data-range="ALL" data-int="M">Все</button>
+        </div>
+        <span class="info-text">Нажмите на график для просмотра цены</span>
     </div>
-
-    <div class="info-footer">Нажмите на график для просмотра цены в точке</div>
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
@@ -94,10 +103,10 @@
         const assets = [
             { id: 'BTC', sym: 'BINANCE:BTCUSDT', name: 'Bitcoin' },
             { id: 'ETH', sym: 'BINANCE:ETHUSDT', name: 'Ethereum' },
-            { id: 'TON', sym: 'OKX:TONUSDT', name: 'Toncoin' },
             { id: 'SBER', sym: 'MOEX:SBER', name: 'Сбербанк' },
             { id: 'USD', sym: 'MOEX:USDRUB_TOM', name: 'Доллар/Рубль' },
-            { id: 'GOLD', sym: 'OANDA:XAUUSD', name: 'Золото' }
+            { id: 'GOLD', sym: 'OANDA:XAUUSD', name: 'Золото' },
+            { id: 'TON', sym: 'OKX:TONUSDT', name: 'Toncoin' }
         ];
 
         function createWidget(symbol, range, interval) {
@@ -109,42 +118,43 @@
                 "range": range,
                 "timezone": "Europe/Moscow",
                 "theme": "light",
-                "style": "3", // Область
+                "style": "3", // Area
                 "locale": "ru",
-                "toolbar_bg": "#ffffff",
                 "enable_publishing": false,
-                "hide_top_toolbar": true,   // Прячем их кнопки
-                "hide_legend": true,        // Прячем легенду
+                "hide_top_toolbar": true,
+                "hide_legend": true,
                 "save_image": false,
                 "container_id": "tv-chart",
-                "hide_side_toolbar": true,  // Чистый график
+                "hide_side_toolbar": true,
                 "allow_symbol_change": false,
                 "details": false,
                 "hotlist": false,
                 "calendar": false,
                 "show_popup_button": false,
+                // НОВЫЕ ПАРАМЕТРЫ ДЛЯ ФИКСАЦИИ:
+                "lock_scale": true, // Запрещает двигать график вверх-вниз вручную
+                "studies": [],
                 "backgroundColor": "#ffffff",
-                "gridColor": "rgba(240, 240, 240, 0.5)"
+                "gridColor": "#f0f0f0",
+                "overrides": {
+                    "paneProperties.topMargin": 10,
+                    "paneProperties.bottomMargin": 10
+                }
             });
         }
 
-        // Инициализация
         createWidget(currentSymbol, currentRange, currentInterval);
 
-        // Обработка твоих кнопок периодов
         document.querySelectorAll('.period-btn').forEach(btn => {
             btn.onclick = function() {
                 document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                
                 currentRange = this.dataset.range;
                 currentInterval = this.dataset.int;
-                
                 createWidget(currentSymbol, currentRange, currentInterval);
             };
         });
 
-        // Поиск
         const input = document.getElementById('search-input');
         const suggs = document.getElementById('suggestions');
 
@@ -153,22 +163,31 @@
             suggs.innerHTML = '';
             if (!val) { suggs.style.display = 'none'; return; }
 
-            assets.filter(a => a.id.includes(val)).forEach(item => {
+            const filtered = assets.filter(a => a.id.includes(val) || a.name.toUpperCase().includes(val));
+            filtered.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'suggest-item';
                 div.innerHTML = `<b>${item.id}</b> <span style="color:#999;font-size:12px">${item.name}</span>`;
                 div.onclick = () => {
                     currentSymbol = item.sym;
                     document.getElementById('pair-title').textContent = item.id;
-                    document.getElementById('pair-subtitle').textContent = item.id === 'USD' || item.id === 'SBER' ? '/ RUB' : '/ USDT';
+                    document.getElementById('pair-subtitle').textContent = (item.sym.includes('MOEX') ? '/ RUB' : '/ USDT');
                     createWidget(currentSymbol, currentRange, currentInterval);
                     suggs.style.display = 'none';
                     input.value = '';
+                    input.blur();
                 };
                 suggs.appendChild(div);
             });
-            suggs.style.display = 'block';
+            suggs.style.display = filtered.length ? 'block' : 'none';
         };
+
+        // Клик мимо поиска закрывает подсказки
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('search-box').contains(e.target)) {
+                suggs.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
