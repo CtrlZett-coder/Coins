@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoGenius Pro</title>
+    <title>CryptoGenius СНГ Pro</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -21,7 +21,7 @@
             display: flex; flex-direction: column; overflow: hidden;
         }
 
-        /* Двойная шапка (Два значения на видном месте) */
+        /* Шапка с двойным выбором */
         #dual-header {
             display: flex; align-items: center; padding: 12px 16px;
             border-bottom: 0.5px solid #e5e5ea; gap: 8px; background: #fff;
@@ -42,11 +42,11 @@
 
         .divider-icon { font-size: 16px; color: var(--ios-secondary); font-weight: 300; }
 
-        /* График */
+        /* Контейнер графика */
         #chart-wrapper { flex-grow: 1; position: relative; }
         #tv-chart { width: 100%; height: 100%; }
 
-        /* Периоды */
+        /* Подвал с периодами */
         #footer-controls { padding: 12px 12px 24px; border-top: 0.5px solid #e5e5ea; background: #fff; }
         #periods { display: flex; background: var(--ios-gray); padding: 2px; border-radius: 10px; gap: 2px; }
         .period-btn {
@@ -55,7 +55,7 @@
         }
         .period-btn.active { background: #000; color: #fff; }
 
-        /* МОДАЛКА СО СТОПКАМИ */
+        /* Модальное окно выбора */
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #fff; z-index: 9999;
@@ -63,29 +63,28 @@
             display: flex; flex-direction: column;
         }
         #modal-overlay.open { transform: translateY(0); }
-
         #modal-header { padding: 16px; border-bottom: 0.5px solid #e5e5ea; display: flex; justify-content: space-between; align-items: center; }
-        #modal-title { font-weight: 800; font-size: 18px; }
-        
+        #modal-title { font-weight: 800; font-size: 17px; }
         #modal-search { padding: 12px 16px; }
         #search-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--ios-gray); font-size: 16px; outline: none; }
-
-        #tabs { display: flex; padding: 0 16px 12px; gap: 8px; }
-        .tab { padding: 8px 14px; background: var(--ios-gray); border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--ios-secondary); cursor: pointer; }
+        
+        #tabs { display: flex; padding: 0 16px 12px; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        #tabs::-webkit-scrollbar { display: none; }
+        .tab { padding: 8px 14px; background: var(--ios-gray); border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--ios-secondary); cursor: pointer; white-space: nowrap; }
         .tab.active { background: var(--ios-blue); color: #fff; }
 
         #assets-list { overflow-y: auto; flex-grow: 1; padding-bottom: 40px; }
         .asset-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid #f2f2f7; }
         .asset-flag { font-size: 24px; margin-right: 14px; width: 30px; text-align: center; }
         .asset-info { display: flex; flex-direction: column; }
-        .asset-name-bold { font-weight: 700; font-size: 16px; }
-        .asset-name-sub { font-size: 12px; color: var(--ios-secondary); }
+        .asset-name-bold { font-weight: 700; font-size: 15px; }
+        .asset-name-sub { font-size: 11px; color: var(--ios-secondary); }
     </style>
 </head>
 <body>
 
     <div id="dual-header">
-        <div class="selector-box" id="base-trigger" onclick="openModal('base')">
+        <div class="selector-box" onclick="openModal('base')">
             <span class="sel-flag" id="base-flag">🇰🇿</span>
             <div class="sel-label">
                 <span class="sel-code" id="base-code">KZT</span>
@@ -93,10 +92,8 @@
             </div>
             <span class="sel-chevron">▼</span>
         </div>
-
         <div class="divider-icon">/</div>
-
-        <div class="selector-box" id="quote-trigger" onclick="openModal('quote')">
+        <div class="selector-box" onclick="openModal('quote')">
             <span class="sel-flag" id="quote-flag">🇺🇸</span>
             <div class="sel-label">
                 <span class="sel-code" id="quote-code">USD</span>
@@ -110,24 +107,24 @@
 
     <div id="footer-controls">
         <div id="periods">
-            <button class="period-btn active" data-range="1D" data-int="5">1Д</button>
-            <button class="period-btn" data-range="1W" data-int="60">1Н</button>
-            <button class="period-btn" data-range="1M" data-int="240">1М</button>
-            <button class="period-btn" data-range="3M" data-int="D">3М</button>
-            <button class="period-btn" data-range="6M" data-int="D">6М</button>
-            <button class="period-btn" data-range="12M" data-int="W">1Г</button>
-            <button class="period-btn" data-range="ALL" data-int="M">Все</button>
+            <button class="period-btn active" onclick="setRange('1M')">1М</button>
+            <button class="period-btn" onclick="setRange('3M')">3М</button>
+            <button class="period-btn" onclick="setRange('6M')">6М</button>
+            <button class="period-btn" onclick="setRange('12M')">1Г</button>
+            <button class="period-btn" onclick="setRange('60M')">5Л</button>
+            <button class="period-btn" onclick="setRange('ALL')">Все</button>
         </div>
     </div>
 
     <div id="modal-overlay">
         <div id="modal-header">
             <div id="modal-title">Выбор актива</div>
-            <div style="color:var(--ios-blue); font-weight:600;" onclick="closeModal()">Готово</div>
+            <div style="color:var(--ios-blue); font-weight:600; cursor:pointer;" onclick="closeModal()">Готово</div>
         </div>
-        <div id="modal-search"><input type="text" id="search-input" placeholder="Поиск (BTC, RUB, KZT...)"></div>
+        <div id="modal-search"><input type="text" id="search-input" placeholder="Поиск по СНГ и миру..."></div>
         <div id="tabs">
-            <div class="tab active" data-type="val">Валюты</div>
+            <div class="tab active" data-type="cis">СНГ</div>
+            <div class="tab" data-type="world">Мировые</div>
             <div class="tab" data-type="crypto">Крипто</div>
             <div class="tab" data-type="metal">Металлы</div>
         </div>
@@ -136,30 +133,37 @@
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
-        let base = { id: 'KZT', f: '🇰🇿', s: 'KZT', type: 'val' };
-        let quote = { id: 'USD', f: '🇺🇸', s: 'USD', type: 'val' };
+        let base = { id: 'KZT', f: '🇰🇿', type: 'cis' };
+        let quote = { id: 'USD', f: '🇺🇸', type: 'world' };
         let selectionMode = 'base';
-        let activeTab = 'val';
+        let activeTab = 'cis';
+        let currentRange = '1M';
 
         const allAssets = [
-            // ВАЛЮТЫ
-            { id: 'RUB', f: '🇷🇺', n: 'Российский рубль', type: 'val' },
-            { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'val' },
-            { id: 'KZT', f: '🇰🇿', n: 'Казахский тенге', type: 'val' },
-            { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'val' },
-            { id: 'CNY', f: '🇨🇳', n: 'Китайский юань', type: 'val' },
-            { id: 'TRY', f: '🇹🇷', n: 'Турецкая лира', type: 'val' },
-            { id: 'BYN', f: '🇧🇾', n: 'Бел. рубль', type: 'val' },
-            { id: 'AMD', f: '🇦🇲', n: 'Армянский драм', type: 'val' },
-            { id: 'IRR', f: '🇮🇷', n: 'Иранский риал', type: 'val' },
-            { id: 'THB', f: '🇹🇭', n: 'Тайский бат', type: 'val' },
-            { id: 'AED', f: '🇦🇪', n: 'Дирхам ОАЭ', type: 'val' },
+            // СНГ
+            { id: 'RUB', f: '🇷🇺', n: 'Российский рубль', type: 'cis' },
+            { id: 'KZT', f: '🇰🇿', n: 'Казахстанский тенге', type: 'cis' },
+            { id: 'BYN', f: '🇧🇾', n: 'Белорусский рубль', type: 'cis' },
+            { id: 'UZS', f: '🇺🇿', n: 'Узбекский сум', type: 'cis' },
+            { id: 'GEL', f: '🇬🇪', n: 'Грузинский лари', type: 'cis' },
+            { id: 'AMD', f: '🇦🇲', n: 'Армянский драм', type: 'cis' },
+            { id: 'KGS', f: '🇰🇬', n: 'Киргизский сом', type: 'cis' },
+            { id: 'AZN', f: '🇦🇿', n: 'Азербайджанский манат', type: 'cis' },
+            { id: 'TJS', f: '🇹🇯', n: 'Таджикский сомони', type: 'cis' },
+            { id: 'MDL', f: '🇲🇩', n: 'Молдавский лей', type: 'cis' },
+            { id: 'UAH', f: '🇺🇦', n: 'Украинская гривна', type: 'cis' },
+            // МИРОВЫЕ
+            { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'world' },
+            { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'world' },
+            { id: 'CNY', f: '🇨🇳', n: 'Китайский юань', type: 'world' },
+            { id: 'TRY', f: '🇹🇷', n: 'Турецкая лира', type: 'world' },
+            { id: 'AED', f: '🇦🇪', n: 'Дирхам ОАЭ', type: 'world' },
+            { id: 'GBP', f: '🇬🇧', n: 'Фунт стерлингов', type: 'world' },
             // КРИПТО
             { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
             { id: 'ETH', f: '💎', n: 'Ethereum', type: 'crypto' },
             { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' },
             { id: 'SOL', f: '☀️', n: 'Solana', type: 'crypto' },
-            { id: 'USDT', f: '💵', n: 'Tether', type: 'crypto' },
             // МЕТАЛЛЫ
             { id: 'GOLD', f: '📀', n: 'Золото', type: 'metal' },
             { id: 'SILVER', f: '⚪', n: 'Серебро', type: 'metal' }
@@ -167,14 +171,27 @@
 
         function createWidget() {
             let symbol = "";
-            // Логика формирования тикера для TradingView
+            
+            // 1. Умный движок тикеров
             if (base.type === 'crypto') {
                 symbol = `BINANCE:${base.id}${quote.id === 'USD' ? 'USDT' : quote.id}`;
             } else if (base.id === 'GOLD') {
                 symbol = `OANDA:XAU${quote.id}`;
+            } else if (base.id === 'SILVER') {
+                symbol = `OANDA:XAG${quote.id}`;
             } else {
-                // Пытаемся построить пару валют
-                symbol = `FX_IDC:${quote.id}${base.id}`;
+                // Если оба - валюты, проверяем наличие прямой пары или строим кросс-курс
+                if (quote.id === 'USD') {
+                    // Самый частый случай: RUB/USD, KZT/USD и т.д.
+                    symbol = `FX_IDC:USD${base.id}`; 
+                } else if (quote.id === 'RUB') {
+                    // Пары к рублю на MOEX самые ликвидные
+                    symbol = `MOEX:${base.id}RUB_TOM`;
+                } else {
+                    // КРОСС-КУРС (Магия исправления "Нет инструмента")
+                    // Формула: (USD/Base) / (USD/Quote) = Quote/Base
+                    symbol = `FX_IDC:USD${base.id}/FX_IDC:USD${quote.id}`;
+                }
             }
 
             document.getElementById('tv-chart').innerHTML = '';
@@ -182,20 +199,34 @@
                 "autosize": true,
                 "symbol": symbol,
                 "interval": "D",
-                "range": "1M",
+                "timezone": "Etc/UTC",
                 "theme": "light",
                 "style": "3",
                 "locale": "ru",
+                "range": currentRange,
                 "container_id": "tv-chart",
                 "hide_top_toolbar": true,
                 "hide_legend": true,
+                "save_image": false,
                 "backgroundColor": "#ffffff"
             });
         }
 
+        function setRange(r) {
+            currentRange = r;
+            document.querySelectorAll('.period-btn').forEach(b => {
+                b.classList.remove('active');
+                if(b.innerText.includes(r.replace('M','').replace('12','1Г').replace('60','5Л'))) b.classList.add('active');
+            });
+            // Переключаем активный класс вручную по тексту кнопки для простоты
+            event.target.parentElement.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            createWidget();
+        }
+
         function openModal(mode) {
             selectionMode = mode;
-            document.getElementById('modal-title').innerText = mode === 'base' ? 'Что измеряем?' : 'В чем измеряем?';
+            document.getElementById('modal-title').innerText = mode === 'base' ? 'Что анализируем?' : 'В какой валюте?';
             document.getElementById('modal-overlay').classList.add('open');
             renderList();
         }
@@ -240,21 +271,13 @@
                 document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
                 t.classList.add('active');
                 activeTab = t.dataset.type;
-                renderList();
+                renderList(document.getElementById('search-input').value);
             };
         });
 
         document.getElementById('search-input').oninput = (e) => renderList(e.target.value);
 
-        // Периоды
-        document.querySelectorAll('.period-btn').forEach(btn => {
-            btn.onclick = function() {
-                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                createWidget(); // В реальном API здесь бы менялся range
-            };
-        });
-
+        // Инициализация
         createWidget();
     </script>
 </body>
