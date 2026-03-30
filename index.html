@@ -3,110 +3,271 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoPulse Ultra</title>
+    <title>CryptoPulse Pro Max</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --font: 'Inter', sans-serif; --accent: #007AFF; }
-        body { margin: 0; padding: 15px; background: #fff; color: #000; font-family: var(--font); overflow: hidden; }
+        body { margin: 0; padding: 20px; background: #fff; color: #000; font-family: var(--font); -webkit-font-smoothing: antialiased; }
         
         /* Поиск */
-        #search-box { position: relative; margin-bottom: 15px; }
-        #search-input { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #eee; outline: none; font-size: 16px; background: #f5f5f5; transition: 0.3s; }
-        #search-input:focus { background: #fff; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(0,122,255,0.1); }
+        #search-box { position: relative; margin-bottom: 20px; }
+        #search-input { width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #efefef; outline: none; box-sizing: border-box; font-size: 16px; background: #f9f9f9; transition: 0.2s; }
+        #search-input:focus { background: #fff; border-color: var(--accent); }
         
-        #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); z-index: 1000; display: none; margin-top: 5px; max-height: 250px; overflow-y: auto; }
-        .suggest-item { padding: 12px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .suggest-item:active { background: #f9f9f9; }
-        .s-id { font-weight: 800; font-size: 15px; }
-        .s-name { font-size: 12px; color: #888; margin-left: 8px; }
+        #suggestions { 
+            position: absolute; top: 100%; left: 0; right: 0; 
+            background: #fff; border-radius: 16px; 
+            box-shadow: 0 15px 30px rgba(0,0,0,0.12); 
+            z-index: 1000; display: none; margin-top: 8px; 
+            max-height: 250px; overflow: hidden; overflow-y: auto;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .suggest-item { padding: 12px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; cursor: pointer; transition: 0.2s; }
+        .suggest-item:active { background-color: #f0f0f0; }
+        .suggest-name { font-weight: 600; }
+        .suggest-desc { font-size: 12px; color: #888; }
+
+        /* Заголовок и Цена */
+        #pair-display { font-size: 24px; font-weight: 800; margin-bottom: 5px; }
+        #current-price { font-size: 38px; font-weight: 900; letter-spacing: -1.5px; display: block; margin: 5px 0; }
+        #price-change { font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: inline-block; margin-bottom: 20px; }
         
-        /* Контейнер графика */
-        #chart-wrapper { width: 100%; height: calc(100vh - 100px); border-radius: 16px; overflow: hidden; border: 1px solid #eee; }
+        /* График */
+        #chart-container { width: 100%; height: 240px; margin-bottom: 20px; }
+        
+        /* Кнопки периодов */
+        #periods { display: flex; justify-content: space-between; background: #f0f0f0; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
+        .period-btn { background: none; border: none; color: #666; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 800; flex: 1; cursor: pointer; }
+        .period-btn.active { background: #000; color: #fff; }
+
+        /* Карточки статистики */
+        #stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-card { background: #f9f9f9; padding: 12px; border-radius: 14px; border: 1px solid #f0f0f0; }
+        .stat-label { font-size: 10px; color: #999; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+        .stat-value { font-size: 14px; font-weight: 700; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body>
 
     <div id="search-box">
-        <input type="text" id="search-input" placeholder="Поиск: BTC, SBER, USD, GOLD..." autocomplete="off">
+        <input type="text" id="search-input" placeholder="Поиск (BTC, SBER, USD)..." autocomplete="off">
         <div id="suggestions"></div>
     </div>
 
-    <div id="chart-wrapper">
-        <div id="tradingview_widget"></div>
+    <div id="pair-display">
+        <span id="base-asset">BTC</span> / <span id="quote-asset" style="color: #888;">USDT</span>
+    </div>
+    
+    <span id="current-price">Загрузка...</span>
+    <span id="price-change">0.00%</span>
+
+    <div id="chart-container">
+        <canvas id="mainChart"></canvas>
     </div>
 
-    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
-    <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+    <div id="periods">
+        <button class="period-btn active" data-binance="1h" data-moex="60">1D</button>
+        <button class="period-btn" data-binance="4h" data-moex="24">1W</button>
+        <button class="period-btn" data-binance="1d" data-moex="24">1M</button>
+        <button class="period-btn" data-binance="1d" data-moex="24">3M</button>
+        <button class="period-btn" data-binance="1w" data-moex="24">1Y</button>
+    </div>
 
-        // База активов (Symbol для TradingView)
-        const assets = [
-            { id: 'BTC', sym: 'BINANCE:BTCUSDT', name: 'Bitcoin', desc: 'Crypto' },
-            { id: 'ETH', sym: 'BINANCE:ETHUSDT', name: 'Ethereum', desc: 'Crypto' },
-            { id: 'TON', sym: 'OKX:TONUSDT', name: 'Toncoin', desc: 'Crypto' },
-            { id: 'SBER', sym: 'MOEX:SBER', name: 'Сбербанк', desc: 'Акция РФ' },
-            { id: 'GAZP', sym: 'MOEX:GAZP', name: 'Газпром', desc: 'Акция РФ' },
-            { id: 'USD', sym: 'MOEX:USDRUB_TOM', name: 'Доллар/Рубль', desc: 'Валюта' },
-            { id: 'GOLD', sym: 'OANDA:XAUUSD', name: 'Золото', desc: 'Металл' },
-            { id: 'AAPL', sym: 'NASDAQ:AAPL', name: 'Apple', desc: 'Акция US' }
-        ];
+    <div id="stats">
+        <div class="stat-card">
+            <div class="stat-label">Источник</div>
+            <div class="stat-value" id="data-source">Binance</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Биржа</div>
+            <div class="stat-value" id="market-name">Crypto Market</div>
+        </div>
+    </div>
 
-        let currentSymbol = "BINANCE:BTCUSDT";
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-        function initChart(symbol) {
-            new TradingView.widget({
-                "autosize": true,
-                "symbol": symbol,
-                "interval": "D",
-                "timezone": "Europe/Moscow",
-                "theme": "light",
-                "style": "3", // Область (Area) - выглядит красиво и современно
-                "locale": "ru",
-                "toolbar_bg": "#f1f3f6",
-                "enable_publishing": false,
-                "hide_top_toolbar": false,
-                "hide_legend": false,
-                "save_image": false,
-                "container_id": "tradingview_widget"
-            });
+    const assets = [
+        { id: 'BTC', name: 'Bitcoin', type: 'crypto', country: '' },
+        { id: 'ETH', name: 'Ethereum', type: 'crypto', country: '' },
+        { id: 'SBER', name: 'Сбербанк', type: 'moex', country: 'Россия Russia' },
+        { id: 'GAZP', name: 'Газпром', type: 'moex', country: 'Россия Russia' },
+        { id: 'USD', name: 'Доллар США', type: 'moex', country: 'США USA America' },
+        { id: 'EUR', name: 'Евро', type: 'moex', country: 'Европа Europe' },
+        { id: 'TON', name: 'Toncoin', type: 'crypto', country: '' },
+        { id: 'SOL', name: 'Solana', type: 'crypto', country: '' }
+    ];
+
+    let base = 'BTC', quote = 'USDT', mode = 'crypto', myChart = null;
+    let bInterval = '1h', mInterval = '60';
+
+    // 1. Инициализация кнопок периодов
+    document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            bInterval = this.dataset.binance;
+            mInterval = this.dataset.moex;
+            fetchData();
+        });
+    });
+
+    // 2. Главная функция загрузки
+    async function fetchData() {
+        document.getElementById('current-price').textContent = "Загрузка...";
+        try {
+            if (mode === 'crypto') await fetchBinance();
+            else await fetchMOEX();
+        } catch (e) {
+            document.getElementById('current-price').textContent = "Ошибка сети";
+        }
+    }
+
+    // 3. API Binance
+    async function fetchBinance() {
+        const symbol = base + quote;
+        const [tRes, cRes] = await Promise.all([
+            fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`),
+            fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${bInterval}&limit=60`)
+        ]);
+        const ticker = await tRes.json();
+        const klines = await cRes.json();
+        const points = klines.map(k => ({ t: k[0], y: parseFloat(k[4]) }));
+        updateUI(ticker.lastPrice, ticker.priceChangePercent, points);
+    }
+
+    // 4. API MOEX (с защитой от выходных)
+    async function fetchMOEX() {
+        const isCur = (base === 'USD' || base === 'EUR');
+        const ticker = isCur ? (base + 'RUB_TOM') : base;
+        const engine = isCur ? 'currency' : 'stock';
+        const market = isCur ? 'selt' : 'shares';
+        
+        const [tRes, cRes] = await Promise.all([
+            fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}.json?iss.meta=off`),
+            fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}/candles.json?interval=${mInterval}`)
+        ]);
+        
+        const tData = await tRes.json();
+        const cData = await cRes.json();
+        
+        // Берем последнюю свечу как запасную цену
+        let lastCandlePrice = 0;
+        if (cData.candles && cData.candles.data.length > 0) {
+            lastCandlePrice = cData.candles.data[cData.candles.data.length - 1][1];
         }
 
-        // Инициализация при запуске
-        initChart(currentSymbol);
+        // Пытаемся найти живую цену в разных полях MOEX
+        const mData = tData.marketdata.data[0];
+        const price = mData[12] || mData[2] || lastCandlePrice;
+        const lastClose = tData.securities.data[0][3] || lastCandlePrice;
+        const change = lastClose ? ((price - lastClose) / lastClose * 100) : 0;
+        
+        const points = cData.candles.data.map(c => ({ t: new Date(c[6]).getTime(), y: c[1] }));
+        
+        updateUI(price || "Торги закр.", change, points);
+    }
 
-        // Логика поиска
-        const input = document.getElementById('search-input');
-        const suggs = document.getElementById('suggestions');
+    // 5. Обновление интерфейса
+    function updateUI(price, change, points) {
+        const p = parseFloat(price);
+        document.getElementById('current-price').textContent = isNaN(p) ? price : p.toLocaleString(undefined, {minimumFractionDigits: 2});
+        
+        const el = document.getElementById('price-change');
+        const c = parseFloat(change);
+        el.textContent = (c >= 0 ? '+' : '') + c.toFixed(2) + '%';
+        el.style.color = c >= 0 ? '#2E7D32' : '#C62828';
+        el.style.background = c >= 0 ? '#E8F5E9' : '#FFEBEE';
+        
+        renderChart(points);
+    }
 
-        input.addEventListener('input', (e) => {
-            const val = e.target.value.toUpperCase();
-            suggs.innerHTML = '';
-            if (!val) { suggs.style.display = 'none'; return; }
+    // 6. Отрисовка графика
+    function renderChart(points) {
+        const ctx = document.getElementById('mainChart').getContext('2d');
+        if (myChart) myChart.destroy();
 
-            const filtered = assets.filter(a => a.id.includes(val) || a.name.toUpperCase().includes(val));
-            
-            filtered.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'suggest-item';
-                div.innerHTML = `<div><span class="s-id">${item.id}</span><span class="s-name">${item.name}</span></div><span style="font-size:10px; color:#aaa">${item.desc}</span>`;
-                div.onclick = () => {
-                    initChart(item.sym);
-                    suggs.style.display = 'none';
-                    input.value = '';
-                };
-                suggs.appendChild(div);
-            });
-            suggs.style.display = filtered.length ? 'block' : 'none';
-        });
+        const gradient = ctx.createLinearGradient(0, 0, 0, 240);
+        gradient.addColorStop(0, 'rgba(0,122,255,0.1)');
+        gradient.addColorStop(1, 'rgba(255,255,255,0)');
 
-        // Закрытие поиска при клике вне
-        document.addEventListener('click', (e) => {
-            if (!document.getElementById('search-box').contains(e.target)) {
-                suggs.style.display = 'none';
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: points.map(p => p.t),
+                datasets: [{
+                    data: points.map(p => p.y),
+                    borderColor: '#000',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.1,
+                    fill: true,
+                    backgroundColor: gradient
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: false },
+                scales: { 
+                    x: { display: false }, 
+                    y: { position: 'right', grid: { color: '#f5f5f5' }, ticks: { font: { size: 10 } } } 
+                }
             }
         });
-    </script>
+    }
+
+    // 7. Поиск
+    const input = document.getElementById('search-input');
+    const suggs = document.getElementById('suggestions');
+
+    input.addEventListener('input', (e) => {
+        const v = e.target.value.toLowerCase().trim();
+        suggs.innerHTML = '';
+        if (!v) { suggs.style.display = 'none'; return; }
+
+        const found = assets.filter(a => a.id.toLowerCase().includes(v) || a.country.toLowerCase().includes(v) || a.name.toLowerCase().includes(v));
+        
+        found.forEach(item => {
+            const d = document.createElement('div');
+            d.className = 'suggest-item';
+            d.innerHTML = `
+                <div><div class="suggest-name">${item.id}</div><div class="suggest-desc">${item.name}</div></div>
+                <div class="suggest-desc">${item.type === 'crypto' ? 'Крипто' : 'MOEX'}</div>
+            `;
+            d.onclick = () => {
+                base = item.id;
+                mode = item.type;
+                quote = (mode === 'crypto' ? 'USDT' : 'RUB');
+                document.getElementById('base-asset').textContent = base;
+                document.getElementById('quote-asset').textContent = quote;
+                document.getElementById('data-source').textContent = (mode === 'crypto' ? 'Binance' : 'MOEX');
+                document.getElementById('market-name').textContent = (mode === 'crypto' ? 'Crypto Market' : 'Moscow Exchange');
+                suggs.style.display = 'none';
+                input.value = '';
+                fetchData();
+            };
+            suggs.appendChild(d);
+        });
+        suggs.style.display = found.length ? 'block' : 'none';
+    });
+
+    // Закрытие поиска при клике мимо
+    document.addEventListener('click', (e) => {
+        if (!document.getElementById('search-box').contains(e.target)) {
+            suggs.style.display = 'none';
+        }
+    });
+
+    window.onload = fetchData;
+</script>
 </body>
 </html>
