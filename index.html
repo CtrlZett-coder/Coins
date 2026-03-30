@@ -243,6 +243,15 @@
         });
 
         createWidget();
+        // Инициализация Telegram WebApp
+const tg = window.Telegram.WebApp;
+
+tg.ready(); // Сообщает Telegram, что приложение готово к отображению
+tg.expand(); // Разворачивает приложение на весь экран (убирает лишние отступы)
+
+// Устанавливаем цвета темы Telegram (опционально, для красоты)
+document.body.style.setProperty('--ios-bg', tg.themeParams.bg_color || '#ffffff');
+
     </script>
 </body>
 </html>
