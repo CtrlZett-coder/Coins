@@ -3,35 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoPulse Pro (Binance)</title>
+    <title>CryptoPulse Pro Max</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --font: 'Inter', sans-serif; }
+        :root { --font: 'Inter', sans-serif; --accent: #007AFF; }
         body { margin: 0; padding: 20px; background: #fff; color: #000; font-family: var(--font); -webkit-font-smoothing: antialiased; }
-        #search-input { width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #efefef; margin-bottom: 20px; outline: none; box-sizing: border-box; font-size: 16px; background: #f9f9f9; }
-        #header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        #coin-name { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
-        #price-container { margin-bottom: 20px; }
-        #current-price { font-size: 36px; font-weight: 900; display: block; letter-spacing: -1px; }
-        #price-change { font-size: 14px; font-weight: 700; padding: 4px 8px; border-radius: 6px; display: inline-block; margin-top: 5px; }
-        #chart-container { width: 100%; height: 250px; margin-bottom: 25px; }
-        #periods { display: flex; justify-content: space-between; background: #f0f0f0; padding: 4px; border-radius: 12px; margin-bottom: 25px; }
-        .period-btn { background: none; border: none; color: #666; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 800; cursor: pointer; flex: 1; transition: 0.2s; }
+        
+        /* Поиск с подсказками */
+        #search-box { position: relative; margin-bottom: 20px; }
+        #search-input { width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #efefef; outline: none; box-sizing: border-box; font-size: 16px; background: #f9f9f9; }
+        #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 200px; overflow-y: auto; display: none; border: 1px solid #eee; }
+        .suggest-item { padding: 12px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; cursor: pointer; }
+        .suggest-item:last-child { border: none; }
+        .suggest-name { font-weight: 600; }
+        .suggest-desc { font-size: 12px; color: #888; }
+
+        /* Интерактивный заголовок */
+        #pair-display { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; cursor: pointer; }
+        .asset-btn { font-size: 24px; font-weight: 800; border-bottom: 2px dashed #ccc; padding-bottom: 2px; transition: 0.2s; }
+        .asset-btn:active { color: var(--accent); border-color: var(--accent); }
+        .separator { font-size: 20px; color: #ccc; font-weight: 300; }
+
+        #current-price { font-size: 38px; font-weight: 900; letter-spacing: -1.5px; display: block; }
+        #price-change { font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: inline-block; margin-top: 5px; margin-bottom: 20px; }
+        
+        #chart-container { width: 100%; height: 240px; margin-bottom: 20px; }
+        
+        #periods { display: flex; justify-content: space-between; background: #f0f0f0; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
+        .period-btn { background: none; border: none; color: #666; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 800; flex: 1; }
         .period-btn.active { background: #000; color: #fff; }
-        #stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .stat-card { background: #f9f9f9; padding: 15px; border-radius: 16px; border: 1px solid #f0f0f0; }
-        .stat-label { font-size: 10px; color: #999; text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
-        .stat-value { font-size: 16px; font-weight: 700; }
+
+        #stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-card { background: #f9f9f9; padding: 12px; border-radius: 14px; border: 1px solid #f0f0f0; }
+        .stat-label { font-size: 10px; color: #999; text-transform: uppercase; font-weight: 700; margin-bottom: 4px; }
+        .stat-value { font-size: 15px; font-weight: 700; }
     </style>
 </head>
 <body>
 
-    <input type="text" id="search-input" placeholder="Введите тикер (например, ETH или SOL)">
+    <div id="search-box">
+        <input type="text" id="search-input" placeholder="Поиск (BTC, SBER, USD)..." autocomplete="off">
+        <div id="suggestions"></div>
+    </div>
 
-    <div id="header">
-        <span id="coin-name">BTC / USDT</span>
+    <div id="pair-display">
+        <span class="asset-btn" id="base-asset">BTC</span>
+        <span class="separator">/</span>
+        <span class="asset-btn" id="quote-asset">USDT</span>
     </div>
     
     <div id="price-container">
@@ -44,21 +64,21 @@
     </div>
 
     <div id="periods">
-        <button class="period-btn active" data-interval="1h" data-limit="24">1D</button>
-        <button class="period-btn" data-interval="4h" data-limit="42">1W</button>
-        <button class="period-btn" data-interval="1d" data-limit="30">1M</button>
-        <button class="period-btn" data-interval="1d" data-limit="90">3M</button>
-        <button class="period-btn" data-interval="1w" data-limit="52">1Y</button>
+        <button class="period-btn active" data-days="1">1D</button>
+        <button class="period-btn" data-days="7">1W</button>
+        <button class="period-btn" data-days="30">1M</button>
+        <button class="period-btn" data-days="90">3M</button>
+        <button class="period-btn" data-days="365">1Y</button>
     </div>
 
     <div id="stats">
         <div class="stat-card">
-            <div class="stat-label">Максимум</div>
-            <div class="stat-value" id="peak-price">0.00</div>
+            <div class="stat-label">Источник</div>
+            <div class="stat-value" id="data-source">Binance API</div>
         </div>
         <div class="stat-card">
-            <div class="stat-label">Минимум</div>
-            <div class="stat-value" id="low-price">0.00</div>
+            <div class="stat-label">Биржа</div>
+            <div class="stat-value" id="market-name">Crypto</div>
         </div>
     </div>
 
@@ -66,106 +86,149 @@
         const tg = window.Telegram.WebApp;
         tg.expand();
 
-        let symbol = 'BTCUSDT';
-        let interval = '1h';
-        let limit = '24';
+        let base = 'BTC';
+        let quote = 'USDT';
+        let mode = 'crypto'; // crypto или moex
         let myChart = null;
 
-        async function fetchData() {
-            try {
-                // Получаем текущую цену и 24ч изменение
-                const tickerRes = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
-                const ticker = await tickerRes.json();
-                
-                document.getElementById('coin-name').textContent = symbol.replace('USDT', ' / USDT');
-                document.getElementById('current-price').textContent = parseFloat(ticker.lastPrice).toLocaleString(undefined, {minimumFractionDigits: 2});
-                
-                const change = parseFloat(ticker.priceChangePercent);
-                const changeEl = document.getElementById('price-change');
-                changeEl.textContent = (change > 0 ? '+' : '') + change.toFixed(2) + '%';
-                changeEl.style.background = change >= 0 ? '#e8f5e9' : '#ffebee';
-                changeEl.style.color = change >= 0 ? '#2e7d32' : '#c62828';
+        // База данных для подсказок (упрощенно)
+        const assets = [
+            { id: 'BTC', name: 'Bitcoin', type: 'crypto', desc: 'Криптовалюта' },
+            { id: 'ETH', name: 'Ethereum', type: 'crypto', desc: 'Криптовалюта' },
+            { id: 'SBER', name: 'Сбербанк', type: 'moex', desc: 'Акция (MOEX)' },
+            { id: 'GAZP', name: 'Газпром', type: 'moex', desc: 'Акция (MOEX)' },
+            { id: 'USD', name: 'Доллар США', type: 'fiat', desc: '🇷🇺 RUB / USD' },
+            { id: 'EUR', name: 'Евро', type: 'fiat', desc: '🇷🇺 RUB / EUR' },
+            { id: 'TON', name: 'Toncoin', type: 'crypto', desc: 'Telegram Coin' },
+            { id: 'SOL', name: 'Solana', type: 'crypto', desc: 'Криптовалюта' }
+        ];
 
-                // Получаем данные для графика (Klines)
-                const chartRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`);
-                const klines = await chartRes.json();
-                renderChart(klines);
-            } catch (err) {
-                console.error("Ошибка Binance API:", err);
+        // Работа с поиском
+        const input = document.getElementById('search-input');
+        const suggBox = document.getElementById('suggestions');
+
+        input.addEventListener('input', (e) => {
+            const val = e.target.value.toUpperCase();
+            suggBox.innerHTML = '';
+            if (!val) { suggBox.style.display = 'none'; return; }
+
+            const filtered = assets.filter(a => a.id.includes(val) || a.name.toUpperCase().includes(val));
+            if (filtered.length > 0) {
+                filtered.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'suggest-item';
+                    div.innerHTML = `<div><div class="suggest-name">${item.id}</div><div class="suggest-desc">${item.name}</div></div><div class="suggest-desc">${item.desc}</div>`;
+                    div.onclick = () => selectAsset(item);
+                    suggBox.appendChild(div);
+                });
+                suggBox.style.display = 'block';
+            } else {
+                suggBox.style.display = 'none';
+            }
+        });
+
+        function selectAsset(item) {
+            if (item.type === 'moex' || item.id === 'USD' || item.id === 'EUR') {
+                base = item.id;
+                quote = 'RUB';
+                mode = 'moex';
+            } else {
+                base = item.id;
+                quote = 'USDT';
+                mode = 'crypto';
+            }
+            updateUI();
+            suggBox.style.display = 'none';
+            input.value = '';
+            fetchData();
+        }
+
+        function updateUI() {
+            document.getElementById('base-asset').textContent = base;
+            document.getElementById('quote-asset').textContent = quote;
+            document.getElementById('data-source').textContent = mode === 'moex' ? 'MOEX API' : 'Binance API';
+            document.getElementById('market-name').textContent = mode === 'moex' ? 'Moscow Exchange' : 'Crypto Market';
+        }
+
+        async function fetchData() {
+            if (mode === 'crypto') {
+                fetchBinance();
+            } else {
+                fetchMOEX();
             }
         }
 
-        function renderChart(klines) {
-            const ctx = document.getElementById('mainChart').getContext('2d');
+        async function fetchBinance() {
+            const symbol = base + quote;
+            try {
+                const res = await fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`);
+                const ticker = await res.json();
+                renderPrice(ticker.lastPrice, ticker.priceChangePercent);
+                
+                const chartRes = await fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=1h&limit=24`);
+                const klines = await chartRes.json();
+                renderChart(klines.map(k => ({ t: k[0], y: parseFloat(k[4]) })));
+            } catch (e) { console.error("Binance error", e); }
+        }
+
+        async function fetchMOEX() {
+            // Упрощенный запрос к MOEX (акции или валюты)
+            const engine = (base === 'USD' || base === 'EUR') ? 'currency' : 'stock';
+            const market = (base === 'USD' || base === 'EUR') ? 'selt' : 'shares';
+            const ticker = (base === 'USD' || base === 'EUR') ? (base + 'RUB_TOM') : base;
             
-            // Binance klines: [0]время открытия, [4]цена закрытия, [2]максимум, [3]минимум
-            const labels = klines.map(k => new Date(k[0]));
-            const prices = klines.map(k => parseFloat(k[4]));
-            const highs = klines.map(k => parseFloat(k[2]));
-            const lows = klines.map(k => parseFloat(k[3]));
+            try {
+                const res = await fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}.json?iss.meta=off`);
+                const data = await res.json();
+                const price = data.marketdata.data[0][12] || data.marketdata.data[0][2]; // Текущая цена
+                const prevPrice = data.securities.data[0][3];
+                const change = ((price - prevPrice) / prevPrice * 100);
+                
+                renderPrice(price, change);
+                
+                // Для графика MOEX возьмем свечи
+                const chartRes = await fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}/candles.json?from=2024-01-01&interval=60`);
+                const candles = await chartRes.json();
+                renderChart(candles.candles.data.map(c => ({ t: new Date(c[6]).getTime(), y: c[1] })));
+            } catch (e) { console.error("MOEX error", e); }
+        }
 
-            document.getElementById('peak-price').textContent = Math.max(...highs).toLocaleString();
-            document.getElementById('low-price').textContent = Math.min(...lows).toLocaleString();
+        function renderPrice(price, change) {
+            document.getElementById('current-price').textContent = parseFloat(price).toLocaleString();
+            const el = document.getElementById('price-change');
+            el.textContent = (change > 0 ? '+' : '') + parseFloat(change).toFixed(2) + '%';
+            el.style.background = change >= 0 ? '#E8F5E9' : '#FFEBEE';
+            el.style.color = change >= 0 ? '#2E7D32' : '#C62828';
+        }
 
+        function renderChart(dataPoints) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
             if (myChart) myChart.destroy();
-
-            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
-            gradient.addColorStop(0, 'rgba(0,0,0,0.06)');
-            gradient.addColorStop(1, 'rgba(255,255,255,0)');
-
+            
             myChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: dataPoints.map(d => d.t),
                     datasets: [{
-                        data: prices,
+                        data: dataPoints.map(d => d.y),
                         borderColor: '#000',
-                        borderWidth: 2.5,
+                        borderWidth: 2,
                         pointRadius: 0,
                         fill: true,
-                        backgroundColor: gradient,
-                        tension: 0.3
+                        backgroundColor: 'rgba(0,0,0,0.02)',
+                        tension: 0.2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: false, tooltip: { intersect: false, mode: 'index' } },
-                    scales: {
-                        x: { display: false },
-                        y: { position: 'right', grid: { color: '#f0f0f0' }, ticks: { font: { size: 10, weight: 'bold' } } }
-                    }
+                    plugins: { legend: false },
+                    scales: { x: { display: false }, y: { position: 'right', grid: { display: false } } }
                 }
             });
         }
 
-        // Поиск
-        document.getElementById('search-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                let input = e.target.value.toUpperCase().trim();
-                if (input) {
-                    // Если ввели просто BTC, превращаем в BTCUSDT
-                    symbol = input.includes('USDT') ? input : input + 'USDT';
-                    fetchData();
-                    e.target.blur();
-                }
-            }
-        });
-
-        // Периоды
-        document.getElementById('periods').addEventListener('click', (e) => {
-            if (e.target.classList.contains('period-btn')) {
-                document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                interval = e.target.dataset.interval;
-                limit = e.target.dataset.limit;
-                fetchData();
-            }
-        });
-
         window.onload = fetchData;
-        // Обновление цены каждые 5 секунд
-        setInterval(fetchData, 5000);
     </script>
 </body>
 </html>
