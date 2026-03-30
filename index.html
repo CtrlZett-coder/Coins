@@ -8,17 +8,15 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --font: 'Inter', sans-serif; --accent: #007AFF; }
+        :root { --font: 'Inter', sans-serif; }
         body { margin: 0; padding: 20px; background: #fff; color: #000; font-family: var(--font); -webkit-font-smoothing: antialiased; }
         #search-box { position: relative; margin-bottom: 20px; }
         #search-input { width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #efefef; outline: none; box-sizing: border-box; font-size: 16px; background: #f9f9f9; }
-        #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 200px; overflow-y: auto; display: none; border: 1px solid #eee; margin-top: 8px; animation: fadeIn 0.2s ease-out; }
+        #suggestions { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); z-index: 100; max-height: 200px; overflow-y: auto; display: none; border: 1px solid #eee; margin-top: 8px; }
         .suggest-item { padding: 12px; border-bottom: 1px solid #f5f5f5; display: flex; justify-content: space-between; cursor: pointer; }
         .suggest-name { font-weight: 600; }
-        .suggest-desc { font-size: 12px; color: #888; }
-        #pair-display { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-        .asset-btn { font-size: 24px; font-weight: 800; border-bottom: 2px dashed #ccc; }
-        #current-price { font-size: 38px; font-weight: 900; letter-spacing: -1.5px; display: block; margin: 10px 0; }
+        #pair-display { font-size: 24px; font-weight: 800; margin-bottom: 5px; }
+        #current-price { font-size: 38px; font-weight: 900; display: block; margin: 10px 0; }
         #price-change { font-size: 14px; font-weight: 700; padding: 4px 10px; border-radius: 8px; display: inline-block; margin-bottom: 20px; }
         #chart-container { width: 100%; height: 240px; margin-bottom: 20px; }
         #periods { display: flex; justify-content: space-between; background: #f0f0f0; padding: 4px; border-radius: 12px; margin-bottom: 20px; }
@@ -27,8 +25,7 @@
         #stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .stat-card { background: #f9f9f9; padding: 12px; border-radius: 14px; border: 1px solid #f0f0f0; }
         .stat-label { font-size: 10px; color: #999; text-transform: uppercase; font-weight: 700; }
-        .stat-value { font-size: 15px; font-weight: 700; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .stat-value { font-size: 14px; font-weight: 700; }
     </style>
 </head>
 <body>
@@ -36,108 +33,114 @@
         <input type="text" id="search-input" placeholder="Поиск (BTC, SBER, USD)...">
         <div id="suggestions"></div>
     </div>
-    <div id="pair-display"><span class="asset-btn" id="base-asset">BTC</span><span>/</span><span id="quote-asset">USDT</span></div>
+    <div id="pair-display"><span id="base-asset">BTC</span> / <span id="quote-asset" style="color: #888;">USDT</span></div>
     <span id="current-price">Загрузка...</span>
     <span id="price-change">0.00%</span>
     <div id="chart-container"><canvas id="mainChart"></canvas></div>
     <div id="periods">
-        <button class="period-btn active" data-days="1">1D</button>
-        <button class="period-btn" data-days="7">1W</button>
-        <button class="period-btn" data-days="30">1M</button>
-        <button class="period-btn" data-days="90">3M</button>
-        <button class="period-btn" data-days="365">1Y</button>
+        <button class="period-btn active" data-days="1" data-binance="1h" data-moex="60">1D</button>
+        <button class="period-btn" data-days="7" data-binance="4h" data-moex="24">1W</button>
+        <button class="period-btn" data-days="30" data-binance="1d" data-moex="24">1M</button>
+        <button class="period-btn" data-days="90" data-binance="1d" data-moex="24">3M</button>
+        <button class="period-btn" data-days="365" data-binance="1w" data-moex="24">1Y</button>
     </div>
     <div id="stats">
-        <div class="stat-card"><div class="stat-label">Источник</div><div class="stat-value" id="data-source">Binance API</div></div>
-        <div class="stat-card"><div class="stat-label">Биржа</div><div class="stat-value" id="market-name">Crypto</div></div>
+        <div class="stat-card"><div class="stat-label">Источник</div><div class="stat-value" id="data-source">Binance</div></div>
+        <div class="stat-card"><div class="stat-label">Биржа</div><div class="stat-value" id="market-name">Crypto Market</div></div>
     </div>
 
 <script>
     const assets = [
-        { id: 'BTC', name: 'Bitcoin', type: 'crypto', desc: '🪙 Крипто', country: '' },
-        { id: 'ETH', name: 'Ethereum', type: 'crypto', desc: '💎 Крипто', country: '' },
-        { id: 'SBER', name: 'Сбербанк', type: 'moex', desc: '🏦 Акция РФ', country: 'Россия Russia' },
-        { id: 'USD', name: 'Доллар', type: 'moex', desc: '🇺🇸 USD/RUB', country: 'США USA' },
-        { id: 'TON', name: 'Toncoin', type: 'crypto', desc: '💎 TON', country: '' }
+        { id: 'BTC', name: 'Bitcoin', type: 'crypto', country: '' },
+        { id: 'ETH', name: 'Ethereum', type: 'crypto', country: '' },
+        { id: 'SBER', name: 'Сбербанк', type: 'moex', country: 'Россия' },
+        { id: 'USD', name: 'Доллар', type: 'moex', country: 'США' },
+        { id: 'TON', name: 'Toncoin', type: 'crypto', country: '' }
     ];
 
-    let base = 'BTC', quote = 'USDT', mode = 'crypto', currentDays = 1, myChart = null;
+    let base = 'BTC', quote = 'USDT', mode = 'crypto', myChart = null;
+    let bInterval = '1h', mInterval = '60';
 
-    // Инициализация кнопок
+    // Обработка кликов по периодам
     document.querySelectorAll('.period-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
-            currentDays = parseInt(this.getAttribute('data-days'));
+            bInterval = this.dataset.binance;
+            mInterval = this.dataset.moex;
             fetchData();
         });
     });
 
     async function fetchData() {
+        document.getElementById('current-price').textContent = "Загрузка...";
         try {
             if (mode === 'crypto') await fetchBinance();
             else await fetchMOEX();
         } catch (e) {
-            document.getElementById('current-price').textContent = "Ошибка сети";
-            console.error(e);
+            document.getElementById('current-price').textContent = "Ошибка API";
         }
     }
 
     async function fetchBinance() {
         const symbol = base + quote;
-        const interval = currentDays <= 1 ? '1h' : '1d';
-        const [tickerRes, chartRes] = await Promise.all([
+        const [tRes, cRes] = await Promise.all([
             fetch(`https://api.binance.com/api/v3/ticker/24hr?symbol=${symbol}`),
-            fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=50`)
+            fetch(`https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${bInterval}&limit=50`)
         ]);
-        const ticker = await tickerRes.json();
-        const klines = await chartRes.json();
+        const ticker = await tRes.json();
+        const klines = await cRes.json();
+        const points = klines.map(k => ({ t: k[0], y: parseFloat(k[4]) }));
         
-        renderPrice(ticker.lastPrice, ticker.priceChangePercent);
-        renderChart(klines.map(k => ({ t: k[0], y: parseFloat(k[4]) })));
+        updateUI(ticker.lastPrice, ticker.priceChangePercent, points);
     }
 
     async function fetchMOEX() {
-        const isCurrency = base === 'USD';
-        const ticker = isCurrency ? 'USDRUB_TOM' : base;
-        const engine = isCurrency ? 'currency' : 'stock';
-        const market = isCurrency ? 'selt' : 'shares';
+        const isCur = (base === 'USD');
+        const ticker = isCur ? 'USDRUB_TOM' : base;
+        const engine = isCur ? 'currency' : 'stock';
+        const market = isCur ? 'selt' : 'shares';
         
-        const res = await fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}.json?iss.meta=off`);
-        const data = await res.json();
+        const [tRes, cRes] = await Promise.all([
+            fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}.json?iss.meta=off`),
+            fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}/candles.json?interval=${mInterval}`)
+        ]);
         
-        const price = data.marketdata.data[0][12] || data.marketdata.data[0][2];
-        const lastClose = data.securities.data[0][3];
+        const tData = await tRes.json();
+        const cData = await cRes.json();
+        
+        const price = tData.marketdata.data[0][12] || tData.marketdata.data[0][2] || cData.candles.data[cData.candles.data.length - 1][1];
+        const lastClose = tData.securities.data[0][3];
         const change = ((price - lastClose) / lastClose * 100);
+        const points = cData.candles.data.map(c => ({ t: new Date(c[6]).getTime(), y: c[1] }));
         
-        renderPrice(price, change);
-
-        const candleRes = await fetch(`https://iss.moex.com/iss/engines/${engine}/markets/${market}/securities/${ticker}/candles.json?interval=${currentDays <= 1 ? 60 : 24}`);
-        const candleData = await candleRes.json();
-        renderChart(candleData.candles.data.map(c => ({ t: new Date(c[6]).getTime(), y: c[1] })));
+        updateUI(price, change, points);
     }
 
-    function renderPrice(price, change) {
-        document.getElementById('current-price').textContent = parseFloat(price).toLocaleString();
+    function updateUI(price, change, points) {
+        const p = parseFloat(price);
+        document.getElementById('current-price').textContent = isNaN(p) ? price : p.toLocaleString();
         const el = document.getElementById('price-change');
-        el.textContent = (change >= 0 ? '+' : '') + parseFloat(change).toFixed(2) + '%';
-        el.style.color = change >= 0 ? '#2E7D32' : '#C62828';
-        el.style.background = change >= 0 ? '#E8F5E9' : '#FFEBEE';
+        const c = parseFloat(change);
+        el.textContent = (c >= 0 ? '+' : '') + c.toFixed(2) + '%';
+        el.style.color = c >= 0 ? '#2E7D32' : '#C62828';
+        el.style.background = c >= 0 ? '#E8F5E9' : '#FFEBEE';
+        renderChart(points);
     }
 
-    function renderChart(dataPoints) {
+    function renderChart(points) {
         const ctx = document.getElementById('mainChart').getContext('2d');
         if (myChart) myChart.destroy();
         myChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: dataPoints.map(d => d.t),
+                labels: points.map(p => p.t),
                 datasets: [{
-                    data: dataPoints.map(d => d.y),
+                    data: points.map(p => p.y),
                     borderColor: '#000',
                     borderWidth: 2,
                     pointRadius: 0,
-                    tension: 0.2,
+                    tension: 0.1,
                     fill: false
                 }]
             },
@@ -146,33 +149,30 @@
     }
 
     // Поиск
-    const searchInput = document.getElementById('search-input');
-    const suggestions = document.getElementById('suggestions');
-
-    searchInput.addEventListener('input', (e) => {
-        const val = e.target.value.toLowerCase();
-        suggestions.innerHTML = '';
-        if (!val) { suggestions.style.display = 'none'; return; }
-        
-        const filtered = assets.filter(a => a.id.toLowerCase().includes(val) || a.country.toLowerCase().includes(val));
-        filtered.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'suggest-item';
-            div.innerHTML = `<span><b>${item.id}</b> <small>${item.name}</small></span><span class="suggest-desc">${item.desc}</span>`;
-            div.onclick = () => {
-                base = item.id;
-                mode = item.type;
-                quote = mode === 'crypto' ? 'USDT' : 'RUB';
+    const input = document.getElementById('search-input');
+    const suggs = document.getElementById('suggestions');
+    input.addEventListener('input', (e) => {
+        const v = e.target.value.toLowerCase();
+        suggs.innerHTML = '';
+        if (!v) { suggs.style.display = 'none'; return; }
+        const found = assets.filter(a => a.id.toLowerCase().includes(v) || a.country.toLowerCase().includes(v));
+        found.forEach(item => {
+            const d = document.createElement('div');
+            d.className = 'suggest-item';
+            d.innerHTML = `<span class="suggest-name">${item.id}</span><span style="font-size:12px;color:#888">${item.name}</span>`;
+            d.onclick = () => {
+                base = item.id; mode = item.type;
+                quote = (mode === 'crypto' ? 'USDT' : 'RUB');
                 document.getElementById('base-asset').textContent = base;
                 document.getElementById('quote-asset').textContent = quote;
-                document.getElementById('data-source').textContent = mode === 'moex' ? 'MOEX API' : 'Binance API';
-                suggestions.style.display = 'none';
-                searchInput.value = '';
+                document.getElementById('data-source').textContent = (mode === 'crypto' ? 'Binance' : 'MOEX');
+                document.getElementById('market-name').textContent = (mode === 'crypto' ? 'Crypto Market' : 'Moscow Exchange');
+                suggs.style.display = 'none'; input.value = '';
                 fetchData();
             };
-            suggestions.appendChild(div);
+            suggs.appendChild(d);
         });
-        suggestions.style.display = filtered.length ? 'block' : 'none';
+        suggs.style.display = found.length ? 'block' : 'none';
     });
 
     window.onload = fetchData;
