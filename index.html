@@ -3,26 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoPulse Global</title>
+    <title>CryptoPulse Ultra-Pure</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root { --font: 'Inter', sans-serif; }
-        html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #fff; font-family: var(--font); }
+        html, body { 
+            margin: 0; padding: 0; height: 100%; overflow: hidden; 
+            background: #fff; font-family: var(--font); -webkit-user-select: none;
+        }
         body { display: flex; flex-direction: column; padding: 15px; box-sizing: border-box; }
         
-        /* Поиск */
-        #search-box { position: relative; margin-bottom: 10px; z-index: 2000; }
+        /* 1. ПОИСК - КЛИКАБЕЛЬНЫЙ */
+        #search-box { position: relative; margin-bottom: 10px; z-index: 3000; }
         #search-input { 
             width: 100%; padding: 14px; border-radius: 14px; border: 1px solid #eee; 
             outline: none; font-size: 16px; background: #f8f8f8; box-sizing: border-box; 
         }
 
-        /* Заголовок */
-        #header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        /* 2. ЗАГОЛОВОК И ВАЛЮТА - ВАЛЮТА КЛИКАБЕЛЬНА */
+        #header-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-bottom: 12px; z-index: 3000;
+        }
+        #pair-info { pointer-events: none; } /* Текст нельзя нажать */
         #pair-title { font-size: 28px; font-weight: 900; letter-spacing: -1px; }
         
-        /* Переключатель валюты */
         #currency-selector { display: flex; background: #f0f0f0; padding: 3px; border-radius: 10px; }
         .curr-btn { 
             border: none; background: none; font-size: 11px; font-weight: 800; 
@@ -30,33 +36,40 @@
         }
         .curr-btn.active { background: #fff; color: #000; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
-        /* График */
+        /* 3. ГРАФИК - ПОЛНОСТЬЮ ЗАБЛОКИРОВАН */
         #chart-wrapper { 
             flex-grow: 1; width: 100%; border-radius: 18px; 
             overflow: hidden; border: 1px solid #f0f0f0; position: relative;
         }
-        #chart-shield { position: absolute; top: 0; right: 0; bottom: 0; width: 45px; z-index: 1000; }
+        /* Глобальный щит поверх всего графика */
+        #global-chart-shield { 
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0; 
+            z-index: 2000; background: transparent; 
+        }
+        #tv-chart { width: 100%; height: 100%; }
 
-        /* Периоды */
-        #controls { flex-shrink: 0; padding-top: 15px; }
+        /* 4. ПЕРИОДЫ - КЛИКАБЕЛЬНЫЕ */
+        #controls { flex-shrink: 0; padding-top: 15px; z-index: 3000; }
         #periods { display: flex; justify-content: space-between; background: #f0f0f0; padding: 4px; border-radius: 14px; }
-        .period-btn { background: none; border: none; color: #666; padding: 10px 0; border-radius: 11px; font-size: 12px; font-weight: 800; flex: 1; }
+        .period-btn { 
+            background: none; border: none; color: #666; padding: 10px 0; 
+            border-radius: 11px; font-size: 12px; font-weight: 800; flex: 1; cursor: pointer;
+        }
         .period-btn.active { background: #000; color: #fff; }
 
         /* Подсказки поиска */
         #suggestions { 
             position: absolute; top: 100%; left: 0; right: 0; background: #fff; border-radius: 14px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: none; margin-top: 5px; max-height: 250px; overflow-y: auto; z-index: 2001;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: none; margin-top: 5px; 
+            max-height: 250px; overflow-y: auto; z-index: 3001; border: 1px solid #eee;
         }
         .suggest-item { padding: 14px; border-bottom: 1px solid #f9f9f9; display: flex; flex-direction: column; cursor: pointer; }
-        .suggest-item b { font-size: 15px; }
-        .suggest-item span { font-size: 11px; color: #999; }
     </style>
 </head>
 <body>
 
     <div id="search-box">
-        <input type="text" id="search-input" placeholder="Валюта, Акция или Крипта..." autocomplete="off">
+        <input type="text" id="search-input" placeholder="Поиск актива..." autocomplete="off">
         <div id="suggestions"></div>
     </div>
 
@@ -69,8 +82,8 @@
     </div>
 
     <div id="chart-wrapper">
-        <div id="tv-chart" style="height: 100%;"></div>
-        <div id="chart-shield"></div>
+        <div id="tv-chart"></div>
+        <div id="global-chart-shield"></div>
     </div>
 
     <div id="controls">
@@ -95,31 +108,16 @@
         let currentRange = "1M";
         let currentInterval = "240";
 
-        // Расширенная база популярных активов
         const assetsBase = [
-            { id: 'BTC', n: 'Bitcoin', ex: 'BINANCE' },
-            { id: 'ETH', n: 'Ethereum', ex: 'BINANCE' },
-            { id: 'TON', n: 'Toncoin', ex: 'OKX' },
-            { id: 'SBER', n: 'Сбербанк', ex: 'MOEX' },
-            { id: 'GAZP', n: 'Газпром', ex: 'MOEX' },
-            { id: 'LKOH', n: 'Лукойл', ex: 'MOEX' },
-            { id: 'USD', n: 'Доллар США', ex: 'FX_IDC' },
-            { id: 'EUR', n: 'Евро', ex: 'FX_IDC' },
-            { id: 'KZT', n: 'Тенге', ex: 'FX_IDC' },
-            { id: 'TRY', n: 'Лира', ex: 'FX_IDC' },
-            { id: 'GLDRUB', n: 'Золото (MOEX)', ex: 'MOEX' },
-            { id: 'IMOEX', n: 'Индекс Мосбиржи', ex: 'MOEX' }
+            { id: 'BTC', n: 'Bitcoin' }, { id: 'ETH', n: 'Ethereum' },
+            { id: 'TON', n: 'Toncoin' }, { id: 'SBER', n: 'Сбербанк' },
+            { id: 'GAZP', n: 'Газпром' }, { id: 'LKOH', n: 'Лукойл' },
+            { id: 'USD', n: 'Доллар США' }, { id: 'EUR', n: 'Евро' }
         ];
 
         function getSymbol() {
-            // Логика подбора тикера
-            if (currentAsset === 'SBER' || currentAsset === 'GAZP' || currentAsset === 'LKOH' || currentAsset === 'IMOEX') {
-                return `MOEX:${currentAsset}`;
-            }
-            if (currentAsset === 'USD' || currentAsset === 'EUR' || currentAsset === 'KZT' || currentAsset === 'TRY') {
-                return `FX_IDC:${currentAsset}${quoteCurrency}`;
-            }
-            // Крипта
+            if (['SBER','GAZP','LKOH'].includes(currentAsset)) return `MOEX:${currentAsset}`;
+            if (['USD','EUR'].includes(currentAsset)) return `FX_IDC:${currentAsset}${quoteCurrency}`;
             return `BINANCE:${currentAsset}${quoteCurrency}`;
         }
 
@@ -144,22 +142,14 @@
 
         createWidget();
 
-        // Поиск с авто-генерацией
+        // Логика поиска
         const input = document.getElementById('search-input');
         const suggs = document.getElementById('suggestions');
-
         input.oninput = function() {
             const val = this.value.toUpperCase();
             suggs.innerHTML = '';
-            if (val.length < 1) { suggs.style.display = 'none'; return; }
-
+            if (!val) { suggs.style.display = 'none'; return; }
             const filtered = assetsBase.filter(a => a.id.includes(val) || a.n.toUpperCase().includes(val));
-            
-            // Если в базе нет, даем возможность искать как кастомный тикер
-            if (filtered.length === 0 && val.length > 2) {
-                filtered.push({ id: val, n: 'Поиск по тикеру...', ex: 'BINANCE' });
-            }
-
             filtered.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'suggest-item';
@@ -170,28 +160,30 @@
                     createWidget();
                     suggs.style.display = 'none';
                     input.value = '';
+                    input.blur();
                 };
                 suggs.appendChild(div);
             });
-            suggs.style.display = 'block';
+            suggs.style.display = filtered.length ? 'block' : 'none';
         };
 
-        // Обработчики кнопок
+        // Кнопки валют
         document.querySelectorAll('.curr-btn').forEach(btn => {
-            btn.onclick = function() {
+            btn.onclick = () => {
                 document.querySelectorAll('.curr-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                quoteCurrency = this.dataset.curr;
+                btn.classList.add('active');
+                quoteCurrency = btn.dataset.curr;
                 createWidget();
             };
         });
 
+        // Кнопки периодов
         document.querySelectorAll('.period-btn').forEach(btn => {
-            btn.onclick = function() {
+            btn.onclick = () => {
                 document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                currentRange = this.dataset.range;
-                currentInterval = this.dataset.int;
+                btn.classList.add('active');
+                currentRange = btn.dataset.range;
+                currentInterval = btn.dataset.int;
                 createWidget();
             };
         });
