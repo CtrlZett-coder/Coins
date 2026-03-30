@@ -216,42 +216,126 @@
                 div.className = 'asset-item';
                 div.innerHTML = `<span class="asset-flag">${item.f}</span>
                                  <div class="asset-info"><span class="asset-name-bold">${item.id}</span><span class="asset-name-sub">${item.n}</span></div>`;
-                div.onclick = () => {
-                    if(selectionMode === 'base') {
-                        base = item;
-                        document.getElementById('base-flag').innerText = item.f;
-                        document.getElementById('base-code').innerText = item.id;
-                    } else {
-                        quote = item;
-                        document.getElementById('quote-flag').innerText = item.f;
-                        document.getElementById('quote-code').innerText = item.id;
-                    }
-                    createWidget();
-                    closeModal();
-                };
-                list.appendChild(div);
-            });
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
+
+    let base = { id: 'UAH', f: '🇺🇦', type: 'cis' };
+    let quote = { id: 'USD', f: '🇺🇸', type: 'world' };
+    let currentRange = '1D';
+    let currentInterval = '5';
+    let selectionMode = 'base';
+    let activeTab = 'cis';
+
+    const allAssets = [
+        { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
+        { id: 'RUB', f: '🇷🇺', n: 'Рубль', type: 'cis' },
+        { id: 'KZT', f: '🇰🇿', n: 'Тенге', type: 'cis' },
+        { id: 'BYN', f: '🇧🇾', n: 'Бел. рубль', type: 'cis' },
+        { id: 'UZS', f: '🇺🇿', n: 'Сум', type: 'cis' },
+        { id: 'KGS', f: '🇰🇬', n: 'Сом', type: 'cis' },
+        { id: 'AMD', f: '🇦🇲', n: 'Драм', type: 'cis' },
+        { id: 'GEL', f: '🇬🇪', n: 'Лари', type: 'cis' },
+        { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'world' },
+        { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'world' },
+        { id: 'CNY', f: '🇨🇳', n: 'Юань', type: 'world' },
+        { id: 'GBP', f: '🇬🇧', n: 'Фунт', type: 'world' },
+        { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
+        { id: 'ETH', f: '💎', n: 'Ethereum', type: 'crypto' },
+        { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' }
+    ];
+
+    function createWidget() {
+        let symbol = "";
+        if (base.type === 'crypto') {
+            symbol = `BINANCE:${base.id}${quote.id === 'USD' ? 'USDT' : quote.id}`;
+        } else {
+            symbol = `1/(FX_IDC:USD${base.id}/FX_IDC:USD${quote.id})`;
         }
 
-        document.querySelectorAll('.tab').forEach(t => {
-            t.onclick = () => {
-                document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-                t.classList.add('active');
-                activeTab = t.dataset.type;
-                renderList();
-            };
+        document.getElementById('tv-chart').innerHTML = '';
+        new TradingView.widget({
+            "autosize": true,
+            "symbol": symbol,
+            "interval": currentInterval,
+            "timezone": "Etc/UTC",
+            "theme": "light",
+            "style": "3",
+            "locale": "ru",
+            "container_id": "tv-chart",
+            "hide_top_toolbar": true,
+            "hide_legend": true,
+            "range": currentRange,
+            "backgroundColor": "#ffffff"
         });
+    }
 
+    // Обработка поиска
+    document.getElementById('search-input').addEventListener('input', (e) => {
+        renderList(e.target.value);
+    });
+
+    function setRange(range, interval) {
+        currentRange = range;
+        currentInterval = interval;
+        document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
         createWidget();
-        // Инициализация Telegram WebApp
-const tg = window.Telegram.WebApp;
+    }
 
-tg.ready(); // Сообщает Telegram, что приложение готово к отображению
-tg.expand(); // Разворачивает приложение на весь экран (убирает лишние отступы)
+    function openModal(mode) {
+        selectionMode = mode;
+        document.getElementById('modal-overlay').classList.add('open');
+        renderList();
+    }
 
-// Устанавливаем цвета темы Telegram (опционально, для красоты)
-document.body.style.setProperty('--ios-bg', tg.themeParams.bg_color || '#ffffff');
+    function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
 
-    </script>
+    function renderList(search = "") {
+        const list = document.getElementById('assets-list');
+        list.innerHTML = '';
+        const filtered = allAssets.filter(a => 
+            a.type === activeTab && 
+            (a.id.toUpperCase().includes(search.toUpperCase()) || a.n.toUpperCase().includes(search.toUpperCase()))
+        );
+        filtered.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'asset-item';
+            div.innerHTML = `<span class="asset-flag">${item.f}</span>
+                             <div class="asset-info"><span class="asset-name-bold">${item.id}</span><span class="asset-name-sub">${item.n}</span></div>`;
+            div.onclick = () => {
+                if(selectionMode === 'base') {
+                    base = item;
+                    document.getElementById('base-flag').innerText = item.f;
+                    document.getElementById('base-code').innerText = item.id;
+                } else {
+                    quote = item;
+                    document.getElementById('quote-flag').innerText = item.f;
+                    document.getElementById('quote-code').innerText = item.id;
+                }
+                createWidget();
+                closeModal();
+            };
+            list.appendChild(div);
+        });
+    }
+
+    document.querySelectorAll('.tab').forEach(t => {
+        t.onclick = () => {
+            document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+            t.classList.add('active');
+            activeTab = t.dataset.type;
+            renderList(document.getElementById('search-input').value);
+        };
+    });
+
+    // Запуск после полной загрузки страницы
+    window.onload = () => {
+        setTimeout(createWidget, 200);
+        document.body.style.backgroundColor = tg.themeParams.bg_color || '#ffffff';
+    };
+</script>
+
 </body>
 </html>
