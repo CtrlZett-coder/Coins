@@ -301,89 +301,69 @@
                     maxPrice = price;
                     maxTime = labels[index];
                 }
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.ready(); // Сообщаем TG, что мы готовы
+
+    let currentCoin = 'bitcoin';
+    let currentDays = '1';
+    let myChart = null;
+
+    // Инициализация при загрузке страницы
+    window.onload = async () => {
+        await fetchTopCoins();
+        await loadCoinData();
+    };
+
+    async function fetchTopCoins() {
+        try {
+            // Берем чуть больше монет для поиска
+            const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false');
+            const coins = await response.json();
+            const list = document.getElementById('coins-list');
+            list.innerHTML = '';
+            coins.forEach(coin => {
+                const option = document.createElement('option');
+                option.value = coin.id;
+                option.textContent = `${coin.name} (${coin.symbol.toUpperCase()})`;
+                list.appendChild(option);
             });
-            peakPriceDisplay.textContent = `$${maxPrice.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
-            peakDateDisplay.textContent = currentDays === '1' ? maxTime.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'}) : maxTime.toLocaleDateString('ru-RU');
+        } catch (e) { console.error('Ошибка списка:', e); }
+    }
 
-            // Создание градиента для заливки
-            const gradient = ctx.createLinearGradient(0, 0, 0, 250);
-            gradient.addColorStop(0, 'rgba(0, 0, 0, 0.1)'); // Светло-черный сверху
-            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)'); // Прозрачный снизу
+    async function loadCoinData() {
+        try {
+            // Добавляем индикатор загрузки (опционально)
+            document.getElementById('coin-name').textContent = 'Загрузка...';
 
-            if (myChart) {
-                myChart.destroy(); // Удаляем старый график
-            }
+            const infoRes = await fetch(`https://api.coingecko.com/api/v3/coins/${currentCoin}?localization=false&market_data=true`);
+            const coin = await infoRes.json();
+            
+            // Обновляем UI
+            document.getElementById('coin-icon').src = coin.image.small;
+            document.getElementById('coin-name').textContent = coin.name;
+            document.getElementById('current-price').textContent = `$${coin.market_data.current_price.usd.toLocaleString('en-US')}`;
+            
+            const change = coin.market_data.price_change_percentage_24h;
+            const changeEl = document.getElementById('price-change');
+            changeEl.textContent = `${change.toFixed(2)}%`;
+            changeEl.style.color = change >= 0 ? '#4caf50' : '#f44336';
 
-            myChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        data: data,
-                        borderColor: '#000000', // Черная линия
-                        borderWidth: 2,
-                        fill: true,
-                        backgroundColor: gradient, // Градиентная заливка
-                        pointRadius: 0, // Скрыть точки по умолчанию
-                        pointHoverRadius: 6, // Размер точки при наведении
-                        pointHoverBackgroundColor: '#000000',
-                        tension: 0.2 // Плавность линии
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false }, // Скрыть легенду
-                        tooltip: {
-                            mode: 'index',
-                            intersect: false,
-                            backgroundColor: '#000000',
-                            titleColor: '#ffffff',
-                            bodyColor: '#ffffff',
-                            callbacks: {
-                                label: (ctx) => `$${ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2})}`,
-                                title: (ctx) => {
-                                    const date = new Date(ctx[0].parsed.x);
-                                    return currentDays === '1' ? date.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'}) : date.toLocaleDateString('ru-RU');
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: { display: false }, // Скрыть ось X
-                        y: {
-                            display: true,
-                            position: 'right',
-                            grid: { display: false }, // Скрыть сетку
-                            ticks: {
-                                color: '#aaaaaa',
-                                font: { size: 10, family: var(--font-family) },
-                                callback: (value) => '$' + value.toLocaleString('en-US')
-                            }
-                        }
-                    },
-                    interaction: {
-                        intersect: false,
-                        mode: 'index',
-                    },
-                }
-            });
+            // График
+            const chartRes = await fetch(`https://api.coingecko.com/api/v3/coins/${currentCoin}/market_chart?vs_currency=usd&days=${currentDays}`);
+            const chartData = await chartRes.json();
+            updateChart(chartData.prices);
+            
+        } catch (e) { 
+            console.error('Ошибка данных:', e);
+            document.getElementById('coin-name').textContent = 'Ошибка API';
         }
+    }
 
-        // 4. ПЕРЕКЛЮЧЕНИЕ ПЕРИОДОВ
-        document.getElementById('periods').addEventListener('click', (e) => {
-            if (e.target.classList.contains('period-btn')) {
-                // Меняем активную кнопку
-                document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
-                e.target.classList.add('active');
+    // Остальные функции (updateChart и обработка кликов) остаются такими же
+    // Убедись, что в функции updateChart правильно указан ctx
+</script>
 
-                // Загружаем данные за новый период
-                currentDays = e.target.getAttribute('data-days');
-                loadCoinData();
-            }
-        });
-
-    </script>
 </body>
 </html>
