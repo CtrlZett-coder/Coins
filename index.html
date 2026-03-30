@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoGenius СНГ Pro</title>
+    <title>CryptoGenius Ultimate</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -90,9 +90,9 @@
         </div>
         <div class="divider-icon">/</div>
         <div class="selector-box" onclick="openModal('quote')">
-            <span class="sel-flag" id="quote-flag">🇪🇺</span>
+            <span class="sel-flag" id="quote-flag">🇺🇸</span>
             <div class="sel-label">
-                <span class="sel-code" id="quote-code">EUR</span>
+                <span class="sel-code" id="quote-code">USD</span>
                 <span class="sel-desc">Валюта</span>
             </div>
             <span class="sel-chevron">▼</span>
@@ -103,8 +103,8 @@
 
     <div id="footer-controls">
         <div id="periods">
-            <button class="period-btn" onclick="setRange('1D', '5')">1Д</button>
-            <button class="period-btn active" onclick="setRange('1M', 'D')">1М</button>
+            <button class="period-btn active" onclick="setRange('1D', '5')">1Д</button>
+            <button class="period-btn" onclick="setRange('1M', 'D')">1М</button>
             <button class="period-btn" onclick="setRange('3M', 'D')">3М</button>
             <button class="period-btn" onclick="setRange('6M', 'D')">6М</button>
             <button class="period-btn" onclick="setRange('12M', 'W')">1Г</button>
@@ -130,50 +130,44 @@
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
         let base = { id: 'UAH', f: '🇺🇦', type: 'cis' };
-        let quote = { id: 'EUR', f: '🇪🇺', type: 'world' };
+        let quote = { id: 'USD', f: '🇺🇸', type: 'world' };
         let selectionMode = 'base';
         let activeTab = 'cis';
-        let currentRange = '1M';
-        let currentInterval = 'D';
+        let currentRange = '1D';
+        let currentInterval = '5';
 
         const allAssets = [
-            { id: 'RUB', f: '🇷🇺', n: 'Российский рубль', type: 'cis' },
-            { id: 'KZT', f: '🇰🇿', n: 'Казахстанский тенге', type: 'cis' },
-            { id: 'UAH', f: '🇺🇦', n: 'Украинская гривна', type: 'cis' },
-            { id: 'BYN', f: '🇧🇾', n: 'Белорусский рубль', type: 'cis' },
-            { id: 'UZS', f: '🇺🇿', n: 'Узбекский сум', type: 'cis' },
-            { id: 'GEL', f: '🇬🇪', n: 'Грузинский лари', type: 'cis' },
-            { id: 'AMD', f: '🇦🇲', n: 'Армянский драм', type: 'cis' },
+            { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
+            { id: 'RUB', f: '🇷🇺', n: 'Рубль', type: 'cis' },
+            { id: 'KZT', f: '🇰🇿', n: 'Тенге', type: 'cis' },
+            { id: 'BYN', f: '🇧🇾', n: 'Бел. рубль', type: 'cis' },
+            { id: 'UZS', f: '🇺🇿', n: 'Сум', type: 'cis' },
+            { id: 'GEL', f: '🇬🇪', n: 'Лари', type: 'cis' },
+            { id: 'AMD', f: '🇦🇲', n: 'Драм', type: 'cis' },
+            { id: 'KGS', f: '🇰🇬', n: 'Сом', type: 'cis' },
             { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'world' },
             { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'world' },
-            { id: 'CNY', f: '🇨🇳', n: 'Китайский юань', type: 'world' },
+            { id: 'CNY', f: '🇨🇳', n: 'Юань', type: 'world' },
+            { id: 'GBP', f: '🇬🇧', n: 'Фунт', type: 'world' },
+            { id: 'TRY', f: '🇹🇷', n: 'Лира', type: 'world' },
             { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
             { id: 'ETH', f: '💎', n: 'Ethereum', type: 'crypto' },
             { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' },
-            { id: 'GOLD', f: '📀', n: 'Золото', type: 'metal' }
+            { id: 'XAU', f: '📀', n: 'Золото', type: 'metal' }
         ];
 
         function createWidget() {
             let symbol = "";
             
-            // Прямые проверки для избежания "кривых" делений
+            // Если измеряем крипту
             if (base.type === 'crypto') {
                 symbol = `BINANCE:${base.id}${quote.id === 'USD' ? 'USDT' : quote.id}`;
-            } else if (base.id === 'GOLD') {
-                symbol = `OANDA:XAU${quote.id}`;
-            } else {
-                // ЛОГИКА ДЛЯ ВАЛЮТ
-                if (quote.id === 'UAH' || base.id === 'UAH') {
-                    // Для гривны лучше всего работают прямые форекс-пары
-                    symbol = `FX_IDC:${quote.id}${base.id}`;
-                } else if (quote.id === 'RUB') {
-                    symbol = `MOEX:${base.id}RUB_TOM`;
-                } else if (quote.id === 'USD') {
-                    symbol = `FX_IDC:USD${base.id}`;
-                } else {
-                    // Жесткий кросс-курс: (Базовая к USD) / (Валюта к USD)
-                    symbol = `FX_IDC:USD${base.id}/FX_IDC:USD${quote.id}`;
-                }
+            } 
+            // Если работаем с фиатом (UAH, RUB и т.д.)
+            else {
+                // Принудительно строим пару Валюта/Объект для правильного отображения (как на видео)
+                // Пример: EURUAH, USDUAH
+                symbol = `FX_IDC:${quote.id}${base.id}`;
             }
 
             document.getElementById('tv-chart').innerHTML = '';
@@ -185,11 +179,13 @@
                 "theme": "light",
                 "style": "3",
                 "locale": "ru",
-                "range": currentRange,
-                "container_id": "tv-chart",
+                "toolbar_bg": "#f1f3f6",
+                "enable_publishing": false,
                 "hide_top_toolbar": true,
                 "hide_legend": true,
-                "backgroundColor": "#ffffff"
+                "save_image": false,
+                "container_id": "tv-chart",
+                "range": currentRange
             });
         }
 
