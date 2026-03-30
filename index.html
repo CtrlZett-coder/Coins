@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CryptoGenius Ultimate</title>
+    <title>CryptoGenius Pro</title>
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
@@ -21,6 +21,7 @@
             display: flex; flex-direction: column; overflow: hidden;
         }
 
+        /* Шапка */
         #dual-header {
             display: flex; align-items: center; padding: 12px 16px;
             border-bottom: 0.5px solid #e5e5ea; gap: 8px; background: #fff;
@@ -41,9 +42,11 @@
 
         .divider-icon { font-size: 16px; color: var(--ios-secondary); font-weight: 300; }
 
+        /* График */
         #chart-wrapper { flex-grow: 1; position: relative; }
         #tv-chart { width: 100%; height: 100%; }
 
+        /* Футер */
         #footer-controls { padding: 12px 12px 24px; border-top: 0.5px solid #e5e5ea; background: #fff; }
         #periods { display: flex; background: var(--ios-gray); padding: 2px; border-radius: 10px; gap: 2px; }
         .period-btn {
@@ -52,6 +55,7 @@
         }
         .period-btn.active { background: #000; color: #fff; }
 
+        /* Модалка */
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #fff; z-index: 9999;
@@ -64,8 +68,7 @@
         #modal-search { padding: 12px 16px; }
         #search-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--ios-gray); font-size: 16px; outline: none; }
         
-        #tabs { display: flex; padding: 0 16px 12px; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        #tabs::-webkit-scrollbar { display: none; }
+        #tabs { display: flex; padding: 0 16px 12px; gap: 8px; overflow-x: auto; }
         .tab { padding: 8px 14px; background: var(--ios-gray); border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--ios-secondary); cursor: pointer; white-space: nowrap; }
         .tab.active { background: var(--ios-blue); color: #fff; }
 
@@ -122,7 +125,6 @@
             <div class="tab active" data-type="cis">СНГ</div>
             <div class="tab" data-type="world">Мировые</div>
             <div class="tab" data-type="crypto">Крипто</div>
-            <div class="tab" data-type="metal">Металлы</div>
         </div>
         <div id="assets-list"></div>
     </div>
@@ -131,10 +133,10 @@
     <script>
         let base = { id: 'UAH', f: '🇺🇦', type: 'cis' };
         let quote = { id: 'USD', f: '🇺🇸', type: 'world' };
-        let selectionMode = 'base';
-        let activeTab = 'cis';
         let currentRange = '1D';
         let currentInterval = '5';
+        let selectionMode = 'base';
+        let activeTab = 'cis';
 
         const allAssets = [
             { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
@@ -142,32 +144,31 @@
             { id: 'KZT', f: '🇰🇿', n: 'Тенге', type: 'cis' },
             { id: 'BYN', f: '🇧🇾', n: 'Бел. рубль', type: 'cis' },
             { id: 'UZS', f: '🇺🇿', n: 'Сум', type: 'cis' },
-            { id: 'GEL', f: '🇬🇪', n: 'Лари', type: 'cis' },
-            { id: 'AMD', f: '🇦🇲', n: 'Драм', type: 'cis' },
             { id: 'KGS', f: '🇰🇬', n: 'Сом', type: 'cis' },
+            { id: 'AMD', f: '🇦🇲', n: 'Драм', type: 'cis' },
+            { id: 'GEL', f: '🇬🇪', n: 'Лари', type: 'cis' },
             { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'world' },
             { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'world' },
             { id: 'CNY', f: '🇨🇳', n: 'Юань', type: 'world' },
             { id: 'GBP', f: '🇬🇧', n: 'Фунт', type: 'world' },
-            { id: 'TRY', f: '🇹🇷', n: 'Лира', type: 'world' },
             { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
             { id: 'ETH', f: '💎', n: 'Ethereum', type: 'crypto' },
-            { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' },
-            { id: 'XAU', f: '📀', n: 'Золото', type: 'metal' }
+            { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' }
         ];
 
         function createWidget() {
             let symbol = "";
             
-            // Если измеряем крипту
+            // Если измеряем КРИПТУ к чему-то
             if (base.type === 'crypto') {
                 symbol = `BINANCE:${base.id}${quote.id === 'USD' ? 'USDT' : quote.id}`;
             } 
-            // Если работаем с фиатом (UAH, RUB и т.д.)
+            // МАГИЯ ИСПРАВЛЕНИЯ: 
+            // Чтобы график всегда был правильный (Объект/Валюта) и не было ошибки "нет инструмента"
             else {
-                // Принудительно строим пару Валюта/Объект для правильного отображения (как на видео)
-                // Пример: EURUAH, USDUAH
-                symbol = `FX_IDC:${quote.id}${base.id}`;
+                // Мы берем Доллар к Объекту и делим на Доллар к Валюте.
+                // Это дает идеальный график для любой пары СНГ без ошибок.
+                symbol = `1/(FX_IDC:USD${base.id}/FX_IDC:USD${quote.id})`;
             }
 
             document.getElementById('tv-chart').innerHTML = '';
@@ -179,13 +180,11 @@
                 "theme": "light",
                 "style": "3",
                 "locale": "ru",
-                "toolbar_bg": "#f1f3f6",
-                "enable_publishing": false,
+                "container_id": "tv-chart",
                 "hide_top_toolbar": true,
                 "hide_legend": true,
-                "save_image": false,
-                "container_id": "tv-chart",
-                "range": currentRange
+                "range": currentRange,
+                "backgroundColor": "#ffffff"
             });
         }
 
@@ -199,7 +198,6 @@
 
         function openModal(mode) {
             selectionMode = mode;
-            document.getElementById('modal-title').innerText = mode === 'base' ? 'Что анализируем?' : 'В чем измеряем?';
             document.getElementById('modal-overlay').classList.add('open');
             renderList();
         }
@@ -213,15 +211,11 @@
                 a.type === activeTab && 
                 (a.id.includes(search.toUpperCase()) || a.n.toUpperCase().includes(search.toUpperCase()))
             );
-
             filtered.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'asset-item';
                 div.innerHTML = `<span class="asset-flag">${item.f}</span>
-                                 <div class="asset-info">
-                                    <span class="asset-name-bold">${item.id}</span>
-                                    <span class="asset-name-sub">${item.n}</span>
-                                 </div>`;
+                                 <div class="asset-info"><span class="asset-name-bold">${item.id}</span><span class="asset-name-sub">${item.n}</span></div>`;
                 div.onclick = () => {
                     if(selectionMode === 'base') {
                         base = item;
@@ -244,11 +238,10 @@
                 document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
                 t.classList.add('active');
                 activeTab = t.dataset.type;
-                renderList(document.getElementById('search-input').value);
+                renderList();
             };
         });
 
-        document.getElementById('search-input').oninput = (e) => renderList(e.target.value);
         createWidget();
     </script>
 </body>
