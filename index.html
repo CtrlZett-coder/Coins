@@ -156,37 +156,52 @@
             { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' }
         ];
 
-        function createWidget() {
-            let symbol = "";
-            
-            // Если измеряем КРИПТУ к чему-то
-            if (base.type === 'crypto') {
-                symbol = `BINANCE:${base.id}${quote.id === 'USD' ? 'USDT' : quote.id}`;
-            } 
-            // МАГИЯ ИСПРАВЛЕНИЯ: 
-            // Чтобы график всегда был правильный (Объект/Валюта) и не было ошибки "нет инструмента"
-            else {
-                // Мы берем Доллар к Объекту и делим на Доллар к Валюте.
-                // Это дает идеальный график для любой пары СНГ без ошибок.
-                symbol = `1/(FX_IDC:USD${base.id}/FX_IDC:USD${quote.id})`;
-            }
+function createWidget() {
+    let symbol = "";
+    const b = base.id;
+    const q = quote.id;
 
-            document.getElementById('tv-chart').innerHTML = '';
-            new TradingView.widget({
-                "autosize": true,
-                "symbol": symbol,
-                "interval": currentInterval,
-                "timezone": "Etc/UTC",
-                "theme": "light",
-                "style": "3",
-                "locale": "ru",
-                "container_id": "tv-chart",
-                "hide_top_toolbar": true,
-                "hide_legend": true,
-                "range": currentRange,
-                "backgroundColor": "#ffffff"
-            });
-        }
+    // 1. Если выбраны одинаковые валюты
+    if (b === q) {
+        symbol = "1"; 
+    }
+    // 2. Если работаем с Криптой
+    else if (base.type === 'crypto') {
+        // BTC/USD -> BINANCE:BTCUSDT, BTC/RUB -> BINANCE:BTCRUB
+        symbol = `BINANCE:${b}${q === 'USD' ? 'USDT' : q}`;
+    }
+    // 3. Если Объект - Доллар (например, USD/RUB)
+    else if (b === 'USD') {
+        symbol = `FX_IDC:USD${q}`;
+    }
+    // 4. Если Валюта - Доллар (например, RUB/USD)
+    else if (q === 'USD') {
+        symbol = `1/FX_IDC:USD${b}`;
+    }
+    // 5. Кросс-курс для всех остальных (например, UAH/RUB)
+    else {
+        // Формула: (Курс Доллара к Валюте) / (Курс Доллара к Объекту)
+        symbol = `FX_IDC:USD${q}/FX_IDC:USD${b}`;
+    }
+
+    document.getElementById('tv-chart').innerHTML = '';
+    new TradingView.widget({
+        "autosize": true,
+        "symbol": symbol,
+        "interval": currentInterval,
+        "timezone": "Etc/UTC",
+        "theme": "light",
+        "style": "3", // Область (Area) - выглядит красивее для валют
+        "locale": "ru",
+        "container_id": "tv-chart",
+        "hide_top_toolbar": true,
+        "hide_legend": true,
+        "range": currentRange,
+        "save_image": false,
+        "backgroundColor": "#ffffff"
+    });
+}
+
 
         function setRange(range, interval) {
             currentRange = range;
