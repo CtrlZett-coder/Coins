@@ -144,7 +144,6 @@
             { id: 'KZT', f: '🇰🇿', n: 'Тенге', type: 'cis' },
             { id: 'BYN', f: '🇧🇾', n: 'Бел. рубль', type: 'cis' },
             { id: 'UZS', f: '🇺🇿', n: 'Сум', type: 'cis' },
-            { id: 'KGS', f: '🇰🇬', n: 'Сом', type: 'cis' },
             { id: 'AMD', f: '🇦🇲', n: 'Драм', type: 'cis' },
             { id: 'GEL', f: '🇬🇪', n: 'Лари', type: 'cis' },
             { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'world' },
@@ -156,58 +155,50 @@
             { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' }
         ];
 
-function createWidget() {
-    let symbol = "";
-    const b = base.id;
-    const q = quote.id;
+        function createWidget() {
+            let symbol = "";
+            const b = base.id;
+            const q = quote.id;
 
-    // 1. Если выбраны одинаковые валюты
-    if (b === q) {
-        symbol = "1"; 
-    }
-    // 2. Если работаем с Криптой
-    else if (base.type === 'crypto') {
-        // BTC/USD -> BINANCE:BTCUSDT, BTC/RUB -> BINANCE:BTCRUB
-        symbol = `BINANCE:${b}${q === 'USD' ? 'USDT' : q}`;
-    }
-    // 3. Если Объект - Доллар (например, USD/RUB)
-    else if (b === 'USD') {
-        symbol = `FX_IDC:USD${q}`;
-    }
-    // 4. Если Валюта - Доллар (например, RUB/USD)
-    else if (q === 'USD') {
-        symbol = `1/FX_IDC:USD${b}`;
-    }
-    // 5. Кросс-курс для всех остальных (например, UAH/RUB)
-    else {
-        // Формула: (Курс Доллара к Валюте) / (Курс Доллара к Объекту)
-        symbol = `FX_IDC:USD${q}/FX_IDC:USD${b}`;
-    }
+            if (b === q) {
+                symbol = "1"; 
+            }
+            else if (base.type === 'crypto') {
+                symbol = `BINANCE:${b}${q === 'USD' ? 'USDT' : q}`;
+            }
+            else if (b === 'USD') {
+                symbol = `FX_IDC:USD${q}`;
+            }
+            else if (q === 'USD') {
+                symbol = `1/FX_IDC:USD${b}`;
+            }
+            else {
+                symbol = `FX_IDC:USD${q}/FX_IDC:USD${b}`;
+            }
 
-    document.getElementById('tv-chart').innerHTML = '';
-    new TradingView.widget({
-        "autosize": true,
-        "symbol": symbol,
-        "interval": currentInterval,
-        "timezone": "Etc/UTC",
-        "theme": "light",
-        "style": "3", // Область (Area) - выглядит красивее для валют
-        "locale": "ru",
-        "container_id": "tv-chart",
-        "hide_top_toolbar": true,
-        "hide_legend": true,
-        "range": currentRange,
-        "save_image": false,
-        "backgroundColor": "#ffffff"
-    });
-}
-
+            document.getElementById('tv-chart').innerHTML = '';
+            new TradingView.widget({
+                "autosize": true,
+                "symbol": symbol,
+                "interval": currentInterval,
+                "timezone": "Etc/UTC",
+                "theme": "light",
+                "style": "3",
+                "locale": "ru",
+                "container_id": "tv-chart",
+                "hide_top_toolbar": true,
+                "hide_legend": true,
+                "range": currentRange,
+                "save_image": false,
+                "backgroundColor": "#ffffff"
+            });
+        }
 
         function setRange(range, interval) {
             currentRange = range;
             currentInterval = interval;
             document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
+            event.currentTarget.classList.add('active');
             createWidget();
         }
 
@@ -256,6 +247,10 @@ function createWidget() {
                 renderList();
             };
         });
+
+        document.getElementById('search-input').oninput = function() {
+            renderList(this.value);
+        };
 
         createWidget();
     </script>
