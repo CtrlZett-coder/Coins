@@ -15,7 +15,7 @@ TOKEN = "8698978039:AAGJnlo6wdHE8k7I1Jie8XMKE8Di0EmRshw"
 BASE_URL = "https://Ctrlzett-coder.github.io/Coins/"
 
 # ВСТАВЬ СВОЙ КЛЮЧ DEEPSEEK НИЖЕ
-DEEPSEEK_API_KEY = "ТВОЙ_API_КЛЮЧ_ЗДЕСЬ"
+DEEPSEEK_API_KEY = "sk-b0241be117b0481e99ecb1446330f8f6"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
