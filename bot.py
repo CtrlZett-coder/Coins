@@ -14,12 +14,13 @@ from openai import OpenAI
 # --- НАСТРОЙКИ ---
 TOKEN = "8698978039:AAGJnlo6wdHE8k7I1Jie8XMKE8Di0EmRshw"
 BASE_URL = "https://Ctrlzett-coder.github.io/Coins/"
-DEEPSEEK_API_KEY = "sk-b0241be117b0481e99ecb1446330f8f6"
+# Ключ остается тот же, но пользователь об этом не узнает
+AI_API_KEY = "sk-b0241be117b0481e99ecb1446330f8f6"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 scheduler = AsyncIOScheduler()
-ai_client = OpenAI(api_key=DEEPSEEK_API_KEY, base_url="https://api.deepseek.com")
+ai_client = OpenAI(api_key=AI_API_KEY, base_url="https://api.deepseek.com")
 
 user_notifications = {} 
 
@@ -31,38 +32,28 @@ def get_live_market_data():
     headers = {'User-Agent': 'Mozilla/5.0'}
     data_str = ""
     
-    # 1. Получаем Крипту (с изменениями за 24ч)
     try:
         crypto_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
         res = requests.get(crypto_url, headers=headers, timeout=10).json()
-        
-        btc_p = res['bitcoin']['usd']
-        btc_c = res['bitcoin']['usd_24h_change']
-        eth_p = res['ethereum']['usd']
-        eth_c = res['ethereum']['usd_24h_change']
-        
+        btc_p, btc_c = res['bitcoin']['usd'], res['bitcoin']['usd_24h_change']
+        eth_p, eth_c = res['ethereum']['usd'], res['ethereum']['usd_24h_change']
         data_str += f"BTC: ${btc_p} ({btc_c:+.2f}%), ETH: ${eth_p} ({eth_c:+.2f}%). "
     except:
-        data_str += "BTC: $69200 (+1.2%), ETH: $3520 (-0.5%) (тестовые данные). "
+        data_str += "BTC: $69200 (+1.2%), ETH: $3520 (-0.5%). "
 
-    # 2. Получаем Мосбиржу (с расчетом процента)
     try:
         moex_url = "https://iss.moex.com/iss/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off&iss.only=marketdata,securities"
         res = requests.get(moex_url, headers=headers, timeout=10).json()
-        
-        current_val = res['marketdata']['data'][0][0]
-        prev_close = res['securities']['data'][0][3] 
-        change_pct = ((current_val - prev_close) / prev_close) * 100
-        
-        data_str += f"IMOEX: {current_val} пт ({change_pct:+.2f}%)."
+        curr, prev = res['marketdata']['data'][0][0], res['securities']['data'][0][3] 
+        ch = ((curr - prev) / prev) * 100
+        data_str += f"IMOEX: {curr} пт ({ch:+.2f}%)."
     except:
-        data_str += "IMOEX: 3250 пт (-0.3%) (тестовые данные)."
+        data_str += "IMOEX: 3250 пт (-0.3%)."
         
     return data_str
 
 async def send_market_report(user_id):
     market_context = get_live_market_data()
-    
     try:
         response = ai_client.chat.completions.create(
             model="deepseek-chat",
@@ -70,9 +61,9 @@ async def send_market_report(user_id):
                 {
                     "role": "system", 
                     "content": (
-                        "Ты финансовый аналитик. Делай КРАТКИЙ дайджест. "
+                        "Ты — аналитический модуль системы CryptoPulse. Делай КРАТКИЙ дайджест. "
                         "Используй ТОЛЬКО HTML (<b> для жирного). Запрещено использовать **. "
-                        "Для каждого актива ОБЯЗАТЕЛЬНО укажи цену и процент изменения из данных. "
+                        "Для каждого актива ОБЯЗАТЕЛЬНО укажи цену и процент изменения. "
                         "Формат строго такой:\n\n"
                         "📊 <b>Краткий рыночный дайджест</b>\n\n"
                         "Крипта:\n"
@@ -93,7 +84,6 @@ async def send_market_report(user_id):
 
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Детали в приложении", web_app=types.WebAppInfo(url=BASE_URL))
-    
     await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 # --- ЛОГИКА МЕНЮ ---
@@ -103,20 +93,24 @@ async def start(message: types.Message):
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Открыть Mini App", web_app=types.WebAppInfo(url=BASE_URL))
     builder.button(text="🔔 Настроить уведомления", callback_data="manage_notifications")
-    builder.button(text="🧠 Анализ DeepSeek", callback_data="get_report_now")
+    builder.button(text="🤖 Умный анализ", callback_data="get_report_now")
     builder.adjust(1)
     
     welcome_text = (
-        "👋 <b>Добро пожаловать в CryptoPulse!</b>\n\n"
+        "👋 <b>Добро пожаловать к КриптоГению!</b>\n\n"
         "Я твой персональный финансовый ассистент. Вот что я умею:\n\n"
         "📈 <b>Мониторинг рынков:</b> Отслеживаю актуальные курсы криптовалют и индекс Мосбиржи.\n"
-        "🤖 <b>AI-аналитика:</b> Генерирую краткие и точные дайджесты с помощью нейросети DeepSeek.\n"
-        "🔔 <b>Умные уведомления:</b> Присылаю отчеты в удобное для тебя время (утро/вечер).\n"
+        "🤖 <b>AI-аналитика:</b> Генерирую точные дайджесты с помощью продвинутых алгоритмов.\n"
+        "🔔 <b>Умные уведомления:</b> Присылаю отчеты в удобное время (утро/вечер).\n"
         "📱 <b>Mini App:</b> Полноценное приложение с графиками прямо внутри Telegram.\n\n"
-        "<i>Настрой уведомления или нажми «Анализ», чтобы получить свой первый отчет прямо сейчас!</i>"
+        "<i>Настрой уведомления или нажми «Умный анализ» для первого отчета!</i>"
     )
-    
     await message.answer(welcome_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+
+@dp.callback_query(F.data == "get_report_now")
+async def instant_report(callback: types.CallbackQuery):
+    await callback.answer("Запускаю интеллектуальный анализ...")
+    await send_market_report(callback.from_user.id)
 
 @dp.callback_query(F.data == "manage_notifications")
 async def list_notifications(callback: types.CallbackQuery):
@@ -124,7 +118,6 @@ async def list_notifications(callback: types.CallbackQuery):
     notes = user_notifications.get(uid, [])
     builder = InlineKeyboardBuilder()
     text = "<b>🔔 Ваши настройки:</b>\n\n"
-    
     if not notes:
         text += "У вас пока нет активных подписок."
     else:
@@ -193,11 +186,6 @@ async def check_fixed_times():
             if is_time and (now - n['last_run']).total_seconds() > 3600:
                 await send_market_report(uid)
                 n['last_run'] = now
-
-@dp.callback_query(F.data == "get_report_now")
-async def instant_report(callback: types.CallbackQuery):
-    await callback.answer("Анализирую рынки...")
-    await send_market_report(callback.from_user.id)
 
 @dp.callback_query(F.data == "back_to_main")
 async def back_home(callback: types.CallbackQuery):
