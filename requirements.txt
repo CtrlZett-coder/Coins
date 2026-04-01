@@ -2,3 +2,4 @@ aiogram
 apscheduler
 openai
 requests
+pytz
