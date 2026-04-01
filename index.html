@@ -166,7 +166,6 @@
             }
             else if (b === 'IMOEX') {
                 if (q === 'USD') {
-                    // Математическая формула: Индекс разделить на курс доллара
                     symbol = "MOEX:IMOEX/FX_IDC:USDRUB";
                     displayCurrency = "USD";
                 } else {
@@ -191,25 +190,38 @@
                 displayCurrency = q;
             }
 
-            document.getElementById('tv-chart').innerHTML = '';
-            
+            // Очищаем контейнер полностью перед созданием нового виджета
+            const container = document.getElementById('tv-chart');
+            container.innerHTML = '';
+
             const widgetOptions = {
                 "autosize": true,
                 "symbol": symbol,
                 "interval": currentInterval,
                 "timezone": "Etc/UTC",
                 "theme": "light",
-                "style": "3",
+                "style": "3", 
                 "locale": "ru",
                 "container_id": "tv-chart",
                 "hide_top_toolbar": true,
                 "hide_legend": true,
                 "range": currentRange,
                 "save_image": false,
-                "backgroundColor": "#ffffff"
+                "backgroundColor": "#ffffff",
+                "enable_publishing": false,
+                "allow_symbol_change": false,
+                "withdateranges": false,
+                "show_popup_button": false,
+                "scalesProperties": {
+                    "showRightScale": true,
+                },
+                "overrides": {
+                    "mainSeriesProperties.showCountdown": false,
+                    "paneProperties.topMargin": 15,
+                    "paneProperties.bottomMargin": 5,
+                }
             };
 
-            // Привязка шкалы к выбранной валюте (маленькое окошко)
             if (displayCurrency) {
                 widgetOptions["symbol_currency"] = displayCurrency;
             }
