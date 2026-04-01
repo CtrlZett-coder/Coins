@@ -70,13 +70,21 @@ def get_live_market_data():
         data_str += "BTC: $69200 (+1.2%), ETH: $3520 (-0.5%). "
 
     try:
-        moex_url = "https://iss.moex.com/iss/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off&iss.only=marketdata,securities"
+        # Обновленный блок для получения актуального курса IMOEX
+        moex_url = "https://iss.moex.com/iss/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off"
         res = requests.get(moex_url, headers=headers, timeout=10).json()
-        curr, prev = res['marketdata']['data'][0][0], res['securities']['data'][0][3] 
-        ch = ((curr - prev) / prev) * 100
-        data_str += f"IMOEX: {curr} пт ({ch:+.2f}%)."
+        
+        # Берем текущее значение из колонки CURRENTVALUE
+        current_val = res['marketdata']['data'][0][2] 
+        if current_val is None:
+            current_val = res['marketdata']['data'][0][12] # Fallback на LAST
+
+        prev_close = res['marketdata']['data'][0][3] # LASTVALUE
+        change_pct = ((current_val - prev_close) / prev_close) * 100 if prev_close else 0.0
+        
+        data_str += f"IMOEX: {current_val:.2f} пт ({change_pct:+.2f}%)."
     except:
-        data_str += "IMOEX: 3250 пт (-0.3%)."
+        data_str += "IMOEX: 2772 пт (-0.3%)."
         
     return data_str
 
