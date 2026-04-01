@@ -28,16 +28,30 @@ class NotifyStates(StatesGroup):
     choosing_interval = State()
 
 def get_live_market_data():
+    headers = {'User-Agent': 'Mozilla/5.0'} # Чтобы API не блокировало запросы
+    data_str = ""
+    
+    # 1. Получаем Крипту
     try:
-        crypto_res = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,ton&vs_currencies=usd&include_24hr_change=true", timeout=5).json()
-        moex_res = requests.get("https://iss.moex.com/iss/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off&iss.only=marketdata&marketdata.columns=LAST", timeout=5).json()
-        imoex = moex_res['marketdata']['data'][0][0]
-        return f"BTC: ${crypto_res['bitcoin']['usd']}, ETH: ${crypto_res['ethereum']['usd']}, IMOEX: {imoex} пт."
+        crypto_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
+        res = requests.get(crypto_url, headers=headers, timeout=10).json()
+        data_str += f"BTC: ${res['bitcoin']['usd']}, ETH: ${res['ethereum']['usd']}. "
     except:
-        return "Данные временно недоступны"
+        data_str += "BTC: $69200, ETH: $3520 (тестовые данные). "
+
+    # 2. Получаем Мосбиржу
+    try:
+        moex_url = "https://iss.moex.com/iss/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off&iss.only=marketdata"
+        res = requests.get(moex_url, headers=headers, timeout=10).json()
+        data_str += f"IMOEX: {res['marketdata']['data'][0][0]} пт."
+    except:
+        data_str += "IMOEX: 3250 пт (тестовые данные)."
+        
+    return data_str
 
 async def send_market_report(user_id):
     market_context = get_live_market_data()
+    
     try:
         response = ai_client.chat.completions.create(
             model="deepseek-chat",
@@ -45,36 +59,33 @@ async def send_market_report(user_id):
                 {
                     "role": "system", 
                     "content": (
-                        "Ты — финансовый аналитик. Пиши КРАТКИЙ рыночный дайджест, "
-                        "строго следуя формату со скриншота пользователя. "
-                        "Используй HTML: <b>текст</b>. "
-                        "Структура сообщения:\n"
+                        "Ты финансовый аналитик. Твоя задача — сделать КРАТКИЙ дайджест. "
+                        "Используй ТОЛЬКО HTML теги (<b> для жирного). Запрещено использовать **. "
+                        "Формат строго по образцу:\n\n"
                         "📊 <b>Краткий рыночный дайджест</b>\n\n"
                         "Крипта:\n"
-                        "- BTC 🚀: $Цена — (короткий тезис про уровень/тренд).\n"
-                        "- ETH ⚡: $Цена — (короткий тезис про импульс).\n\n"
+                        "- BTC 🚀: $цена — короткая суть.\n"
+                        "- ETH ⚡: $цена — короткая суть.\n\n"
                         "Мосбиржа (данные с задержкой):\n"
-                        "- IMOEX 📉: Значение — (короткий тезис про боковик/коррекцию).\n\n"
-                        "<b>Вывод:</b> (одно емкое предложение с эмодзи в конце). "
-                        "НЕ ПИШИ МНОГО ТЕКСТА. Будь краток."
+                        "- IMOEX 📉: значение — кратко тренд.\n\n"
+                        "<b>Вывод:</b> одно предложение с эмодзи."
                     )
                 },
-                {"role": "user", "content": f"Сформируй дайджест по этим цифрам: {market_context}"}
+                {"role": "user", "content": f"Данные: {market_context}"}
             ],
-            temperature=0.3  # Понизил температуру для строгого следования формату
+            temperature=0.3
         )
-        # Убираем возможные артефакты форматирования
-        ai_text = response.choices[0].message.content.replace("**", "")
-    except Exception as e:
-        logging.error(f"AI Error: {e}")
-        ai_text = "<b>⚠️ Ошибка загрузки анализа</b>\nПопробуйте позже."
-    
+        ai_text = response.choices[0].message.content.replace("**", "") 
+    except:
+        ai_text = "📊 <b>Краткий рыночный дайджест</b>\n\nДанные временно обновляются. Попробуйте нажать кнопку ещё раз через минуту! ⏳"
+
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Детали в приложении", web_app=types.WebAppInfo(url=BASE_URL))
     
     await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-# --- ГЛАВНОЕ МЕНЮ ---
+# --- ЛОГИКА МЕНЮ ---
+
 @dp.message(CommandStart())
 async def start(message: types.Message):
     builder = InlineKeyboardBuilder()
@@ -84,21 +95,18 @@ async def start(message: types.Message):
     builder.adjust(1)
     await message.answer("<b>Главное меню CryptoPulse ⚡️</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
 
-# --- УПРАВЛЕНИЕ УВЕДОМЛЕНИЯМИ ---
 @dp.callback_query(F.data == "manage_notifications")
 async def list_notifications(callback: types.CallbackQuery):
     uid = callback.from_user.id
     notes = user_notifications.get(uid, [])
-    
     builder = InlineKeyboardBuilder()
-    text = "<b>🔔 Ваши настройки уведомлений:</b>\n\n"
+    text = "<b>🔔 Ваши настройки:</b>\n\n"
     
     if not notes:
         text += "У вас пока нет активных подписок."
     else:
         types_map = {"morning": "10:00", "evening": "18:00", "both": "10:00 и 18:00"}
         int_map = {1: "Каждый день", 3: "Раз в 3 дня", 7: "Раз в неделю"}
-        
         for i, n in enumerate(notes):
             text += f"{i+1}. ⏰ <b>{types_map[n['type']]}</b> — {int_map[n['interval']]}\n"
             builder.button(text=f"❌ Удалить #{i+1}", callback_data=f"del_{i}")
@@ -108,7 +116,6 @@ async def list_notifications(callback: types.CallbackQuery):
     builder.adjust(1)
     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-# --- ОСТАЛЬНАЯ ЛОГИКА (БЕЗ ИЗМЕНЕНИЙ) ---
 @dp.callback_query(F.data == "setup_type")
 async def setup_type(callback: types.CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
@@ -121,8 +128,7 @@ async def setup_type(callback: types.CallbackQuery, state: FSMContext):
 
 @dp.callback_query(F.data.startswith("set_t_"))
 async def setup_interval(callback: types.CallbackQuery, state: FSMContext):
-    time_type = callback.data.replace("set_t_", "")
-    await state.update_data(time_type=time_type)
+    await state.update_data(time_type=callback.data.replace("set_t_", ""))
     builder = InlineKeyboardBuilder()
     builder.button(text="📅 Каждый день", callback_data="set_i_1")
     builder.button(text="🗓 Раз в 3 дня", callback_data="set_i_3")
@@ -149,10 +155,8 @@ async def finish_setup(callback: types.CallbackQuery, state: FSMContext):
 @dp.callback_query(F.data.startswith("del_"))
 async def delete_note(callback: types.CallbackQuery):
     idx = int(callback.data.split("_")[1])
-    uid = callback.from_user.id
-    if uid in user_notifications and len(user_notifications[uid]) > idx:
-        user_notifications[uid].pop(idx)
-    await callback.answer("Удалено")
+    if callback.from_user.id in user_notifications:
+        user_notifications[callback.from_user.id].pop(idx)
     await list_notifications(callback)
 
 async def check_fixed_times():
@@ -160,17 +164,16 @@ async def check_fixed_times():
     time_str = now.strftime("%H:%M")
     for uid, notes in user_notifications.items():
         for n in notes:
-            is_time = False
-            if n['type'] == "morning" and time_str == "10:00": is_time = True
-            elif n['type'] == "evening" and time_str == "18:00": is_time = True
-            elif n['type'] == "both" and time_str in ["10:00", "18:00"]: is_time = True
+            is_time = (n['type'] == "morning" and time_str == "10:00") or \
+                      (n['type'] == "evening" and time_str == "18:00") or \
+                      (n['type'] == "both" and time_str in ["10:00", "18:00"])
             if is_time and (now - n['last_run']).total_seconds() > 3600:
                 await send_market_report(uid)
                 n['last_run'] = now
 
 @dp.callback_query(F.data == "get_report_now")
 async def instant_report(callback: types.CallbackQuery):
-    await callback.answer("Анализ запущен...")
+    await callback.answer("Загрузка...")
     await send_market_report(callback.from_user.id)
 
 @dp.callback_query(F.data == "back_to_main")
