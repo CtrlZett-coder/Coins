@@ -18,11 +18,13 @@ TOKEN = "8698978039:AAGJnlo6wdHE8k7I1Jie8XMKE8Di0EmRshw"
 BASE_URL = "https://Ctrlzett-coder.github.io/Coins/"
 AI_API_KEY = "sk-b0241be117b0481e99ecb1446330f8f6"
 
-# --- ТАЙМЗОНА (по умолчанию Новосибирск) ---
-DEFAULT_TIMEZONE = "Asia/Novosibirsk"
+# --- ТАЙМЗОНЫ ---
+DEFAULT_TIMEZONE = "Europe/Moscow"
+user_timezones = {}
 
 def get_user_timezone(user_id):
-    return pytz.timezone(DEFAULT_TIMEZONE)
+    tz_name = user_timezones.get(user_id, DEFAULT_TIMEZONE)
+    return pytz.timezone(tz_name)
 
 def get_now(user_id=None):
     return datetime.now(get_user_timezone(user_id))
@@ -38,6 +40,22 @@ class NotifyStates(StatesGroup):
     choosing_type = State()
     choosing_interval = State()
 
+class TimezoneStates(StatesGroup):
+    choosing = State()
+
+# --- СПИСОК ПОПУЛЯРНЫХ ТАЙМЗОН ---
+TIMEZONES = [
+    "Asia/Novosibirsk",
+    "Europe/Moscow",
+    "Europe/Berlin",
+    "Asia/Dubai",
+    "Asia/Tokyo",
+    "America/New_York",
+    "America/Los_Angeles",
+    "UTC"
+]
+
+# --- ДАННЫЕ РЫНКА ---
 def get_live_market_data():
     headers = {'User-Agent': 'Mozilla/5.0'}
     data_str = ""
@@ -96,7 +114,7 @@ async def send_market_report(user_id):
     builder.button(text="📊 Детали в приложении", web_app=types.WebAppInfo(url=BASE_URL))
     await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-# --- ЛОГИКА УВЕДОМЛЕНИЙ ---
+# --- УВЕДОМЛЕНИЯ ---
 async def check_fixed_times():
     for uid, notes in user_notifications.items():
         now = get_now(uid)
@@ -123,6 +141,7 @@ async def start(message: types.Message):
     builder.button(text="📊 Открыть Mini App", web_app=types.WebAppInfo(url=BASE_URL))
     builder.button(text="🔔 Настроить уведомления", callback_data="manage_notifications")
     builder.button(text="🤖 Умный анализ", callback_data="get_report_now")
+    builder.button(text="🌍 Изменить часовой пояс", callback_data="change_timezone")
     builder.adjust(1)
     
     welcome_text = (
@@ -136,6 +155,27 @@ async def start(message: types.Message):
     )
     await message.answer(welcome_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
+# --- СМЕНА ТАЙМЗОНЫ ---
+@dp.callback_query(F.data == "change_timezone")
+async def choose_timezone(callback: types.CallbackQuery, state: FSMContext):
+    builder = InlineKeyboardBuilder()
+    for tz in TIMEZONES:
+        builder.button(text=tz, callback_data=f"tz_{tz}")
+    builder.adjust(1)
+
+    await callback.message.edit_text("Выберите часовой пояс:", reply_markup=builder.as_markup())
+    await state.set_state(TimezoneStates.choosing)
+
+@dp.callback_query(F.data.startswith("tz_"))
+async def set_timezone(callback: types.CallbackQuery, state: FSMContext):
+    tz = callback.data.replace("tz_", "")
+    user_timezones[callback.from_user.id] = tz
+
+    await state.clear()
+    await callback.answer("Часовой пояс обновлён!")
+    await start(callback.message)
+
+# --- ОСТАЛЬНАЯ ЛОГИКА БЕЗ ИЗМЕНЕНИЙ ---
 @dp.callback_query(F.data == "get_report_now")
 async def instant_report(callback: types.CallbackQuery):
     await callback.answer("Запускаю интеллектуальный анализ...")
