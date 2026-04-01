@@ -71,7 +71,7 @@
 
         #assets-list { overflow-y: auto; flex-grow: 1; padding-bottom: 40px; }
         .asset-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid #f2f2f7; }
-        .asset-item.disabled { opacity: 0.3; pointer-events: none; grayscale: 1; }
+        .asset-item.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
         .asset-flag { font-size: 24px; margin-right: 14px; width: 30px; text-align: center; }
         .asset-info { display: flex; flex-direction: column; }
         .asset-name-bold { font-weight: 700; font-size: 15px; }
@@ -82,9 +82,9 @@
 
     <div id="dual-header">
         <div class="selector-box" onclick="openModal('base')">
-            <span class="sel-flag" id="base-flag">🇺🇦</span>
+            <span class="sel-flag" id="base-flag">₿</span>
             <div class="sel-label">
-                <span class="sel-code" id="base-code">UAH</span>
+                <span class="sel-code" id="base-code">BTC</span>
                 <span class="sel-desc">Объект</span>
             </div>
             <span class="sel-chevron">▼</span>
@@ -120,21 +120,21 @@
         </div>
         <div id="modal-search"><input type="text" id="search-input" placeholder="Поиск..."></div>
         <div id="tabs">
-            <div class="tab active" data-type="cis" id="tab-cis">СНГ</div>
+            <div class="tab" data-type="cis" id="tab-cis">СНГ</div>
             <div class="tab" data-type="world" id="tab-world">Мировые</div>
-            <div class="tab" data-type="crypto" id="tab-crypto">Крипто</div>
+            <div class="tab active" data-type="crypto" id="tab-crypto">Крипто</div>
         </div>
         <div id="assets-list"></div>
     </div>
 
     <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
     <script>
-        let base = { id: 'UAH', f: '🇺🇦', type: 'cis' };
+        let base = { id: 'BTC', f: '₿', type: 'crypto' };
         let quote = { id: 'USD', f: '🇺🇸', type: 'world' };
         let currentRange = '1D';
         let currentInterval = '5';
         let selectionMode = 'base';
-        let activeTab = 'cis';
+        let activeTab = 'crypto';
 
         const allAssets = [
             { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
@@ -150,7 +150,8 @@
             { id: 'GBP', f: '🇬🇧', n: 'Фунт', type: 'world' },
             { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
             { id: 'ETH', f: '💎', n: 'Ethereum', type: 'crypto' },
-            { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' }
+            { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' },
+            { id: 'IMOEX', f: '📊', n: 'Мосбиржа', type: 'crypto' } // Добавлена в стопку крипты
         ];
 
         function createWidget() {
@@ -159,6 +160,9 @@
             const q = quote.id;
 
             if (b === q) { symbol = "1"; }
+            else if (b === 'IMOEX') {
+                symbol = "MOEX:IMOEX"; // Индекс мосбиржи
+            }
             else if (base.type === 'crypto') {
                 symbol = `BINANCE:${b}${q === 'USD' ? 'USDT' : q}`;
             }
@@ -197,26 +201,27 @@
             const searchInput = document.getElementById('search-input');
             searchInput.value = "";
             
-            // Логика управления вкладками
             const cryptoTab = document.getElementById('tab-crypto');
             const cisTab = document.getElementById('tab-cis');
+            const worldTab = document.getElementById('tab-world');
             
             if (selectionMode === 'quote') {
-                if (base.type === 'crypto') {
-                    // Если измеряем крипту - только вкладка Мировые (USD/EUR)
+                cryptoTab.classList.add('hidden');
+                if (base.id === 'IMOEX') {
+                    // Для Мосбиржи скрываем все вкладки кроме СНГ (RUB) и Мировых (USD)
+                    cisTab.classList.remove('hidden');
+                    worldTab.classList.remove('hidden');
+                    if (activeTab === 'crypto') activeTab = 'cis';
+                } else if (base.type === 'crypto') {
                     activeTab = 'world';
-                    cryptoTab.classList.add('hidden');
                     cisTab.classList.add('hidden');
                 } else {
-                    // Если обычную валюту - вкладка Крипто не нужна
-                    cryptoTab.classList.add('hidden');
                     cisTab.classList.remove('hidden');
-                    if (activeTab === 'crypto') activeTab = 'cis';
                 }
             } else {
-                // Если выбираем Объект (левое поле) - все вкладки доступны
                 cryptoTab.classList.remove('hidden');
                 cisTab.classList.remove('hidden');
+                worldTab.classList.remove('hidden');
             }
 
             document.querySelectorAll('.tab').forEach(x => {
@@ -241,12 +246,17 @@
                 const div = document.createElement('div');
                 div.className = 'asset-item';
                 
-                // Проверка на блокировку (Disabled)
                 if (selectionMode === 'quote') {
-                    // 1. Нельзя выбрать ту же валюту
                     if (item.id === base.id) div.classList.add('disabled');
-                    // 2. Если база КРИПТА - только USD и EUR доступны
-                    if (base.type === 'crypto' && !['USD', 'EUR'].includes(item.id)) div.classList.add('disabled');
+                    
+                    // Условие для Мосбиржи: только RUB и USD
+                    if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(item.id)) {
+                        div.classList.add('disabled');
+                    }
+                    
+                    if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(item.id)) {
+                        div.classList.add('disabled');
+                    }
                 }
 
                 div.innerHTML = `<span class="asset-flag">${item.f}</span>
@@ -258,12 +268,15 @@
                             base = item;
                             document.getElementById('base-flag').innerText = item.f;
                             document.getElementById('base-code').innerText = item.id;
-                            // Сброс валюты измерения на USD, если старая стала недоступна
-                            if (base.type === 'crypto' && !['USD', 'EUR'].includes(quote.id)) {
+                            
+                            // Авто-коррекция валюты при выборе Мосбиржи или Крипты
+                            if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(quote.id)) {
+                                quote = allAssets.find(a => a.id === 'RUB');
+                            } else if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(quote.id)) {
                                 quote = allAssets.find(a => a.id === 'USD');
-                                document.getElementById('quote-flag').innerText = quote.f;
-                                document.getElementById('quote-code').innerText = quote.id;
                             }
+                            document.getElementById('quote-flag').innerText = quote.f;
+                            document.getElementById('quote-code').innerText = quote.id;
                         } else {
                             quote = item;
                             document.getElementById('quote-flag').innerText = item.f;
