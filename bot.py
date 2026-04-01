@@ -2,6 +2,8 @@ import asyncio
 import logging
 import requests
 from datetime import datetime, timedelta
+import pytz
+
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
@@ -14,15 +16,23 @@ from openai import OpenAI
 # --- НАСТРОЙКИ ---
 TOKEN = "8698978039:AAGJnlo6wdHE8k7I1Jie8XMKE8Di0EmRshw"
 BASE_URL = "https://Ctrlzett-coder.github.io/Coins/"
-# Ключ остается тот же, но пользователь об этом не узнает
 AI_API_KEY = "sk-b0241be117b0481e99ecb1446330f8f6"
+
+# --- ТАЙМЗОНА (по умолчанию Новосибирск) ---
+DEFAULT_TIMEZONE = "Asia/Novosibirsk"
+
+def get_user_timezone(user_id):
+    return pytz.timezone(DEFAULT_TIMEZONE)
+
+def get_now(user_id=None):
+    return datetime.now(get_user_timezone(user_id))
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher(storage=MemoryStorage())
 scheduler = AsyncIOScheduler()
 ai_client = OpenAI(api_key=AI_API_KEY, base_url="https://api.deepseek.com")
 
-user_notifications = {} 
+user_notifications = {}
 
 class NotifyStates(StatesGroup):
     choosing_type = State()
@@ -86,8 +96,27 @@ async def send_market_report(user_id):
     builder.button(text="📊 Детали в приложении", web_app=types.WebAppInfo(url=BASE_URL))
     await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-# --- ЛОГИКА МЕНЮ ---
+# --- ЛОГИКА УВЕДОМЛЕНИЙ ---
+async def check_fixed_times():
+    for uid, notes in user_notifications.items():
+        now = get_now(uid)
 
+        for n in notes:
+            should_send = False
+
+            if n['type'] == "morning" and now.hour == 10 and now.minute == 0:
+                should_send = True
+            elif n['type'] == "evening" and now.hour == 18 and now.minute == 0:
+                should_send = True
+            elif n['type'] == "both" and now.hour in [10, 18] and now.minute == 0:
+                should_send = True
+
+            if should_send:
+                if (now - n['last_run']) >= timedelta(days=n['interval']):
+                    await send_market_report(uid)
+                    n['last_run'] = now
+
+# --- МЕНЮ ---
 @dp.message(CommandStart())
 async def start(message: types.Message):
     builder = InlineKeyboardBuilder()
@@ -162,7 +191,7 @@ async def finish_setup(callback: types.CallbackQuery, state: FSMContext):
     user_notifications[uid].append({
         "type": data['time_type'],
         "interval": interval,
-        "last_run": datetime.now() - timedelta(days=interval)
+        "last_run": get_now(uid) - timedelta(days=interval)
     })
     await callback.answer("Уведомление настроено!")
     await state.clear()
@@ -175,24 +204,13 @@ async def delete_note(callback: types.CallbackQuery):
         user_notifications[callback.from_user.id].pop(idx)
     await list_notifications(callback)
 
-async def check_fixed_times():
-    now = datetime.now()
-    time_str = now.strftime("%H:%M")
-    for uid, notes in user_notifications.items():
-        for n in notes:
-            is_time = (n['type'] == "morning" and time_str == "10:00") or \
-                      (n['type'] == "evening" and time_str == "18:00") or \
-                      (n['type'] == "both" and time_str in ["10:00", "18:00"])
-            if is_time and (now - n['last_run']).total_seconds() > 3600:
-                await send_market_report(uid)
-                n['last_run'] = now
-
 @dp.callback_query(F.data == "back_to_main")
 async def back_home(callback: types.CallbackQuery):
     await start(callback.message)
 
+# --- ЗАПУСК ---
 async def main():
-    scheduler.add_job(check_fixed_times, "interval", minutes=1)
+    scheduler.add_job(check_fixed_times, "cron", minute="*")
     scheduler.start()
     await dp.start_polling(bot)
 
