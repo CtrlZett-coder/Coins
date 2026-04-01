@@ -103,7 +103,7 @@ async def start(message: types.Message):
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Открыть Mini App", web_app=types.WebAppInfo(url=BASE_URL))
     builder.button(text="🔔 Настроить уведомления", callback_data="manage_notifications")
-    builder.button(text="🧠 Анализ DeepSeek", callback_data="get_report_now")
+    builder.button(text="🗞 Новости", callback_data="get_report_now")
     builder.adjust(1)
     await message.answer("<b>Главное меню CryptoPulse ⚡️</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
 
