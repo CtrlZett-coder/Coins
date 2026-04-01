@@ -96,16 +96,27 @@ async def send_market_report(user_id):
     
     await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-# --- ЛОГИКА МЕНЮ (БЕЗ ИЗМЕНЕНИЙ) ---
+# --- ЛОГИКА МЕНЮ ---
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Открыть Mini App", web_app=types.WebAppInfo(url=BASE_URL))
     builder.button(text="🔔 Настроить уведомления", callback_data="manage_notifications")
-    builder.button(text="🗞 Новости", callback_data="get_report_now")
+    builder.button(text="🧠 Анализ DeepSeek", callback_data="get_report_now")
     builder.adjust(1)
-    await message.answer("<b>Главное меню CryptoPulse ⚡️</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
+    
+    welcome_text = (
+        "👋 <b>Добро пожаловать в CryptoPulse!</b>\n\n"
+        "Я твой персональный финансовый ассистент. Вот что я умею:\n\n"
+        "📈 <b>Мониторинг рынков:</b> Отслеживаю актуальные курсы криптовалют и индекс Мосбиржи.\n"
+        "🤖 <b>AI-аналитика:</b> Генерирую краткие и точные дайджесты с помощью нейросети DeepSeek.\n"
+        "🔔 <b>Умные уведомления:</b> Присылаю отчеты в удобное для тебя время (утро/вечер).\n"
+        "📱 <b>Mini App:</b> Полноценное приложение с графиками прямо внутри Telegram.\n\n"
+        "<i>Настрой уведомления или нажми «Анализ», чтобы получить свой первый отчет прямо сейчас!</i>"
+    )
+    
+    await message.answer(welcome_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 @dp.callback_query(F.data == "manage_notifications")
 async def list_notifications(callback: types.CallbackQuery):
@@ -135,7 +146,7 @@ async def setup_type(callback: types.CallbackQuery, state: FSMContext):
     builder.button(text="🌙 Вечер (18:00)", callback_data="set_t_evening")
     builder.button(text="🌗 Утро и Вечер", callback_data="set_t_both")
     builder.adjust(1)
-    await callback.message.edit_text("<b>Выберите время:</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.message.edit_text("<b>Выберите время получения новостей:</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
     await state.set_state(NotifyStates.choosing_type)
 
 @dp.callback_query(F.data.startswith("set_t_"))
@@ -146,7 +157,7 @@ async def setup_interval(callback: types.CallbackQuery, state: FSMContext):
     builder.button(text="🗓 Раз в 3 дня", callback_data="set_i_3")
     builder.button(text="📆 Раз в неделю", callback_data="set_i_7")
     builder.adjust(1)
-    await callback.message.edit_text("<b>Как часто присылать?</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.message.edit_text("<b>Как часто присылать отчеты?</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
     await state.set_state(NotifyStates.choosing_interval)
 
 @dp.callback_query(F.data.startswith("set_i_"))
@@ -160,7 +171,7 @@ async def finish_setup(callback: types.CallbackQuery, state: FSMContext):
         "interval": interval,
         "last_run": datetime.now() - timedelta(days=interval)
     })
-    await callback.answer("Настроено!")
+    await callback.answer("Уведомление настроено!")
     await state.clear()
     await list_notifications(callback)
 
@@ -185,7 +196,7 @@ async def check_fixed_times():
 
 @dp.callback_query(F.data == "get_report_now")
 async def instant_report(callback: types.CallbackQuery):
-    await callback.answer("Загрузка...")
+    await callback.answer("Анализирую рынки...")
     await send_market_report(callback.from_user.id)
 
 @dp.callback_query(F.data == "back_to_main")
