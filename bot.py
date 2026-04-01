@@ -28,24 +28,35 @@ class NotifyStates(StatesGroup):
     choosing_interval = State()
 
 def get_live_market_data():
-    headers = {'User-Agent': 'Mozilla/5.0'} # Чтобы API не блокировало запросы
+    headers = {'User-Agent': 'Mozilla/5.0'}
     data_str = ""
     
-    # 1. Получаем Крипту
+    # 1. Получаем Крипту (с изменениями за 24ч)
     try:
-        crypto_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd"
+        crypto_url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
         res = requests.get(crypto_url, headers=headers, timeout=10).json()
-        data_str += f"BTC: ${res['bitcoin']['usd']}, ETH: ${res['ethereum']['usd']}. "
+        
+        btc_p = res['bitcoin']['usd']
+        btc_c = res['bitcoin']['usd_24h_change']
+        eth_p = res['ethereum']['usd']
+        eth_c = res['ethereum']['usd_24h_change']
+        
+        data_str += f"BTC: ${btc_p} ({btc_c:+.2f}%), ETH: ${eth_p} ({eth_c:+.2f}%). "
     except:
-        data_str += "BTC: $69200, ETH: $3520 (тестовые данные). "
+        data_str += "BTC: $69200 (+1.2%), ETH: $3520 (-0.5%) (тестовые данные). "
 
-    # 2. Получаем Мосбиржу
+    # 2. Получаем Мосбиржу (с расчетом процента)
     try:
-        moex_url = "https://iss.moex.com/iss/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off&iss.only=marketdata"
+        moex_url = "https://iss.moex.com/iss/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off&iss.only=marketdata,securities"
         res = requests.get(moex_url, headers=headers, timeout=10).json()
-        data_str += f"IMOEX: {res['marketdata']['data'][0][0]} пт."
+        
+        current_val = res['marketdata']['data'][0][0]
+        prev_close = res['securities']['data'][0][3] 
+        change_pct = ((current_val - prev_close) / prev_close) * 100
+        
+        data_str += f"IMOEX: {current_val} пт ({change_pct:+.2f}%)."
     except:
-        data_str += "IMOEX: 3250 пт (тестовые данные)."
+        data_str += "IMOEX: 3250 пт (-0.3%) (тестовые данные)."
         
     return data_str
 
@@ -59,32 +70,33 @@ async def send_market_report(user_id):
                 {
                     "role": "system", 
                     "content": (
-                        "Ты финансовый аналитик. Твоя задача — сделать КРАТКИЙ дайджест. "
-                        "Используй ТОЛЬКО HTML теги (<b> для жирного). Запрещено использовать **. "
-                        "Формат строго по образцу:\n\n"
+                        "Ты финансовый аналитик. Делай КРАТКИЙ дайджест. "
+                        "Используй ТОЛЬКО HTML (<b> для жирного). Запрещено использовать **. "
+                        "Для каждого актива ОБЯЗАТЕЛЬНО укажи цену и процент изменения из данных. "
+                        "Формат строго такой:\n\n"
                         "📊 <b>Краткий рыночный дайджест</b>\n\n"
                         "Крипта:\n"
-                        "- BTC 🚀: $цена — короткая суть.\n"
-                        "- ETH ⚡: $цена — короткая суть.\n\n"
+                        "- BTC 🚀: $цена (процент) — короткая суть.\n"
+                        "- ETH ⚡: $цена (процент) — короткая суть.\n\n"
                         "Мосбиржа (данные с задержкой):\n"
-                        "- IMOEX 📉: значение — кратко тренд.\n\n"
-                        "<b>Вывод:</b> одно предложение с эмодзи."
+                        "- IMOEX 📉: значение (процент) — кратко тренд.\n\n"
+                        "<b>Вывод:</b> одно емкое предложение с эмодзи."
                     )
                 },
-                {"role": "user", "content": f"Данные: {market_context}"}
+                {"role": "user", "content": f"Данные для анализа: {market_context}"}
             ],
             temperature=0.3
         )
         ai_text = response.choices[0].message.content.replace("**", "") 
     except:
-        ai_text = "📊 <b>Краткий рыночный дайджест</b>\n\nДанные временно обновляются. Попробуйте нажать кнопку ещё раз через минуту! ⏳"
+        ai_text = "📊 <b>Краткий рыночный дайджест</b>\n\nДанные обновляются, попробуйте через минуту! ⏳"
 
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Детали в приложении", web_app=types.WebAppInfo(url=BASE_URL))
     
     await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-# --- ЛОГИКА МЕНЮ ---
+# --- ЛОГИКА МЕНЮ (БЕЗ ИЗМЕНЕНИЙ) ---
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
