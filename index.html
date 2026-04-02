@@ -13,17 +13,33 @@
             --ios-gray: #f2f2f7;
             --ios-blue: #007AFF;
             --ios-secondary: #8e8e93;
+            --ios-border: #e5e5ea;
+            --ios-text: #000000;
+            --header-bg: #ffffff;
+        }
+
+        /* Темная тема */
+        [data-theme="dark"] {
+            --ios-bg: #000000;
+            --ios-gray: #1c1c1e;
+            --ios-blue: #0A84FF;
+            --ios-secondary: #8e8e93;
+            --ios-border: #38383a;
+            --ios-text: #ffffff;
+            --header-bg: #1c1c1e;
         }
 
         body {
             margin: 0; padding: 0; height: 100vh;
             background: var(--ios-bg); font-family: var(--font);
+            color: var(--ios-text);
             display: flex; flex-direction: column; overflow: hidden;
+            transition: background 0.3s, color 0.3s;
         }
 
         #dual-header {
             display: flex; align-items: center; padding: 12px 16px;
-            border-bottom: 0.5px solid #e5e5ea; gap: 8px; background: #fff;
+            border-bottom: 0.5px solid var(--ios-border); gap: 8px; background: var(--header-bg);
         }
 
         .selector-box {
@@ -31,11 +47,11 @@
             background: var(--ios-gray); padding: 8px 10px;
             border-radius: 12px; cursor: pointer; transition: background 0.2s;
         }
-        .selector-box:active { background: #e5e5ea; }
+        .selector-box:active { opacity: 0.7; }
 
         .sel-flag { font-size: 20px; margin-right: 8px; width: 24px; text-align: center; }
         .sel-label { flex-grow: 1; overflow: hidden; }
-        .sel-code { font-weight: 800; font-size: 14px; display: block; }
+        .sel-code { font-weight: 800; font-size: 14px; display: block; color: var(--ios-text); }
         .sel-desc { font-size: 9px; color: var(--ios-secondary); text-transform: uppercase; white-space: nowrap; }
         .sel-chevron { font-size: 10px; color: var(--ios-secondary); margin-left: 4px; }
 
@@ -44,41 +60,57 @@
         #chart-wrapper { flex-grow: 1; position: relative; }
         #tv-chart { width: 100%; height: 100%; }
 
-        #footer-controls { padding: 12px 12px 24px; border-top: 0.5px solid #e5e5ea; background: #fff; }
+        /* Фикс хитбокса (некликабельная зона поверх правого верхнего угла графика) */
+        #hitbox-fix {
+            position: absolute; top: 0; right: 0;
+            width: 120px; height: 40px;
+            z-index: 10; background: transparent;
+            pointer-events: all; /* Перехватывает клики на себя */
+        }
+
+        #footer-controls { padding: 12px 12px 24px; border-top: 0.5px solid var(--ios-border); background: var(--header-bg); }
         #periods { display: flex; background: var(--ios-gray); padding: 2px; border-radius: 10px; gap: 2px; }
         .period-btn {
             flex: 1; border: none; background: none; padding: 10px 0;
             font-size: 11px; font-weight: 700; border-radius: 8px; color: var(--ios-secondary);
         }
-        .period-btn.active { background: #000; color: #fff; }
+        .period-btn.active { background: var(--ios-text); color: var(--ios-bg); }
 
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #fff; z-index: 9999;
+            background: var(--ios-bg); z-index: 9999;
             transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex; flex-direction: column;
         }
         #modal-overlay.open { transform: translateY(0); }
-        #modal-header { padding: 16px; border-bottom: 0.5px solid #e5e5ea; display: flex; justify-content: space-between; align-items: center; }
-        #modal-title { font-weight: 800; font-size: 17px; }
+        #modal-header { padding: 16px; border-bottom: 0.5px solid var(--ios-border); display: flex; justify-content: space-between; align-items: center; }
+        #modal-title { font-weight: 800; font-size: 17px; color: var(--ios-text); }
         #modal-search { padding: 12px 16px; }
-        #search-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--ios-gray); font-size: 16px; outline: none; }
+        #search-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--ios-gray); font-size: 16px; outline: none; color: var(--ios-text); }
         
         #tabs { display: flex; padding: 0 16px 12px; gap: 8px; overflow-x: auto; }
         .tab { padding: 8px 14px; background: var(--ios-gray); border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--ios-secondary); cursor: pointer; white-space: nowrap; }
         .tab.active { background: var(--ios-blue); color: #fff; }
-        .tab.hidden { display: none; }
 
         #assets-list { overflow-y: auto; flex-grow: 1; padding-bottom: 40px; }
-        .asset-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid #f2f2f7; }
-        .asset-item.disabled { opacity: 0.3; pointer-events: none; filter: grayscale(1); }
+        .asset-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(--ios-gray); }
+        .asset-item.disabled { opacity: 0.2; pointer-events: none; filter: grayscale(1); }
         .asset-flag { font-size: 24px; margin-right: 14px; width: 30px; text-align: center; }
         .asset-info { display: flex; flex-direction: column; }
-        .asset-name-bold { font-weight: 700; font-size: 15px; }
+        .asset-name-bold { font-weight: 700; font-size: 15px; color: var(--ios-text); }
         .asset-name-sub { font-size: 11px; color: var(--ios-secondary); }
+
+        #theme-btn {
+            position: fixed; bottom: 80px; right: 20px; z-index: 100;
+            background: var(--ios-blue); color: white; width: 44px; height: 44px;
+            border-radius: 22px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: none; font-size: 20px;
+        }
     </style>
 </head>
 <body>
+
+    <button id="theme-btn" onclick="toggleTheme()">🌓</button>
 
     <div id="dual-header">
         <div class="selector-box" onclick="openModal('base')">
@@ -100,7 +132,9 @@
         </div>
     </div>
 
-    <div id="chart-wrapper"><div id="tv-chart"></div></div>
+    <div id="chart-wrapper">
+        <div id="hitbox-fix"></div> <div id="tv-chart"></div>
+    </div>
 
     <div id="footer-controls">
         <div id="periods">
@@ -135,6 +169,24 @@
         let currentInterval = '5';
         let selectionMode = 'base';
         let activeTab = 'crypto';
+        let currentTheme = 'light';
+
+        // Темы
+        function applyTheme(theme) {
+            currentTheme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            createWidget(); // Перерисовываем график под цвет темы
+        }
+
+        function toggleTheme() {
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            applyTheme(newTheme);
+        }
+
+        // Автовыбор темы при старте
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            applyTheme('dark');
+        }
 
         const allAssets = [
             { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
@@ -157,76 +209,44 @@
         function createWidget() {
             let symbol = "";
             let displayCurrency = ""; 
-            
             const b = base.id;
             const q = quote.id;
 
-            if (b === q) { 
-                symbol = "1"; 
-            }
+            if (b === q) { symbol = "1"; }
             else if (b === 'IMOEX') {
-                if (q === 'USD') {
-                    symbol = "MOEX:IMOEX/FX_IDC:USDRUB";
-                    displayCurrency = "USD";
-                } else {
-                    symbol = "MOEX:IMOEX";
-                    displayCurrency = "RUB";
-                }
+                if (q === 'USD') { symbol = "MOEX:IMOEX/FX_IDC:USDRUB"; displayCurrency = "USD"; }
+                else { symbol = "MOEX:IMOEX"; displayCurrency = "RUB"; }
             }
             else if (base.type === 'crypto') {
                 symbol = `BINANCE:${b}${q === 'USD' ? 'USDT' : q}`;
                 displayCurrency = q === 'USD' ? 'USD' : q;
             }
-            else if (b === 'USD') { 
-                symbol = `FX_IDC:USD${q}`; 
-                displayCurrency = q;
-            }
-            else if (q === 'USD') { 
-                symbol = `1/FX_IDC:USD${b}`; 
-                displayCurrency = "USD";
-            }
-            else { 
-                symbol = `FX_IDC:USD${q}/FX_IDC:USD${b}`; 
-                displayCurrency = q;
-            }
+            else if (b === 'USD') { symbol = `FX_IDC:USD${q}`; displayCurrency = q; }
+            else if (q === 'USD') { symbol = `1/FX_IDC:USD${b}`; displayCurrency = "USD"; }
+            else { symbol = `FX_IDC:USD${q}/FX_IDC:USD${b}`; displayCurrency = q; }
 
-            // Очищаем контейнер полностью перед созданием нового виджета
             const container = document.getElementById('tv-chart');
             container.innerHTML = '';
 
-            const widgetOptions = {
+            new TradingView.widget({
                 "autosize": true,
                 "symbol": symbol,
                 "interval": currentInterval,
                 "timezone": "Etc/UTC",
-                "theme": "light",
+                "theme": currentTheme, // Автоматическая тема для графика
                 "style": "3", 
                 "locale": "ru",
                 "container_id": "tv-chart",
                 "hide_top_toolbar": true,
                 "hide_legend": true,
                 "range": currentRange,
+                "backgroundColor": currentTheme === 'light' ? "#ffffff" : "#000000",
+                "gridColor": currentTheme === 'light' ? "#f0f3fa" : "#1e222d",
                 "save_image": false,
-                "backgroundColor": "#ffffff",
-                "enable_publishing": false,
                 "allow_symbol_change": false,
-                "withdateranges": false,
                 "show_popup_button": false,
-                "scalesProperties": {
-                    "showRightScale": true,
-                },
-                "overrides": {
-                    "mainSeriesProperties.showCountdown": false,
-                    "paneProperties.topMargin": 15,
-                    "paneProperties.bottomMargin": 5,
-                }
-            };
-
-            if (displayCurrency) {
-                widgetOptions["symbol_currency"] = displayCurrency;
-            }
-
-            new TradingView.widget(widgetOptions);
+                "symbol_currency": displayCurrency
+            });
         }
 
         function setRange(range, interval) {
@@ -239,35 +259,27 @@
 
         function openModal(mode) {
             selectionMode = mode;
-            const searchInput = document.getElementById('search-input');
-            searchInput.value = "";
+            document.getElementById('search-input').value = "";
             
             const cryptoTab = document.getElementById('tab-crypto');
             const cisTab = document.getElementById('tab-cis');
             const worldTab = document.getElementById('tab-world');
             
             if (selectionMode === 'quote') {
-                cryptoTab.classList.add('hidden');
+                cryptoTab.style.display = 'none';
                 if (base.id === 'IMOEX') {
-                    cisTab.classList.remove('hidden');
-                    worldTab.classList.remove('hidden');
+                    cisTab.style.display = 'block'; worldTab.style.display = 'block';
                     if (activeTab === 'crypto') activeTab = 'cis';
                 } else if (base.type === 'crypto') {
-                    activeTab = 'world';
-                    cisTab.classList.add('hidden');
+                    activeTab = 'world'; cisTab.style.display = 'none';
                 } else {
-                    cisTab.classList.remove('hidden');
+                    cisTab.style.display = 'block';
                 }
             } else {
-                cryptoTab.classList.remove('hidden');
-                cisTab.classList.remove('hidden');
-                worldTab.classList.remove('hidden');
+                cryptoTab.style.display = 'block'; cisTab.style.display = 'block'; worldTab.style.display = 'block';
             }
 
-            document.querySelectorAll('.tab').forEach(x => {
-                x.classList.toggle('active', x.dataset.type === activeTab);
-            });
-
+            document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.type === activeTab));
             document.getElementById('modal-overlay').classList.add('open');
             renderList();
         }
@@ -288,12 +300,8 @@
                 
                 if (selectionMode === 'quote') {
                     if (item.id === base.id) div.classList.add('disabled');
-                    if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(item.id)) {
-                        div.classList.add('disabled');
-                    }
-                    if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(item.id)) {
-                        div.classList.add('disabled');
-                    }
+                    if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(item.id)) div.classList.add('disabled');
+                    if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(item.id)) div.classList.add('disabled');
                 }
 
                 div.innerHTML = `<span class="asset-flag">${item.f}</span>
@@ -305,19 +313,13 @@
                             base = item;
                             document.getElementById('base-flag').innerText = item.f;
                             document.getElementById('base-code').innerText = item.id;
-                            
-                            if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(quote.id)) {
-                                quote = allAssets.find(a => a.id === 'RUB');
-                            } else if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(quote.id)) {
-                                quote = allAssets.find(a => a.id === 'USD');
-                            }
-                            document.getElementById('quote-flag').innerText = quote.f;
-                            document.getElementById('quote-code').innerText = quote.id;
+                            if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(quote.id)) quote = allAssets.find(a => a.id === 'RUB');
+                            else if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(quote.id)) quote = allAssets.find(a => a.id === 'USD');
                         } else {
                             quote = item;
-                            document.getElementById('quote-flag').innerText = item.f;
-                            document.getElementById('quote-code').innerText = item.id;
                         }
+                        document.getElementById('quote-flag').innerText = quote.f;
+                        document.getElementById('quote-code').innerText = quote.id;
                         createWidget();
                         closeModal();
                     };
@@ -335,9 +337,7 @@
             };
         });
 
-        document.getElementById('search-input').oninput = function() {
-            renderList(this.value);
-        };
+        document.getElementById('search-input').oninput = function() { renderList(this.value); };
 
         createWidget();
     </script>
