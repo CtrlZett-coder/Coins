@@ -18,7 +18,6 @@
             --header-bg: #ffffff;
         }
 
-        /* Темная тема */
         [data-theme="dark"] {
             --ios-bg: #000000;
             --ios-gray: #1c1c1e;
@@ -60,15 +59,6 @@
         #chart-wrapper { flex-grow: 1; position: relative; }
         #tv-chart { width: 100%; height: 100%; }
 
-        /* Фикс хитбокса (некликабельная зона поверх правого верхнего угла графика) */
-        #hitbox-fix {
-            position: absolute; top: 0; right: 0;
-            width: 120px; height: 40px;
-            z-index: 10; background: transparent;
-            pointer-events: all;
-        }
-
-        /* Оверлей загрузки графика */
         #chart-loader {
             position: absolute; inset: 0;
             display: flex; align-items: center; justify-content: center;
@@ -97,11 +87,7 @@
         #modal-header { padding: 16px; border-bottom: 0.5px solid var(--ios-border); display: flex; justify-content: space-between; align-items: center; }
         #modal-title { font-weight: 800; font-size: 17px; color: var(--ios-text); }
         #modal-search { padding: 12px 16px; }
-        #search-input {
-            width: 100%; padding: 12px; border-radius: 10px; border: none;
-            background: var(--ios-gray); font-size: 16px; outline: none;
-            color: var(--ios-text); box-sizing: border-box;
-        }
+        #search-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--ios-gray); font-size: 16px; outline: none; color: var(--ios-text); box-sizing: border-box; }
 
         #tabs { display: flex; padding: 0 16px 12px; gap: 8px; overflow-x: auto; }
         .tab { padding: 8px 14px; background: var(--ios-gray); border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--ios-secondary); cursor: pointer; white-space: nowrap; }
@@ -115,13 +101,7 @@
         .asset-name-bold { font-weight: 700; font-size: 15px; color: var(--ios-text); }
         .asset-name-sub { font-size: 11px; color: var(--ios-secondary); }
 
-        #theme-btn {
-            position: fixed; bottom: 80px; right: 20px; z-index: 100;
-            background: var(--ios-blue); color: white; width: 44px; height: 44px;
-            border-radius: 22px; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: none; font-size: 20px;
-            cursor: pointer;
-        }
+        #theme-btn { position: fixed; bottom: 80px; right: 20px; z-index: 100; background: var(--ios-blue); color: white; width: 44px; height: 44px; border-radius: 22px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: none; font-size: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -149,7 +129,6 @@
     </div>
 
     <div id="chart-wrapper">
-        <div id="hitbox-fix"></div>
         <div id="chart-loader">⏳ Загрузка графика...</div>
         <div id="tv-chart"></div>
     </div>
@@ -189,7 +168,6 @@
         let activeTab = 'crypto';
         let currentTheme = 'light';
 
-        // --- ТЕМЫ ---
         function applyTheme(theme) {
             currentTheme = theme;
             document.documentElement.setAttribute('data-theme', theme);
@@ -202,97 +180,58 @@
 
         document.getElementById('theme-btn').addEventListener('click', toggleTheme);
 
-        // Автовыбор темы при старте
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            applyTheme('dark');
-        }
-
-        // --- АКТИВЫ ---
         const allAssets = [
-            { id: 'UAH', f: '🇺🇦', n: 'Гривна',      type: 'cis' },
-            { id: 'RUB', f: '🇷🇺', n: 'Рубль',        type: 'cis' },
-            { id: 'KZT', f: '🇰🇿', n: 'Тенге',        type: 'cis' },
-            { id: 'BYN', f: '🇧🇾', n: 'Бел. рубль',   type: 'cis' },
-            { id: 'UZS', f: '🇺🇿', n: 'Сум',          type: 'cis' },
-            { id: 'AMD', f: '🇦🇲', n: 'Драм',         type: 'cis' },
-            { id: 'GEL', f: '🇬🇪', n: 'Лари',         type: 'cis' },
-            { id: 'USD', f: '🇺🇸', n: 'Доллар США',   type: 'world' },
-            { id: 'EUR', f: '🇪🇺', n: 'Евро',         type: 'world' },
-            { id: 'CNY', f: '🇨🇳', n: 'Юань',         type: 'world' },
-            { id: 'GBP', f: '🇬🇧', n: 'Фунт',         type: 'world' },
-            { id: 'BTC', f: '₿',   n: 'Bitcoin',      type: 'crypto' },
-            { id: 'ETH', f: 'Ξ',   n: 'Ethereum',     type: 'crypto' },  // исправлено: уникальный символ
-            { id: 'TON', f: '💎',  n: 'Toncoin',      type: 'crypto' },
-            { id: 'IMOEX', f: '📊', n: 'Мосбиржа',   type: 'crypto' }
+            { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
+            { id: 'RUB', f: '🇷🇺', n: 'Рубль', type: 'cis' },
+            { id: 'KZT', f: '🇰🇿', n: 'Тенге', type: 'cis' },
+            { id: 'BYN', f: '🇧🇾', n: 'Бел. рубль', type: 'cis' },
+            { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'world' },
+            { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'world' },
+            { id: 'CNY', f: '🇨🇳', n: 'Юань', type: 'world' },
+            { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
+            { id: 'ETH', f: 'Ξ', n: 'Ethereum', type: 'crypto' },
+            { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' },
+            { id: 'IMOEX', f: '📊', n: 'Мосбиржа', type: 'crypto' }
         ];
 
-        // --- ВИДЖЕТ ГРАФИКА ---
         function createWidget() {
             const loader = document.getElementById('chart-loader');
             loader.classList.remove('hidden');
 
             let symbol = '';
-            let displayCurrency = '';
             const b = base.id;
             const q = quote.id;
 
             if (b === q) {
                 symbol = '1';
             } else if (b === 'IMOEX') {
-                if (q === 'USD') {
-                    symbol = 'MOEX:IMOEX/FX_IDC:USDRUB';
-                    displayCurrency = 'USD';
-                } else {
-                    symbol = 'MOEX:IMOEX';
-                    displayCurrency = 'RUB';
-                }
+                symbol = (q === 'USD') ? 'MOEX:IMOEX/FX_IDC:USDRUB' : 'MOEX:IMOEX';
             } else if (base.type === 'crypto') {
-                symbol = `BINANCE:${b}${q === 'USD' ? 'USDT' : q}`;
-                displayCurrency = q === 'USD' ? 'USD' : q;
-            } else if (b === 'USD') {
-                symbol = `FX_IDC:USD${q}`;
-                displayCurrency = q;
-            } else if (q === 'USD') {
-                symbol = `1/FX_IDC:USD${b}`;
-                displayCurrency = 'USD';
+                let qTicker = (q === 'USD') ? 'USDT' : q;
+                symbol = `BINANCE:${b}${qTicker}`;
             } else {
-                symbol = `FX_IDC:USD${q}/FX_IDC:USD${b}`;
-                displayCurrency = q;
+                symbol = `FX_IDC:${b}${q}`;
             }
 
             const container = document.getElementById('tv-chart');
             container.innerHTML = '';
 
-            try {
-                new TradingView.widget({
-                    autosize: true,
-                    symbol: symbol,
-                    interval: currentInterval,
-                    timezone: 'Etc/UTC',
-                    theme: currentTheme,
-                    style: '3',
-                    locale: 'ru',
-                    container_id: 'tv-chart',
-                    hide_top_toolbar: true,
-                    hide_legend: true,
-                    range: currentRange,
-                    backgroundColor: currentTheme === 'light' ? '#ffffff' : '#000000',
-                    gridColor: currentTheme === 'light' ? '#f0f3fa' : '#1e222d',
-                    save_image: false,
-                    allow_symbol_change: false,
-                    show_popup_button: false,
-                    symbol_currency: displayCurrency,
-                    onChartReady: function() {
-                        loader.classList.add('hidden');
-                    }
-                });
-            } catch (e) {
-                loader.textContent = '⚠️ Не удалось загрузить график';
-                console.error('TradingView widget error:', e);
-            }
+            new TradingView.widget({
+                autosize: true,
+                symbol: symbol,
+                interval: currentInterval,
+                timezone: 'Etc/UTC',
+                theme: currentTheme,
+                style: '3',
+                locale: 'ru',
+                container_id: 'tv-chart',
+                hide_top_toolbar: true,
+                range: currentRange,
+                backgroundColor: currentTheme === 'light' ? '#ffffff' : '#000000',
+                onChartReady: () => loader.classList.add('hidden')
+            });
         }
 
-        // --- ПЕРЕКЛЮЧЕНИЕ ПЕРИОДА ---
         document.getElementById('periods').addEventListener('click', function(e) {
             const btn = e.target.closest('.period-btn');
             if (!btn) return;
@@ -303,32 +242,8 @@
             createWidget();
         });
 
-        // --- МОДАЛЬНОЕ ОКНО ---
         function openModal(mode) {
             selectionMode = mode;
-            document.getElementById('search-input').value = '';
-
-            const cryptoTab = document.getElementById('tab-crypto');
-            const cisTab    = document.getElementById('tab-cis');
-            const worldTab  = document.getElementById('tab-world');
-
-            cryptoTab.style.display = 'block';
-            cisTab.style.display    = 'block';
-            worldTab.style.display  = 'block';
-
-            if (selectionMode === 'quote') {
-                cryptoTab.style.display = 'none';
-                if (base.id === 'IMOEX') {
-                    if (activeTab === 'crypto') activeTab = 'cis';
-                } else if (base.type === 'crypto') {
-                    activeTab = 'world';
-                    cisTab.style.display = 'none';
-                }
-            }
-
-            document.querySelectorAll('.tab').forEach(x =>
-                x.classList.toggle('active', x.dataset.type === activeTab)
-            );
             document.getElementById('modal-overlay').classList.add('open');
             renderList();
         }
@@ -341,78 +256,44 @@
         document.getElementById('quote-selector').addEventListener('click', () => openModal('quote'));
         document.getElementById('modal-close-btn').addEventListener('click', closeModal);
 
-        // --- РЕНДЕР СПИСКА АКТИВОВ ---
         function renderList(search = '') {
             const list = document.getElementById('assets-list');
             list.innerHTML = '';
             const searchUp = search.toUpperCase();
 
-            const filtered = allAssets.filter(a =>
-                a.type === activeTab &&
-                (a.id.includes(searchUp) || a.n.toUpperCase().includes(searchUp))
-            );
-
-            filtered.forEach(item => {
+            allAssets.filter(a => a.type === activeTab && (a.id.includes(searchUp) || a.n.toUpperCase().includes(searchUp)))
+            .forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'asset-item';
-
-                let isDisabled = false;
-                if (selectionMode === 'quote') {
-                    if (item.id === base.id) isDisabled = true;
-                    if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(item.id)) isDisabled = true;
-                    if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(item.id)) isDisabled = true;
-                }
-                if (isDisabled) div.classList.add('disabled');
-
-                div.innerHTML = `
-                    <span class="asset-flag">${item.f}</span>
-                    <div class="asset-info">
-                        <span class="asset-name-bold">${item.id}</span>
-                        <span class="asset-name-sub">${item.n}</span>
-                    </div>`;
-
-                if (!isDisabled) {
-                    div.addEventListener('click', () => {
-                        if (selectionMode === 'base') {
-                            base = item;
-                            document.getElementById('base-flag').textContent = item.f;
-                            document.getElementById('base-code').textContent = item.id;
-                            // Сброс quote если он несовместим
-                            if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(quote.id)) {
-                                quote = allAssets.find(a => a.id === 'RUB');
-                            } else if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(quote.id)) {
-                                quote = allAssets.find(a => a.id === 'USD');
-                            }
-                        } else {
-                            quote = item;
-                        }
-                        document.getElementById('quote-flag').textContent = quote.f;
-                        document.getElementById('quote-code').textContent = quote.id;
-                        createWidget();
-                        closeModal();
-                    });
-                }
-
+                div.innerHTML = `<span class="asset-flag">${item.f}</span><div class="asset-info"><span class="asset-name-bold">${item.id}</span><span class="asset-name-sub">${item.n}</span></div>`;
+                div.addEventListener('click', () => {
+                    if (selectionMode === 'base') {
+                        base = item;
+                        document.getElementById('base-flag').textContent = item.f;
+                        document.getElementById('base-code').textContent = item.id;
+                    } else {
+                        quote = item;
+                        document.getElementById('quote-flag').textContent = item.f;
+                        document.getElementById('quote-code').textContent = item.id;
+                    }
+                    createWidget();
+                    closeModal();
+                });
                 list.appendChild(div);
             });
         }
 
-        // --- ТАБЫ ---
         document.querySelectorAll('.tab').forEach(t => {
             t.addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
                 t.classList.add('active');
                 activeTab = t.dataset.type;
-                renderList(document.getElementById('search-input').value);
+                renderList();
             });
         });
 
-        // --- ПОИСК ---
-        document.getElementById('search-input').addEventListener('input', function() {
-            renderList(this.value);
-        });
+        document.getElementById('search-input').addEventListener('input', function() { renderList(this.value); });
 
-        // --- СТАРТ ---
         createWidget();
     </script>
 </body>
