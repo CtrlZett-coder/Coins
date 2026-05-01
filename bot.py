@@ -80,7 +80,7 @@ def get_live_market_data() -> str:
         eth_p = res['ethereum']['usd']
         eth_c = res['ethereum']['usd_24h_change']
         data_str += f"BTC: ${btc_p} ({btc_c:+.2f}%), ETH: ${eth_p} ({eth_c:+.2f}%). "
-    except (requests.RequestException, KeyError, ValueError) as e:
+    except Exception as e:
         logger.warning("Не удалось получить данные крипты: %s", e)
         data_str += "BTC: $69200 (+1.2%), ETH: $3520 (-0.5%). "
 
@@ -96,7 +96,7 @@ def get_live_market_data() -> str:
         prev_close = row[3]
         change_pct = ((current_val - prev_close) / prev_close * 100) if prev_close else 0.0
         data_str += f"IMOEX: {current_val:.2f} пт ({change_pct:+.2f}%)."
-    except (requests.RequestException, KeyError, TypeError, IndexError, ValueError) as e:
+    except Exception as e:
         logger.warning("Не удалось получить данные IMOEX: %s", e)
         data_str += "IMOEX: 2772 пт (-0.3%)."
 
@@ -126,11 +126,12 @@ async def send_market_report(user_id: int) -> None:
                 },
                 {"role": "user", "content": f"Данные для анализа: {market_context}"}
             ],
-            temperature=0.3
+            temperature=0.3,
+            timeout=15
         )
         ai_text = response.choices[0].message.content.replace("**", "")
     except Exception as e:
-        logger.error("Ошибка AI-клиента при формировании дайджеста: %s", e)
+        logger.error("Ошибка AI-клиента: %s", e)
         ai_text = "📊 <b>Краткий рыночный дайджест</b>\n\nДанные обновляются, попробуйте через минуту! ⏳"
 
     builder = InlineKeyboardBuilder()
@@ -138,16 +139,14 @@ async def send_market_report(user_id: int) -> None:
     try:
         await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode="HTML")
     except Exception as e:
-        logger.error("Не удалось отправить сообщение пользователю %s: %s", user_id, e)
+        logger.error("Ошибка отправки: %s", e)
 
 # --- УВЕДОМЛЕНИЯ ---
 async def check_fixed_times() -> None:
     for uid, notes in list(user_notifications.items()):
         now = get_now(uid)
-        # Проверяем только в начале часа (минута 0)
         if now.minute != 0:
             continue
-
         for n in notes:
             should_send = False
             if n['type'] == "morning" and now.hour == 10:
@@ -158,13 +157,11 @@ async def check_fixed_times() -> None:
                 should_send = True
 
             if should_send and (now - n['last_run']) >= timedelta(days=n['interval']):
-                logger.info("Отправка уведомления пользователю %s (тип: %s)", uid, n['type'])
                 await send_market_report(uid)
                 n['last_run'] = now
 
-# --- ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ ГЛАВНОГО МЕНЮ ---
+# --- ГЛАВНОЕ МЕНЮ (Оригинальный текст) ---
 async def send_main_menu(target: types.Message) -> None:
-    """Отправляет главное меню новым сообщением."""
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Открыть Mini App", web_app=types.WebAppInfo(url=BASE_URL))
     builder.button(text="🔔 Настроить уведомления", callback_data="manage_notifications")
@@ -183,14 +180,13 @@ async def send_main_menu(target: types.Message) -> None:
     )
     await target.answer(welcome_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-# --- МЕНЮ ---
 @dp.message(CommandStart())
-async def start(message: types.Message) -> None:
+async def start(message: types.Message):
     await send_main_menu(message)
 
 # --- СМЕНА ТАЙМЗОНЫ ---
 @dp.callback_query(F.data == "change_timezone")
-async def choose_timezone(callback: types.CallbackQuery, state: FSMContext) -> None:
+async def choose_timezone(callback: types.CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
     for tz in TIMEZONES:
         builder.button(text=tz, callback_data=f"tz_{tz}")
@@ -199,38 +195,22 @@ async def choose_timezone(callback: types.CallbackQuery, state: FSMContext) -> N
     await state.set_state(TimezoneStates.choosing)
 
 @dp.callback_query(F.data.startswith("tz_"))
-async def set_timezone(callback: types.CallbackQuery, state: FSMContext) -> None:
+async def set_timezone(callback: types.CallbackQuery, state: FSMContext):
     tz = callback.data.replace("tz_", "")
     user_timezones[callback.from_user.id] = tz
     await state.clear()
     await callback.answer("Часовой пояс обновлён!")
-    # Редактируем текущее сообщение под главное меню
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📊 Открыть Mini App", web_app=types.WebAppInfo(url=BASE_URL))
-    builder.button(text="🔔 Настроить уведомления", callback_data="manage_notifications")
-    builder.button(text="🤖 Умный анализ", callback_data="get_report_now")
-    builder.button(text="🌍 Изменить часовой пояс", callback_data="change_timezone")
-    builder.adjust(1)
-    welcome_text = (
-        "👋 <b>Добро пожаловать к КриптоГению!</b>\n\n"
-        "Я твой персональный финансовый ассистент. Вот что я умею:\n\n"
-        "📈 <b>Мониторинг рынков:</b> Отслеживаю актуальные курсы криптовалют и индекс Мосбиржи.\n"
-        "🤖 <b>AI-аналитика:</b> Генерирую точные дайджесты с помощью продвинутых алгоритмов.\n"
-        "🔔 <b>Умные уведомления:</b> Присылаю отчеты в удобное время (утро/вечер).\n"
-        "📱 <b>Mini App:</b> Полноценное приложение с графиками прямо внутри Telegram.\n\n"
-        "<i>Настрой уведомления или нажми «Умный анализ» для первого отчета!</i>"
-    )
-    await callback.message.edit_text(welcome_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await back_home(callback)
 
 # --- МГНОВЕННЫЙ ОТЧЁТ ---
 @dp.callback_query(F.data == "get_report_now")
-async def instant_report(callback: types.CallbackQuery) -> None:
+async def instant_report(callback: types.CallbackQuery):
     await callback.answer("Запускаю интеллектуальный анализ...")
     await send_market_report(callback.from_user.id)
 
 # --- СПИСОК УВЕДОМЛЕНИЙ ---
 @dp.callback_query(F.data == "manage_notifications")
-async def list_notifications(callback: types.CallbackQuery) -> None:
+async def list_notifications(callback: types.CallbackQuery):
     uid = callback.from_user.id
     notes = user_notifications.get(uid, [])
     builder = InlineKeyboardBuilder()
@@ -250,77 +230,51 @@ async def list_notifications(callback: types.CallbackQuery) -> None:
     builder.adjust(1)
     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-# --- НАСТРОЙКА: ТИП ВРЕМЕНИ ---
+# --- НАСТРОЙКА ---
 @dp.callback_query(F.data == "setup_type")
-async def setup_type(callback: types.CallbackQuery, state: FSMContext) -> None:
+async def setup_type(callback: types.CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
     builder.button(text="☀️ Утро (10:00)", callback_data="set_t_morning")
     builder.button(text="🌙 Вечер (18:00)", callback_data="set_t_evening")
     builder.button(text="🌗 Утро и Вечер", callback_data="set_t_both")
     builder.adjust(1)
-    await callback.message.edit_text(
-        "<b>Выберите время получения новостей:</b>",
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
-    )
+    await callback.message.edit_text("<b>Выберите время получения новостей:</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
     await state.set_state(NotifyStates.choosing_type)
 
-# --- НАСТРОЙКА: ИНТЕРВАЛ ---
 @dp.callback_query(F.data.startswith("set_t_"))
-async def setup_interval(callback: types.CallbackQuery, state: FSMContext) -> None:
+async def setup_interval(callback: types.CallbackQuery, state: FSMContext):
     await state.update_data(time_type=callback.data.replace("set_t_", ""))
     builder = InlineKeyboardBuilder()
     builder.button(text="📅 Каждый день", callback_data="set_i_1")
     builder.button(text="🗓 Раз в 3 дня", callback_data="set_i_3")
     builder.button(text="📆 Раз в неделю", callback_data="set_i_7")
     builder.adjust(1)
-    await callback.message.edit_text(
-        "<b>Как часто присылать отчеты?</b>",
-        reply_markup=builder.as_markup(),
-        parse_mode="HTML"
-    )
+    await callback.message.edit_text("<b>Как часто присылать отчеты?</b>", reply_markup=builder.as_markup(), parse_mode="HTML")
     await state.set_state(NotifyStates.choosing_interval)
 
-# --- НАСТРОЙКА: ФИНИШ ---
 @dp.callback_query(F.data.startswith("set_i_"))
-async def finish_setup(callback: types.CallbackQuery, state: FSMContext) -> None:
+async def finish_setup(callback: types.CallbackQuery, state: FSMContext):
     interval = int(callback.data.replace("set_i_", ""))
     data = await state.get_data()
     uid = callback.from_user.id
-
-    if uid not in user_notifications:
-        user_notifications[uid] = []
-
+    if uid not in user_notifications: user_notifications[uid] = []
     user_notifications[uid].append({
-        "type": data['time_type'],
-        "interval": interval,
-        # last_run отнесён назад, чтобы первое уведомление пришло в ближайшее нужное время
+        "type": data['time_type'], "interval": interval,
         "last_run": get_now(uid) - timedelta(days=interval)
     })
     await callback.answer("Уведомление настроено!")
     await state.clear()
     await list_notifications(callback)
 
-# --- УДАЛЕНИЕ УВЕДОМЛЕНИЯ ---
 @dp.callback_query(F.data.startswith("del_"))
-async def delete_note(callback: types.CallbackQuery) -> None:
+async def delete_note(callback: types.CallbackQuery):
     uid = callback.from_user.id
-    try:
-        idx = int(callback.data.split("_")[1])
-        if uid in user_notifications and 0 <= idx < len(user_notifications[uid]):
-            user_notifications[uid].pop(idx)
-        else:
-            await callback.answer("Уведомление не найдено.", show_alert=True)
-            return
-    except (ValueError, IndexError) as e:
-        logger.warning("Ошибка при удалении уведомления: %s", e)
-        await callback.answer("Не удалось удалить уведомление.", show_alert=True)
-        return
+    idx = int(callback.data.split("_")[1])
+    if uid in user_notifications: user_notifications[uid].pop(idx)
     await list_notifications(callback)
 
-# --- НАЗАД В МЕНЮ ---
 @dp.callback_query(F.data == "back_to_main")
-async def back_home(callback: types.CallbackQuery) -> None:
+async def back_home(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Открыть Mini App", web_app=types.WebAppInfo(url=BASE_URL))
     builder.button(text="🔔 Настроить уведомления", callback_data="manage_notifications")
@@ -338,18 +292,10 @@ async def back_home(callback: types.CallbackQuery) -> None:
     )
     await callback.message.edit_text(welcome_text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
-# --- ЗАПУСК ---
-async def main() -> None:
-    logger.info("Запуск бота КриптоГений...")
-    # Планировщик запускается каждую минуту, но внутри check_fixed_times
-    # фактическая отправка происходит только при minute == 0
+async def main():
     scheduler.add_job(check_fixed_times, "cron", minute="*")
     scheduler.start()
-    try:
-        await dp.start_polling(bot)
-    finally:
-        scheduler.shutdown()
-        logger.info("Бот остановлен.")
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
     asyncio.run(main())
