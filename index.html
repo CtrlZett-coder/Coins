@@ -57,7 +57,7 @@
         .divider-icon { font-size: 16px; color: var(--ios-secondary); font-weight: 300; }
 
         #chart-wrapper { flex-grow: 1; position: relative; }
-        #tv-chart { width: 100%; height: 100%; }
+        #tv-chart { width: 100%; height: 100%; min-height: 200px; }
 
         #chart-loader {
             position: absolute; inset: 0;
@@ -95,7 +95,6 @@
 
         #assets-list { overflow-y: auto; flex-grow: 1; padding-bottom: 40px; }
         .asset-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(--ios-gray); cursor: pointer; }
-        .asset-item.disabled { opacity: 0.2; pointer-events: none; filter: grayscale(1); }
         .asset-flag { font-size: 24px; margin-right: 14px; width: 30px; text-align: center; }
         .asset-info { display: flex; flex-direction: column; }
         .asset-name-bold { font-weight: 700; font-size: 15px; color: var(--ios-text); }
@@ -174,11 +173,9 @@
             createWidget();
         }
 
-        function toggleTheme() {
+        document.getElementById('theme-btn').addEventListener('click', () => {
             applyTheme(currentTheme === 'light' ? 'dark' : 'light');
-        }
-
-        document.getElementById('theme-btn').addEventListener('click', toggleTheme);
+        });
 
         const allAssets = [
             { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
@@ -189,7 +186,7 @@
             { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'world' },
             { id: 'CNY', f: '🇨🇳', n: 'Юань', type: 'world' },
             { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
-            { id: 'ETH', f: '♦️', n: 'Ethereum', type: 'crypto' },
+            { id: 'ETH', f: '🔷', n: 'Ethereum', type: 'crypto' },
             { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' },
             { id: 'IMOEX', f: '📊', n: 'Мосбиржа', type: 'crypto' }
         ];
@@ -207,8 +204,9 @@
             } else if (b === 'IMOEX') {
                 symbol = (q === 'USD') ? 'MOEX:IMOEX/FX_IDC:USDRUB' : 'MOEX:IMOEX';
             } else if (base.type === 'crypto') {
+                // Если валюта котировки - рубль, ищем пару к рублю или через промежуточный USDT
                 let qTicker = (q === 'USD') ? 'USDT' : q;
-                symbol = `BINANCE:${b}${qTicker}`;
+                symbol = `${b}${qTicker}`; // Авто-поиск лучшей биржи
             } else {
                 symbol = `FX_IDC:${b}${q}`;
             }
@@ -226,6 +224,7 @@
                 locale: 'ru',
                 container_id: 'tv-chart',
                 hide_top_toolbar: true,
+                hide_legend: true,
                 range: currentRange,
                 backgroundColor: currentTheme === 'light' ? '#ffffff' : '#000000',
                 onChartReady: () => loader.classList.add('hidden')
