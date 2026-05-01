@@ -167,16 +167,6 @@
         let activeTab = 'crypto';
         let currentTheme = 'light';
 
-        function applyTheme(theme) {
-            currentTheme = theme;
-            document.documentElement.setAttribute('data-theme', theme);
-            createWidget();
-        }
-
-        document.getElementById('theme-btn').addEventListener('click', () => {
-            applyTheme(currentTheme === 'light' ? 'dark' : 'light');
-        });
-
         const allAssets = [
             { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
             { id: 'RUB', f: '🇷🇺', n: 'Рубль', type: 'cis' },
@@ -191,6 +181,16 @@
             { id: 'IMOEX', f: '📊', n: 'Мосбиржа', type: 'crypto' }
         ];
 
+        function applyTheme(theme) {
+            currentTheme = theme;
+            document.documentElement.setAttribute('data-theme', theme);
+            createWidget();
+        }
+
+        document.getElementById('theme-btn').addEventListener('click', () => {
+            applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+        });
+
         function createWidget() {
             const loader = document.getElementById('chart-loader');
             loader.classList.remove('hidden');
@@ -200,13 +200,13 @@
             const q = quote.id;
 
             if (b === q) {
-                symbol = '1';
+                symbol = 'BITSTAMP:BTCUSD';
             } else if (b === 'IMOEX') {
                 symbol = (q === 'USD') ? 'MOEX:IMOEX/FX_IDC:USDRUB' : 'MOEX:IMOEX';
             } else if (base.type === 'crypto') {
-                // Если валюта котировки - рубль, ищем пару к рублю или через промежуточный USDT
-                let qTicker = (q === 'USD') ? 'USDT' : q;
-                symbol = `${b}${qTicker}`; // Авто-поиск лучшей биржи
+                // Принудительно используем BINANCE и USDT для стабильности
+                let qTicker = (q === 'USD' || q === 'RUB') ? 'USDT' : q;
+                symbol = `BINANCE:${b}${qTicker}`;
             } else {
                 symbol = `FX_IDC:${b}${q}`;
             }
@@ -214,23 +214,30 @@
             const container = document.getElementById('tv-chart');
             container.innerHTML = '';
 
-            new TradingView.widget({
-                autosize: true,
-                symbol: symbol,
-                interval: currentInterval,
-                timezone: 'Etc/UTC',
-                theme: currentTheme,
-                style: '3',
-                locale: 'ru',
-                container_id: 'tv-chart',
-                hide_top_toolbar: true,
-                hide_legend: true,
-                range: currentRange,
-                backgroundColor: currentTheme === 'light' ? '#ffffff' : '#000000',
-                onChartReady: () => loader.classList.add('hidden')
-            });
+            try {
+                new TradingView.widget({
+                    "autosize": true,
+                    "symbol": symbol,
+                    "interval": currentInterval,
+                    "timezone": "Etc/UTC",
+                    "theme": currentTheme,
+                    "style": "3",
+                    "locale": "ru",
+                    "container_id": "tv-chart",
+                    "hide_top_toolbar": true,
+                    "hide_legend": true,
+                    "range": currentRange,
+                    "backgroundColor": currentTheme === 'light' ? '#ffffff' : '#000000',
+                    "onChartReady": () => {
+                        loader.classList.add('hidden');
+                    }
+                });
+            } catch (e) {
+                loader.textContent = "Ошибка запуска графика";
+            }
         }
 
+        // Периоды
         document.getElementById('periods').addEventListener('click', function(e) {
             const btn = e.target.closest('.period-btn');
             if (!btn) return;
@@ -241,16 +248,13 @@
             createWidget();
         });
 
+        // Модалка
         function openModal(mode) {
             selectionMode = mode;
             document.getElementById('modal-overlay').classList.add('open');
             renderList();
         }
-
-        function closeModal() {
-            document.getElementById('modal-overlay').classList.remove('open');
-        }
-
+        function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
         document.getElementById('base-selector').addEventListener('click', () => openModal('base'));
         document.getElementById('quote-selector').addEventListener('click', () => openModal('quote'));
         document.getElementById('modal-close-btn').addEventListener('click', closeModal);
@@ -259,7 +263,6 @@
             const list = document.getElementById('assets-list');
             list.innerHTML = '';
             const searchUp = search.toUpperCase();
-
             allAssets.filter(a => a.type === activeTab && (a.id.includes(searchUp) || a.n.toUpperCase().includes(searchUp)))
             .forEach(item => {
                 const div = document.createElement('div');
