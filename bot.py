@@ -103,8 +103,11 @@ def get_live_market_data() -> str:
     return data_str
 
 async def send_market_report(user_id: int) -> None:
+    # 1. Сначала берем актуальные цифры
     market_context = get_live_market_data()
+    
     try:
+        # 2. Формируем запрос к DeepSeek
         response = ai_client.chat.completions.create(
             model="deepseek-chat",
             messages=[
@@ -129,17 +132,35 @@ async def send_market_report(user_id: int) -> None:
             temperature=0.3,
             timeout=15
         )
-        ai_text = response.choices[0].message.content.replace("**", "")
+        # Получаем текст и ОЧИЩАЕМ его от лишних символов, которые ломают HTML-режим
+        ai_text = response.choices[0].message.content
+        ai_text = ai_text.replace("**", "") # Удаляем маркдаун, если AI его подсунул
+        
     except Exception as e:
         logger.error("Ошибка AI-клиента: %s", e)
-        ai_text = "📊 <b>Краткий рыночный дайджест</b>\n\nДанные обновляются, попробуйте через минуту! ⏳"
+        # 3. Резервный вариант: если AI не ответил, выводим данные сами в твоем стиле
+        # Это гарантирует, что сообщение НЕ будет пустой заглушкой
+        ai_text = (
+            "📊 <b>Краткий рыночный дайджест</b>\n\n"
+            "Крипта:\n"
+            f"- BTC 🚀: {market_context.split(',')[0] if 'BTC' in market_context else 'Данные обновляются'}\n"
+            f"- ETH ⚡: {market_context.split(',')[1] if 'ETH' in market_context else 'Данные обновляются'}\n\n"
+            "Мосбиржа (данные с задержкой):\n"
+            f"- IMOEX 📉: {market_context.split('IMOEX:')[1] if 'IMOEX' in market_context else 'В процессе...'}\n\n"
+            "<b>Вывод:</b> Рынок находится в движении, следите за обновлениями! 📈"
+        )
 
+    # Создаем кнопку
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Детали в приложении", web_app=types.WebAppInfo(url=BASE_URL))
+    
     try:
+        # Отправляем сообщение. Если HTML всё равно кривой — отправим как обычный текст
         await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode="HTML")
-    except Exception as e:
-        logger.error("Ошибка отправки: %s", e)
+    except Exception as parse_err:
+        logger.error(f"Ошибка парсинга: {parse_err}")
+        # Если Telegram ругается на HTML, шлем без него, чтобы юзер хоть что-то увидел
+        await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode=None)
 
 # --- УВЕДОМЛЕНИЯ ---
 async def check_fixed_times() -> None:
