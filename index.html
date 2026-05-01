@@ -65,14 +65,25 @@
             position: absolute; top: 0; right: 0;
             width: 120px; height: 40px;
             z-index: 10; background: transparent;
-            pointer-events: all; /* Перехватывает клики на себя */
+            pointer-events: all;
         }
+
+        /* Оверлей загрузки графика */
+        #chart-loader {
+            position: absolute; inset: 0;
+            display: flex; align-items: center; justify-content: center;
+            background: var(--ios-bg); z-index: 5;
+            font-size: 14px; color: var(--ios-secondary);
+            transition: opacity 0.3s;
+        }
+        #chart-loader.hidden { opacity: 0; pointer-events: none; }
 
         #footer-controls { padding: 12px 12px 24px; border-top: 0.5px solid var(--ios-border); background: var(--header-bg); }
         #periods { display: flex; background: var(--ios-gray); padding: 2px; border-radius: 10px; gap: 2px; }
         .period-btn {
             flex: 1; border: none; background: none; padding: 10px 0;
             font-size: 11px; font-weight: 700; border-radius: 8px; color: var(--ios-secondary);
+            cursor: pointer;
         }
         .period-btn.active { background: var(--ios-text); color: var(--ios-bg); }
 
@@ -86,14 +97,18 @@
         #modal-header { padding: 16px; border-bottom: 0.5px solid var(--ios-border); display: flex; justify-content: space-between; align-items: center; }
         #modal-title { font-weight: 800; font-size: 17px; color: var(--ios-text); }
         #modal-search { padding: 12px 16px; }
-        #search-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--ios-gray); font-size: 16px; outline: none; color: var(--ios-text); }
-        
+        #search-input {
+            width: 100%; padding: 12px; border-radius: 10px; border: none;
+            background: var(--ios-gray); font-size: 16px; outline: none;
+            color: var(--ios-text); box-sizing: border-box;
+        }
+
         #tabs { display: flex; padding: 0 16px 12px; gap: 8px; overflow-x: auto; }
         .tab { padding: 8px 14px; background: var(--ios-gray); border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--ios-secondary); cursor: pointer; white-space: nowrap; }
         .tab.active { background: var(--ios-blue); color: #fff; }
 
         #assets-list { overflow-y: auto; flex-grow: 1; padding-bottom: 40px; }
-        .asset-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(--ios-gray); }
+        .asset-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(--ios-gray); cursor: pointer; }
         .asset-item.disabled { opacity: 0.2; pointer-events: none; filter: grayscale(1); }
         .asset-flag { font-size: 24px; margin-right: 14px; width: 30px; text-align: center; }
         .asset-info { display: flex; flex-direction: column; }
@@ -105,15 +120,16 @@
             background: var(--ios-blue); color: white; width: 44px; height: 44px;
             border-radius: 22px; display: flex; align-items: center; justify-content: center;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: none; font-size: 20px;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
-    <button id="theme-btn" onclick="toggleTheme()">🌓</button>
+    <button id="theme-btn">🌓</button>
 
     <div id="dual-header">
-        <div class="selector-box" onclick="openModal('base')">
+        <div class="selector-box" id="base-selector">
             <span class="sel-flag" id="base-flag">₿</span>
             <div class="sel-label">
                 <span class="sel-code" id="base-code">BTC</span>
@@ -122,7 +138,7 @@
             <span class="sel-chevron">▼</span>
         </div>
         <div class="divider-icon">/</div>
-        <div class="selector-box" onclick="openModal('quote')">
+        <div class="selector-box" id="quote-selector">
             <span class="sel-flag" id="quote-flag">🇺🇸</span>
             <div class="sel-label">
                 <span class="sel-code" id="quote-code">USD</span>
@@ -133,24 +149,26 @@
     </div>
 
     <div id="chart-wrapper">
-        <div id="hitbox-fix"></div> <div id="tv-chart"></div>
+        <div id="hitbox-fix"></div>
+        <div id="chart-loader">⏳ Загрузка графика...</div>
+        <div id="tv-chart"></div>
     </div>
 
     <div id="footer-controls">
         <div id="periods">
-            <button class="period-btn active" onclick="setRange('1D', '5')">1Д</button>
-            <button class="period-btn" onclick="setRange('1M', 'D')">1М</button>
-            <button class="period-btn" onclick="setRange('3M', 'D')">3М</button>
-            <button class="period-btn" onclick="setRange('6M', 'D')">6М</button>
-            <button class="period-btn" onclick="setRange('12M', 'W')">1Г</button>
-            <button class="period-btn" onclick="setRange('ALL', 'M')">Все</button>
+            <button class="period-btn active" data-range="1D" data-interval="5">1Д</button>
+            <button class="period-btn" data-range="1M" data-interval="D">1М</button>
+            <button class="period-btn" data-range="3M" data-interval="D">3М</button>
+            <button class="period-btn" data-range="6M" data-interval="D">6М</button>
+            <button class="period-btn" data-range="12M" data-interval="W">1Г</button>
+            <button class="period-btn" data-range="ALL" data-interval="M">Все</button>
         </div>
     </div>
 
     <div id="modal-overlay">
         <div id="modal-header">
             <div id="modal-title">Выбор актива</div>
-            <div style="color:var(--ios-blue); font-weight:600; cursor:pointer;" onclick="closeModal()">Готово</div>
+            <div style="color:var(--ios-blue); font-weight:600; cursor:pointer;" id="modal-close-btn">Готово</div>
         </div>
         <div id="modal-search"><input type="text" id="search-input" placeholder="Поиск..."></div>
         <div id="tabs">
@@ -171,174 +189,230 @@
         let activeTab = 'crypto';
         let currentTheme = 'light';
 
-        // Темы
+        // --- ТЕМЫ ---
         function applyTheme(theme) {
             currentTheme = theme;
             document.documentElement.setAttribute('data-theme', theme);
-            createWidget(); // Перерисовываем график под цвет темы
+            createWidget();
         }
 
         function toggleTheme() {
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            applyTheme(newTheme);
+            applyTheme(currentTheme === 'light' ? 'dark' : 'light');
         }
+
+        document.getElementById('theme-btn').addEventListener('click', toggleTheme);
 
         // Автовыбор темы при старте
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
             applyTheme('dark');
         }
 
+        // --- АКТИВЫ ---
         const allAssets = [
-            { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
-            { id: 'RUB', f: '🇷🇺', n: 'Рубль', type: 'cis' },
-            { id: 'KZT', f: '🇰🇿', n: 'Тенге', type: 'cis' },
-            { id: 'BYN', f: '🇧🇾', n: 'Бел. рубль', type: 'cis' },
-            { id: 'UZS', f: '🇺🇿', n: 'Сум', type: 'cis' },
-            { id: 'AMD', f: '🇦🇲', n: 'Драм', type: 'cis' },
-            { id: 'GEL', f: '🇬🇪', n: 'Лари', type: 'cis' },
-            { id: 'USD', f: '🇺🇸', n: 'Доллар США', type: 'world' },
-            { id: 'EUR', f: '🇪🇺', n: 'Евро', type: 'world' },
-            { id: 'CNY', f: '🇨🇳', n: 'Юань', type: 'world' },
-            { id: 'GBP', f: '🇬🇧', n: 'Фунт', type: 'world' },
-            { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
-            { id: 'ETH', f: '💎', n: 'Ethereum', type: 'crypto' },
-            { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' },
-            { id: 'IMOEX', f: '📊', n: 'Мосбиржа', type: 'crypto' }
+            { id: 'UAH', f: '🇺🇦', n: 'Гривна',      type: 'cis' },
+            { id: 'RUB', f: '🇷🇺', n: 'Рубль',        type: 'cis' },
+            { id: 'KZT', f: '🇰🇿', n: 'Тенге',        type: 'cis' },
+            { id: 'BYN', f: '🇧🇾', n: 'Бел. рубль',   type: 'cis' },
+            { id: 'UZS', f: '🇺🇿', n: 'Сум',          type: 'cis' },
+            { id: 'AMD', f: '🇦🇲', n: 'Драм',         type: 'cis' },
+            { id: 'GEL', f: '🇬🇪', n: 'Лари',         type: 'cis' },
+            { id: 'USD', f: '🇺🇸', n: 'Доллар США',   type: 'world' },
+            { id: 'EUR', f: '🇪🇺', n: 'Евро',         type: 'world' },
+            { id: 'CNY', f: '🇨🇳', n: 'Юань',         type: 'world' },
+            { id: 'GBP', f: '🇬🇧', n: 'Фунт',         type: 'world' },
+            { id: 'BTC', f: '₿',   n: 'Bitcoin',      type: 'crypto' },
+            { id: 'ETH', f: 'Ξ',   n: 'Ethereum',     type: 'crypto' },  // исправлено: уникальный символ
+            { id: 'TON', f: '💎',  n: 'Toncoin',      type: 'crypto' },
+            { id: 'IMOEX', f: '📊', n: 'Мосбиржа',   type: 'crypto' }
         ];
 
+        // --- ВИДЖЕТ ГРАФИКА ---
         function createWidget() {
-            let symbol = "";
-            let displayCurrency = ""; 
+            const loader = document.getElementById('chart-loader');
+            loader.classList.remove('hidden');
+
+            let symbol = '';
+            let displayCurrency = '';
             const b = base.id;
             const q = quote.id;
 
-            if (b === q) { symbol = "1"; }
-            else if (b === 'IMOEX') {
-                if (q === 'USD') { symbol = "MOEX:IMOEX/FX_IDC:USDRUB"; displayCurrency = "USD"; }
-                else { symbol = "MOEX:IMOEX"; displayCurrency = "RUB"; }
-            }
-            else if (base.type === 'crypto') {
+            if (b === q) {
+                symbol = '1';
+            } else if (b === 'IMOEX') {
+                if (q === 'USD') {
+                    symbol = 'MOEX:IMOEX/FX_IDC:USDRUB';
+                    displayCurrency = 'USD';
+                } else {
+                    symbol = 'MOEX:IMOEX';
+                    displayCurrency = 'RUB';
+                }
+            } else if (base.type === 'crypto') {
                 symbol = `BINANCE:${b}${q === 'USD' ? 'USDT' : q}`;
                 displayCurrency = q === 'USD' ? 'USD' : q;
+            } else if (b === 'USD') {
+                symbol = `FX_IDC:USD${q}`;
+                displayCurrency = q;
+            } else if (q === 'USD') {
+                symbol = `1/FX_IDC:USD${b}`;
+                displayCurrency = 'USD';
+            } else {
+                symbol = `FX_IDC:USD${q}/FX_IDC:USD${b}`;
+                displayCurrency = q;
             }
-            else if (b === 'USD') { symbol = `FX_IDC:USD${q}`; displayCurrency = q; }
-            else if (q === 'USD') { symbol = `1/FX_IDC:USD${b}`; displayCurrency = "USD"; }
-            else { symbol = `FX_IDC:USD${q}/FX_IDC:USD${b}`; displayCurrency = q; }
 
             const container = document.getElementById('tv-chart');
             container.innerHTML = '';
 
-            new TradingView.widget({
-                "autosize": true,
-                "symbol": symbol,
-                "interval": currentInterval,
-                "timezone": "Etc/UTC",
-                "theme": currentTheme, // Автоматическая тема для графика
-                "style": "3", 
-                "locale": "ru",
-                "container_id": "tv-chart",
-                "hide_top_toolbar": true,
-                "hide_legend": true,
-                "range": currentRange,
-                "backgroundColor": currentTheme === 'light' ? "#ffffff" : "#000000",
-                "gridColor": currentTheme === 'light' ? "#f0f3fa" : "#1e222d",
-                "save_image": false,
-                "allow_symbol_change": false,
-                "show_popup_button": false,
-                "symbol_currency": displayCurrency
-            });
+            try {
+                new TradingView.widget({
+                    autosize: true,
+                    symbol: symbol,
+                    interval: currentInterval,
+                    timezone: 'Etc/UTC',
+                    theme: currentTheme,
+                    style: '3',
+                    locale: 'ru',
+                    container_id: 'tv-chart',
+                    hide_top_toolbar: true,
+                    hide_legend: true,
+                    range: currentRange,
+                    backgroundColor: currentTheme === 'light' ? '#ffffff' : '#000000',
+                    gridColor: currentTheme === 'light' ? '#f0f3fa' : '#1e222d',
+                    save_image: false,
+                    allow_symbol_change: false,
+                    show_popup_button: false,
+                    symbol_currency: displayCurrency,
+                    onChartReady: function() {
+                        loader.classList.add('hidden');
+                    }
+                });
+            } catch (e) {
+                loader.textContent = '⚠️ Не удалось загрузить график';
+                console.error('TradingView widget error:', e);
+            }
         }
 
-        function setRange(range, interval) {
-            currentRange = range;
-            currentInterval = interval;
-            document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+        // --- ПЕРЕКЛЮЧЕНИЕ ПЕРИОДА ---
+        document.getElementById('periods').addEventListener('click', function(e) {
+            const btn = e.target.closest('.period-btn');
+            if (!btn) return;
+            currentRange = btn.dataset.range;
+            currentInterval = btn.dataset.interval;
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             createWidget();
-        }
+        });
 
+        // --- МОДАЛЬНОЕ ОКНО ---
         function openModal(mode) {
             selectionMode = mode;
-            document.getElementById('search-input').value = "";
-            
+            document.getElementById('search-input').value = '';
+
             const cryptoTab = document.getElementById('tab-crypto');
-            const cisTab = document.getElementById('tab-cis');
-            const worldTab = document.getElementById('tab-world');
-            
+            const cisTab    = document.getElementById('tab-cis');
+            const worldTab  = document.getElementById('tab-world');
+
+            cryptoTab.style.display = 'block';
+            cisTab.style.display    = 'block';
+            worldTab.style.display  = 'block';
+
             if (selectionMode === 'quote') {
                 cryptoTab.style.display = 'none';
                 if (base.id === 'IMOEX') {
-                    cisTab.style.display = 'block'; worldTab.style.display = 'block';
                     if (activeTab === 'crypto') activeTab = 'cis';
                 } else if (base.type === 'crypto') {
-                    activeTab = 'world'; cisTab.style.display = 'none';
-                } else {
-                    cisTab.style.display = 'block';
+                    activeTab = 'world';
+                    cisTab.style.display = 'none';
                 }
-            } else {
-                cryptoTab.style.display = 'block'; cisTab.style.display = 'block'; worldTab.style.display = 'block';
             }
 
-            document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.type === activeTab));
+            document.querySelectorAll('.tab').forEach(x =>
+                x.classList.toggle('active', x.dataset.type === activeTab)
+            );
             document.getElementById('modal-overlay').classList.add('open');
             renderList();
         }
 
-        function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('open');
+        }
 
-        function renderList(search = "") {
+        document.getElementById('base-selector').addEventListener('click', () => openModal('base'));
+        document.getElementById('quote-selector').addEventListener('click', () => openModal('quote'));
+        document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+
+        // --- РЕНДЕР СПИСКА АКТИВОВ ---
+        function renderList(search = '') {
             const list = document.getElementById('assets-list');
             list.innerHTML = '';
-            const filtered = allAssets.filter(a => 
-                a.type === activeTab && 
-                (a.id.includes(search.toUpperCase()) || a.n.toUpperCase().includes(search.toUpperCase()))
+            const searchUp = search.toUpperCase();
+
+            const filtered = allAssets.filter(a =>
+                a.type === activeTab &&
+                (a.id.includes(searchUp) || a.n.toUpperCase().includes(searchUp))
             );
 
             filtered.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'asset-item';
-                
-                if (selectionMode === 'quote') {
-                    if (item.id === base.id) div.classList.add('disabled');
-                    if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(item.id)) div.classList.add('disabled');
-                    if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(item.id)) div.classList.add('disabled');
-                }
 
-                div.innerHTML = `<span class="asset-flag">${item.f}</span>
-                                 <div class="asset-info"><span class="asset-name-bold">${item.id}</span><span class="asset-name-sub">${item.n}</span></div>`;
-                
-                if (!div.classList.contains('disabled')) {
-                    div.onclick = () => {
-                        if(selectionMode === 'base') {
+                let isDisabled = false;
+                if (selectionMode === 'quote') {
+                    if (item.id === base.id) isDisabled = true;
+                    if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(item.id)) isDisabled = true;
+                    if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(item.id)) isDisabled = true;
+                }
+                if (isDisabled) div.classList.add('disabled');
+
+                div.innerHTML = `
+                    <span class="asset-flag">${item.f}</span>
+                    <div class="asset-info">
+                        <span class="asset-name-bold">${item.id}</span>
+                        <span class="asset-name-sub">${item.n}</span>
+                    </div>`;
+
+                if (!isDisabled) {
+                    div.addEventListener('click', () => {
+                        if (selectionMode === 'base') {
                             base = item;
-                            document.getElementById('base-flag').innerText = item.f;
-                            document.getElementById('base-code').innerText = item.id;
-                            if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(quote.id)) quote = allAssets.find(a => a.id === 'RUB');
-                            else if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(quote.id)) quote = allAssets.find(a => a.id === 'USD');
+                            document.getElementById('base-flag').textContent = item.f;
+                            document.getElementById('base-code').textContent = item.id;
+                            // Сброс quote если он несовместим
+                            if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(quote.id)) {
+                                quote = allAssets.find(a => a.id === 'RUB');
+                            } else if (base.type === 'crypto' && base.id !== 'IMOEX' && !['USD', 'EUR'].includes(quote.id)) {
+                                quote = allAssets.find(a => a.id === 'USD');
+                            }
                         } else {
                             quote = item;
                         }
-                        document.getElementById('quote-flag').innerText = quote.f;
-                        document.getElementById('quote-code').innerText = quote.id;
+                        document.getElementById('quote-flag').textContent = quote.f;
+                        document.getElementById('quote-code').textContent = quote.id;
                         createWidget();
                         closeModal();
-                    };
+                    });
                 }
+
                 list.appendChild(div);
             });
         }
 
+        // --- ТАБЫ ---
         document.querySelectorAll('.tab').forEach(t => {
-            t.onclick = () => {
+            t.addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
                 t.classList.add('active');
                 activeTab = t.dataset.type;
                 renderList(document.getElementById('search-input').value);
-            };
+            });
         });
 
-        document.getElementById('search-input').oninput = function() { renderList(this.value); };
+        // --- ПОИСК ---
+        document.getElementById('search-input').addEventListener('input', function() {
+            renderList(this.value);
+        });
 
+        // --- СТАРТ ---
         createWidget();
     </script>
 </body>
