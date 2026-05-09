@@ -208,9 +208,9 @@ async def db_get_all_alerts() -> list[dict]:
 
 
 # --- ДАННЫЕ РЫНКА ---
-def _fetch_market_data() -> str:
+def _fetch_market_data() -> dict:
     headers = {'User-Agent': 'Mozilla/5.0'}
-    data_str = ""
+    result = {}
 
     try:
         crypto_url = (
@@ -218,14 +218,16 @@ def _fetch_market_data() -> str:
             "?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
         )
         res = requests.get(crypto_url, headers=headers, timeout=10).json()
-        btc_p = res['bitcoin']['usd']
-        btc_c = res['bitcoin']['usd_24h_change']
-        eth_p = res['ethereum']['usd']
-        eth_c = res['ethereum']['usd_24h_change']
-        data_str += f"BTC: ${btc_p} ({btc_c:+.2f}%), ETH: ${eth_p} ({eth_c:+.2f}%). "
+        result['btc_price'] = res['bitcoin']['usd']
+        result['btc_change'] = res['bitcoin']['usd_24h_change']
+        result['eth_price'] = res['ethereum']['usd']
+        result['eth_change'] = res['ethereum']['usd_24h_change']
     except Exception as e:
         logger.warning("Не удалось получить данные крипты: %s", e)
-        data_str += "BTC: $69200 (+1.2%), ETH: $3520 (-0.5%). "
+        result['btc_price'] = 69200
+        result['btc_change'] = 1.2
+        result['eth_price'] = 3520
+        result['eth_change'] = -0.5
 
     try:
         moex_url = (
@@ -237,12 +239,14 @@ def _fetch_market_data() -> str:
         current_val = row[2] if row[2] is not None else row[12]
         prev_close = row[3]
         change_pct = ((current_val - prev_close) / prev_close * 100) if prev_close else 0.0
-        data_str += f"IMOEX: {current_val:.2f} пт ({change_pct:+.2f}%)."
+        result['imoex_val'] = current_val
+        result['imoex_change'] = change_pct
     except Exception as e:
         logger.warning("Не удалось получить данные IMOEX: %s", e)
-        data_str += "IMOEX: 2772 пт (-0.3%)."
+        result['imoex_val'] = 2772.0
+        result['imoex_change'] = -0.3
 
-    return data_str
+    return result
 
 
 def _fetch_prices() -> dict:
@@ -287,26 +291,25 @@ def _call_ai(market_context: str) -> str:
 
 
 async def send_market_report(user_id: int) -> None:
-    market_context = await asyncio.to_thread(_fetch_market_data)
+    data = await asyncio.to_thread(_fetch_market_data)
 
-    try:
-        ai_text = await asyncio.to_thread(_call_ai, market_context)
-        ai_text = ai_text.replace("**", "")
-    except Exception as e:
-        logger.error("Ошибка AI-клиента: %s", e)
-        ai_text = (
-            "📊 <b>Краткий рыночный дайджест</b>\n\n"
-            f"<b>Вывод:</b> Рынок в движении. {market_context}"
-        )
+    btc_emoji = "🚀" if data['btc_change'] >= 0 else "📉"
+    imoex_emoji = "📈" if data['imoex_change'] >= 0 else "📉"
+
+    text = (
+        "📊 <b>Краткий рыночный дайджест</b>\n\n"
+        "Крипта:\n"
+        f"- BTC {btc_emoji}: ${data['btc_price']:,.0f} ({data['btc_change']:+.2f}%)\n"
+        f"- ETH ⚡: ${data['eth_price']:,.2f} ({data['eth_change']:+.2f}%).\n\n"
+        "Мосбиржа (данные с задержкой):\n"
+        f"- IMOEX {imoex_emoji}: {data['imoex_val']:.2f} пт ({data['imoex_change']:+.2f}%).\n\n"
+        "Вывод: Рынок находится в движении, следите за обновлениями! 📈"
+    )
 
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Детали в приложении", web_app=types.WebAppInfo(url=BASE_URL))
 
-    try:
-        await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode="HTML")
-    except Exception as parse_err:
-        logger.error("Ошибка отправки: %s", parse_err)
-        await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode=None)
+    await bot.send_message(user_id, text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 
 # --- ПЛАНИРОВЩИК ---
