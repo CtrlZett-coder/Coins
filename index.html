@@ -138,12 +138,12 @@
 
     <div id="footer-controls">
         <div id="periods">
-            <button class="period-btn active" onclick="setRange('1D', '5')">1Д</button>
-            <button class="period-btn" onclick="setRange('1M', 'D')">1М</button>
-            <button class="period-btn" onclick="setRange('3M', 'D')">3М</button>
-            <button class="period-btn" onclick="setRange('6M', 'D')">6М</button>
-            <button class="period-btn" onclick="setRange('12M', 'W')">1Г</button>
-            <button class="period-btn" onclick="setRange('ALL', 'M')">Все</button>
+            <button class="period-btn active" onclick="setRange('1D', '5', this)">1Д</button>
+            <button class="period-btn" onclick="setRange('1M', 'D', this)">1М</button>
+            <button class="period-btn" onclick="setRange('3M', 'D', this)">3М</button>
+            <button class="period-btn" onclick="setRange('6M', 'D', this)">6М</button>
+            <button class="period-btn" onclick="setRange('12M', 'W', this)">1Г</button>
+            <button class="period-btn" onclick="setRange('ALL', 'M', this)">Все</button>
         </div>
     </div>
 
@@ -171,22 +171,25 @@
         let activeTab = 'crypto';
         let currentTheme = 'light';
 
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+
         // Темы
         function applyTheme(theme) {
             currentTheme = theme;
+            localStorage.setItem('theme', theme);
             document.documentElement.setAttribute('data-theme', theme);
-            createWidget(); // Перерисовываем график под цвет темы
+            createWidget();
         }
 
         function toggleTheme() {
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            applyTheme(newTheme);
+            applyTheme(currentTheme === 'light' ? 'dark' : 'light');
         }
 
-        // Автовыбор темы при старте
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            applyTheme('dark');
-        }
+        // Тема: сначала localStorage, затем системная
+        const savedTheme = localStorage.getItem('theme') ||
+            (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        applyTheme(savedTheme);
 
         const allAssets = [
             { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
@@ -202,7 +205,7 @@
             { id: 'GBP', f: '🇬🇧', n: 'Фунт', type: 'world' },
             { id: 'BTC', f: '₿', n: 'Bitcoin', type: 'crypto' },
             { id: 'ETH', f: '💎', n: 'Ethereum', type: 'crypto' },
-            { id: 'TON', f: '💎', n: 'Toncoin', type: 'crypto' },
+            { id: 'TON', f: '💠', n: 'Toncoin', type: 'crypto' },
             { id: 'IMOEX', f: '📊', n: 'Мосбиржа', type: 'crypto' }
         ];
 
@@ -249,11 +252,11 @@
             });
         }
 
-        function setRange(range, interval) {
+        function setRange(range, interval, btn) {
             currentRange = range;
             currentInterval = interval;
-            document.querySelectorAll('.period-btn').forEach(btn => btn.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             createWidget();
         }
 

@@ -3,3 +3,5 @@ apscheduler
 openai
 requests
 pytz
+aiosqlite
+python-dotenv
