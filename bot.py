@@ -76,7 +76,7 @@ TIMEZONES = [
 CRYPTO_IDS = {
     "BTC":   ("bitcoin",          "₿ Bitcoin"),
     "ETH":   ("ethereum",         "💎 Ethereum"),
-    "TON":   ("the-open-network", "💎 TON"),
+    "TON":   ("the-open-network", "💠 TON"),
     "BNB":   ("binancecoin",      "🟡 BNB"),
     "SOL":   ("solana",           "◎ Solana"),
     "XRP":   ("ripple",           "✕ XRP"),
@@ -86,14 +86,13 @@ CRYPTO_IDS = {
     "DOT":   ("polkadot",         "⚫ Polkadot"),
     "MATIC": ("matic-network",    "🟣 Polygon"),
     "LINK":  ("chainlink",        "🔗 Chainlink"),
-    "LTC":   ("litecoin",         "🦨 Litecoin"),
+    "LTC":   ("litecoin",         "🥈 Litecoin"),
     "TRX":   ("tron",             "🔴 TRON"),
     "UNI":   ("uniswap",          "🦄 Uniswap"),
     "ATOM":  ("cosmos",           "⚛️ Cosmos"),
 }
 
-# pair -> (display_label, base_ccy, quote_ccy)
-# Цена: 1 BASE = X QUOTE
+# pair -> (display_label, base_ccy, quote_ccy)  — цена: 1 BASE = X QUOTE
 CIS_PAIRS = {
     "USD/RUB": ("🇷🇺 USD/RUB", "USD", "RUB"),
     "EUR/RUB": ("🇷🇺 EUR/RUB", "EUR", "RUB"),
@@ -749,18 +748,19 @@ async def alert_choose_asset(callback: types.CallbackQuery, state: FSMContext):
 
     if cat == "crypto":
         title = "💎 Криптовалюты"
-        for ticker in CRYPTO_IDS:
-            builder.button(text=ticker, callback_data=f"alr_coin_{ticker}")
+        for ticker, (_, label) in CRYPTO_IDS.items():
+            sym = label.split()[0]
+            builder.button(text=f"{sym} {ticker}", callback_data=f"alr_coin_{ticker}")
         builder.adjust(4)
     elif cat == "cis":
         title = "💱 Валюты СНГ"
-        for pair in CIS_PAIRS:
-            builder.button(text=pair, callback_data=f"alr_coin_{pair}")
+        for pair, (label, _, _) in CIS_PAIRS.items():
+            builder.button(text=label, callback_data=f"alr_coin_{pair}")
         builder.adjust(2)
     elif cat == "world":
         title = "🌍 Мировые валюты"
-        for pair in WORLD_PAIRS:
-            builder.button(text=pair, callback_data=f"alr_coin_{pair}")
+        for pair, (label, _, _) in WORLD_PAIRS.items():
+            builder.button(text=label, callback_data=f"alr_coin_{pair}")
         builder.adjust(3)
     elif cat == "indices":
         title = "📊 Биржевые индексы"
