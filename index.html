@@ -16,9 +16,10 @@
             --ios-border: #e5e5ea;
             --ios-text: #000000;
             --header-bg: #ffffff;
+            --green: #34C759;
+            --red: #FF3B30;
         }
 
-        /* Темная тема */
         [data-theme="dark"] {
             --ios-bg: #000000;
             --ios-gray: #1c1c1e;
@@ -36,6 +37,23 @@
             display: flex; flex-direction: column; overflow: hidden;
             transition: background 0.3s, color 0.3s;
         }
+
+        /* --- ВЕРХНИЕ ВКЛАДКИ --- */
+        #top-tabs {
+            display: flex; background: var(--header-bg);
+            border-bottom: 0.5px solid var(--ios-border);
+            padding: 0 16px;
+        }
+        .top-tab {
+            flex: 1; padding: 12px 0; text-align: center;
+            font-size: 13px; font-weight: 600; color: var(--ios-secondary);
+            border-bottom: 2px solid transparent; cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .top-tab.active { color: var(--ios-blue); border-bottom-color: var(--ios-blue); }
+
+        /* --- ЭКРАН ГРАФИКА --- */
+        #screen-chart { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
 
         #dual-header {
             display: flex; align-items: center; padding: 12px 16px;
@@ -57,15 +75,36 @@
 
         .divider-icon { font-size: 16px; color: var(--ios-secondary); font-weight: 300; }
 
+        /* --- ТИКЕР ЦЕНЫ --- */
+        #price-ticker {
+            padding: 10px 16px 8px;
+            background: var(--header-bg);
+            border-bottom: 0.5px solid var(--ios-border);
+        }
+        #price-main {
+            font-size: 28px; font-weight: 800; letter-spacing: -0.5px; color: var(--ios-text);
+            line-height: 1;
+        }
+        #price-row {
+            display: flex; align-items: center; gap: 8px; margin-top: 3px;
+        }
+        #price-change {
+            font-size: 13px; font-weight: 600;
+        }
+        #price-change.up { color: var(--green); }
+        #price-change.down { color: var(--red); }
+        #price-updated {
+            font-size: 11px; color: var(--ios-secondary);
+        }
+
         #chart-wrapper { flex-grow: 1; position: relative; }
         #tv-chart { width: 100%; height: 100%; }
 
-        /* Фикс хитбокса (некликабельная зона поверх правого верхнего угла графика) */
         #hitbox-fix {
             position: absolute; top: 0; right: 0;
             width: 120px; height: 40px;
             z-index: 10; background: transparent;
-            pointer-events: all; /* Перехватывает клики на себя */
+            pointer-events: all;
         }
 
         #footer-controls { padding: 12px 12px 24px; border-top: 0.5px solid var(--ios-border); background: var(--header-bg); }
@@ -73,9 +112,72 @@
         .period-btn {
             flex: 1; border: none; background: none; padding: 10px 0;
             font-size: 11px; font-weight: 700; border-radius: 8px; color: var(--ios-secondary);
+            cursor: pointer;
         }
         .period-btn.active { background: var(--ios-text); color: var(--ios-bg); }
 
+        /* --- ЭКРАН КАЛЬКУЛЯТОРА --- */
+        #screen-calc {
+            display: none; flex-direction: column; flex: 1; overflow-y: auto;
+            padding: 20px 16px; gap: 16px;
+        }
+
+        .calc-card {
+            background: var(--ios-gray); border-radius: 16px; padding: 16px;
+        }
+
+        .calc-label {
+            font-size: 12px; color: var(--ios-secondary); font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+        }
+
+        .calc-input-row {
+            display: flex; align-items: center; gap: 12px;
+        }
+
+        .calc-currency-btn {
+            display: flex; align-items: center; gap: 8px;
+            background: var(--ios-bg); border-radius: 12px;
+            padding: 10px 12px; cursor: pointer; border: none;
+            color: var(--ios-text); flex-shrink: 0;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+        .calc-currency-btn .flag { font-size: 22px; }
+        .calc-currency-btn .code { font-size: 15px; font-weight: 700; }
+        .calc-currency-btn .chevron { font-size: 10px; color: var(--ios-secondary); }
+
+        .calc-input {
+            flex: 1; background: none; border: none; outline: none;
+            font-size: 28px; font-weight: 700; color: var(--ios-text);
+            font-family: var(--font); text-align: right; min-width: 0;
+        }
+        .calc-input::placeholder { color: var(--ios-secondary); }
+
+        .calc-swap-btn {
+            display: flex; align-items: center; justify-content: center;
+            margin: -8px auto; width: 40px; height: 40px; border-radius: 20px;
+            background: var(--ios-blue); color: white; font-size: 18px;
+            border: none; cursor: pointer; z-index: 1; position: relative;
+            box-shadow: 0 2px 8px rgba(0,122,255,0.4);
+        }
+
+        .calc-result-card {
+            background: var(--ios-gray); border-radius: 16px; padding: 16px;
+        }
+        .calc-result-label { font-size: 12px; color: var(--ios-secondary); font-weight: 600; margin-bottom: 4px; }
+        .calc-result-value { font-size: 32px; font-weight: 800; color: var(--ios-blue); }
+        .calc-result-rate { font-size: 12px; color: var(--ios-secondary); margin-top: 4px; }
+
+        .calc-quick-row {
+            display: flex; gap: 8px;
+        }
+        .calc-quick-btn {
+            flex: 1; padding: 10px; background: var(--ios-gray); border: none;
+            border-radius: 10px; font-size: 13px; font-weight: 600;
+            color: var(--ios-blue); cursor: pointer;
+        }
+
+        /* --- МОДАЛ --- */
         #modal-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--ios-bg); z-index: 9999;
@@ -86,14 +188,14 @@
         #modal-header { padding: 16px; border-bottom: 0.5px solid var(--ios-border); display: flex; justify-content: space-between; align-items: center; }
         #modal-title { font-weight: 800; font-size: 17px; color: var(--ios-text); }
         #modal-search { padding: 12px 16px; }
-        #search-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--ios-gray); font-size: 16px; outline: none; color: var(--ios-text); }
-        
+        #search-input { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--ios-gray); font-size: 16px; outline: none; color: var(--ios-text); box-sizing: border-box; }
+
         #tabs { display: flex; padding: 0 16px 12px; gap: 8px; overflow-x: auto; }
         .tab { padding: 8px 14px; background: var(--ios-gray); border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--ios-secondary); cursor: pointer; white-space: nowrap; }
         .tab.active { background: var(--ios-blue); color: #fff; }
 
         #assets-list { overflow-y: auto; flex-grow: 1; padding-bottom: 40px; }
-        .asset-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(--ios-gray); }
+        .asset-item { display: flex; align-items: center; padding: 12px 16px; border-bottom: 0.5px solid var(--ios-gray); cursor: pointer; }
         .asset-item.disabled { opacity: 0.2; pointer-events: none; filter: grayscale(1); }
         .asset-flag { font-size: 24px; margin-right: 14px; width: 30px; text-align: center; }
         .asset-info { display: flex; flex-direction: column; }
@@ -104,7 +206,7 @@
             position: fixed; bottom: 80px; right: 20px; z-index: 100;
             background: var(--ios-blue); color: white; width: 44px; height: 44px;
             border-radius: 22px; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: none; font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); border: none; font-size: 20px; cursor: pointer;
         }
     </style>
 </head>
@@ -112,38 +214,95 @@
 
     <button id="theme-btn" onclick="toggleTheme()">🌓</button>
 
-    <div id="dual-header">
-        <div class="selector-box" onclick="openModal('base')">
-            <span class="sel-flag" id="base-flag">₿</span>
-            <div class="sel-label">
-                <span class="sel-code" id="base-code">BTC</span>
-                <span class="sel-desc">Объект</span>
+    <div id="top-tabs">
+        <div class="top-tab active" onclick="switchTab('chart')">📈 График</div>
+        <div class="top-tab" onclick="switchTab('calc')">💱 Конвертер</div>
+    </div>
+
+    <div id="screen-chart">
+        <div id="dual-header">
+            <div class="selector-box" onclick="openModal('base')">
+                <span class="sel-flag" id="base-flag">₿</span>
+                <div class="sel-label">
+                    <span class="sel-code" id="base-code">BTC</span>
+                    <span class="sel-desc">Объект</span>
+                </div>
+                <span class="sel-chevron">▼</span>
             </div>
-            <span class="sel-chevron">▼</span>
+            <div class="divider-icon">/</div>
+            <div class="selector-box" onclick="openModal('quote')">
+                <span class="sel-flag" id="quote-flag">🇺🇸</span>
+                <div class="sel-label">
+                    <span class="sel-code" id="quote-code">USD</span>
+                    <span class="sel-desc">Валюта</span>
+                </div>
+                <span class="sel-chevron">▼</span>
+            </div>
         </div>
-        <div class="divider-icon">/</div>
-        <div class="selector-box" onclick="openModal('quote')">
-            <span class="sel-flag" id="quote-flag">🇺🇸</span>
-            <div class="sel-label">
-                <span class="sel-code" id="quote-code">USD</span>
-                <span class="sel-desc">Валюта</span>
+
+        <div id="price-ticker">
+            <div id="price-main">–</div>
+            <div id="price-row">
+                <span id="price-change" class="up">–</span>
+                <span id="price-updated"></span>
             </div>
-            <span class="sel-chevron">▼</span>
+        </div>
+
+        <div id="chart-wrapper">
+            <div id="hitbox-fix"></div>
+            <div id="tv-chart"></div>
+        </div>
+
+        <div id="footer-controls">
+            <div id="periods">
+                <button class="period-btn active" onclick="setRange('1D', '5', this)">1Д</button>
+                <button class="period-btn" onclick="setRange('1M', 'D', this)">1М</button>
+                <button class="period-btn" onclick="setRange('3M', 'D', this)">3М</button>
+                <button class="period-btn" onclick="setRange('6M', 'D', this)">6М</button>
+                <button class="period-btn" onclick="setRange('12M', 'W', this)">1Г</button>
+                <button class="period-btn" onclick="setRange('ALL', 'M', this)">Все</button>
+            </div>
         </div>
     </div>
 
-    <div id="chart-wrapper">
-        <div id="hitbox-fix"></div> <div id="tv-chart"></div>
-    </div>
+    <div id="screen-calc">
+        <div class="calc-card">
+            <div class="calc-label">Из</div>
+            <div class="calc-input-row">
+                <button class="calc-currency-btn" onclick="openCalcModal('from')">
+                    <span class="flag" id="calc-from-flag">₿</span>
+                    <span class="code" id="calc-from-code">BTC</span>
+                    <span class="chevron">▼</span>
+                </button>
+                <input class="calc-input" id="calc-input" type="number" placeholder="0" oninput="calcConvert()">
+            </div>
+        </div>
 
-    <div id="footer-controls">
-        <div id="periods">
-            <button class="period-btn active" onclick="setRange('1D', '5', this)">1Д</button>
-            <button class="period-btn" onclick="setRange('1M', 'D', this)">1М</button>
-            <button class="period-btn" onclick="setRange('3M', 'D', this)">3М</button>
-            <button class="period-btn" onclick="setRange('6M', 'D', this)">6М</button>
-            <button class="period-btn" onclick="setRange('12M', 'W', this)">1Г</button>
-            <button class="period-btn" onclick="setRange('ALL', 'M', this)">Все</button>
+        <button class="calc-swap-btn" onclick="calcSwap()">⇅</button>
+
+        <div class="calc-card">
+            <div class="calc-label">В</div>
+            <div class="calc-input-row">
+                <button class="calc-currency-btn" onclick="openCalcModal('to')">
+                    <span class="flag" id="calc-to-flag">🇺🇸</span>
+                    <span class="code" id="calc-to-code">USD</span>
+                    <span class="chevron">▼</span>
+                </button>
+                <div style="flex:1; text-align:right;">
+                    <div id="calc-result" style="font-size:28px; font-weight:700; color: var(--ios-blue);">–</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="calc-result-card">
+            <div class="calc-result-label">Курс</div>
+            <div id="calc-rate" class="calc-result-rate">Загрузка...</div>
+        </div>
+
+        <div class="calc-quick-row">
+            <button class="calc-quick-btn" onclick="setCalcAmount(100)">$100</button>
+            <button class="calc-quick-btn" onclick="setCalcAmount(1000)">$1 000</button>
+            <button class="calc-quick-btn" onclick="setCalcAmount(10000)">$10 000</button>
         </div>
     </div>
 
@@ -170,11 +329,16 @@
         let selectionMode = 'base';
         let activeTab = 'crypto';
         let currentTheme = 'light';
+        let modalCalcTarget = 'from';
+
+        let calcFrom = { id: 'BTC', f: '₿', n: 'Bitcoin' };
+        let calcTo = { id: 'USD', f: '🇺🇸', n: 'Доллар США' };
+        let calcRates = {};
+        let calcRateFetchTime = 0;
 
         const tg = window.Telegram.WebApp;
         tg.ready();
 
-        // Темы
         function applyTheme(theme) {
             currentTheme = theme;
             localStorage.setItem('theme', theme);
@@ -186,10 +350,19 @@
             applyTheme(currentTheme === 'light' ? 'dark' : 'light');
         }
 
-        // Тема: сначала localStorage, затем системная
         const savedTheme = localStorage.getItem('theme') ||
             (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
         applyTheme(savedTheme);
+
+        function switchTab(tab) {
+            document.querySelectorAll('.top-tab').forEach((t, i) => {
+                t.classList.toggle('active', (i === 0 && tab === 'chart') || (i === 1 && tab === 'calc'));
+            });
+            document.getElementById('screen-chart').style.display = tab === 'chart' ? 'flex' : 'none';
+            document.getElementById('screen-calc').style.display = tab === 'calc' ? 'flex' : 'none';
+            document.getElementById('theme-btn').style.display = tab === 'chart' ? '' : 'none';
+            if (tab === 'calc') fetchCalcRates();
+        }
 
         const allAssets = [
             { id: 'UAH', f: '🇺🇦', n: 'Гривна', type: 'cis' },
@@ -209,9 +382,64 @@
             { id: 'IMOEX', f: '📊', n: 'Мосбиржа', type: 'crypto' }
         ];
 
+        let priceInterval = null;
+
+        async function fetchAndShowPrice() {
+            const b = base.id;
+            const q = quote.id;
+            try {
+                let price = null, change = null;
+
+                if (b === 'BTC' || b === 'ETH' || b === 'TON') {
+                    const coinId = b === 'BTC' ? 'bitcoin' : b === 'ETH' ? 'ethereum' : 'the-open-network';
+                    const vs = (q === 'USD' || q === 'EUR') ? q.toLowerCase() : 'usd';
+                    const url = `https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=${vs}&include_24hr_change=true`;
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    price = data[coinId][vs];
+                    change = data[coinId][`${vs}_24h_change`];
+                } else if (b === 'IMOEX') {
+                    const url = 'https://iss.moex.com/iss/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off';
+                    const res = await fetch(url);
+                    const data = await res.json();
+                    const row = data.marketdata.data[0];
+                    price = row[2] ?? row[12];
+                    const prev = row[3];
+                    change = prev ? ((price - prev) / prev * 100) : 0;
+                }
+
+                if (price !== null) {
+                    const isRounded = price > 100;
+                    const priceStr = isRounded
+                        ? '$' + price.toLocaleString('ru-RU', { maximumFractionDigits: 0 })
+                        : '$' + price.toLocaleString('ru-RU', { maximumFractionDigits: 4 });
+
+                    document.getElementById('price-main').textContent = b === 'IMOEX'
+                        ? price.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' пт'
+                        : priceStr;
+
+                    if (change !== null) {
+                        const el = document.getElementById('price-change');
+                        const sign = change >= 0 ? '+' : '';
+                        el.textContent = `${sign}${change.toFixed(2)}% за 24ч`;
+                        el.className = change < 0 ? 'down' : 'up';
+                    }
+                    const now = new Date();
+                    document.getElementById('price-updated').textContent =
+                        `Обновлено ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+                }
+            } catch (e) {}
+        }
+
+        function startPriceTicker() {
+            fetchAndShowPrice();
+            if (priceInterval) clearInterval(priceInterval);
+            priceInterval = setInterval(fetchAndShowPrice, 30000);
+        }
+
         function createWidget() {
             let symbol = "";
-            let displayCurrency = ""; 
+            let displayCurrency = "";
             const b = base.id;
             const q = quote.id;
 
@@ -236,8 +464,8 @@
                 "symbol": symbol,
                 "interval": currentInterval,
                 "timezone": "Etc/UTC",
-                "theme": currentTheme, // Автоматическая тема для графика
-                "style": "3", 
+                "theme": currentTheme,
+                "style": "3",
                 "locale": "ru",
                 "container_id": "tv-chart",
                 "hide_top_toolbar": true,
@@ -250,6 +478,8 @@
                 "show_popup_button": false,
                 "symbol_currency": displayCurrency
             });
+
+            startPriceTicker();
         }
 
         function setRange(range, interval, btn) {
@@ -263,11 +493,11 @@
         function openModal(mode) {
             selectionMode = mode;
             document.getElementById('search-input').value = "";
-            
+
             const cryptoTab = document.getElementById('tab-crypto');
             const cisTab = document.getElementById('tab-cis');
             const worldTab = document.getElementById('tab-world');
-            
+
             if (selectionMode === 'quote') {
                 cryptoTab.style.display = 'none';
                 if (base.id === 'IMOEX') {
@@ -287,20 +517,25 @@
             renderList();
         }
 
-        function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+        function closeModal() {
+            document.getElementById('modal-overlay').classList.remove('open');
+            document.getElementById('modal-title').textContent = 'Выбор актива';
+            document.getElementById('modal-search').style.display = '';
+            document.getElementById('tabs').style.display = '';
+        }
 
         function renderList(search = "") {
             const list = document.getElementById('assets-list');
             list.innerHTML = '';
-            const filtered = allAssets.filter(a => 
-                a.type === activeTab && 
+            const filtered = allAssets.filter(a =>
+                a.type === activeTab &&
                 (a.id.includes(search.toUpperCase()) || a.n.toUpperCase().includes(search.toUpperCase()))
             );
 
             filtered.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'asset-item';
-                
+
                 if (selectionMode === 'quote') {
                     if (item.id === base.id) div.classList.add('disabled');
                     if (base.id === 'IMOEX' && !['RUB', 'USD'].includes(item.id)) div.classList.add('disabled');
@@ -309,10 +544,10 @@
 
                 div.innerHTML = `<span class="asset-flag">${item.f}</span>
                                  <div class="asset-info"><span class="asset-name-bold">${item.id}</span><span class="asset-name-sub">${item.n}</span></div>`;
-                
+
                 if (!div.classList.contains('disabled')) {
                     div.onclick = () => {
-                        if(selectionMode === 'base') {
+                        if (selectionMode === 'base') {
                             base = item;
                             document.getElementById('base-flag').innerText = item.f;
                             document.getElementById('base-code').innerText = item.id;
@@ -323,6 +558,8 @@
                         }
                         document.getElementById('quote-flag').innerText = quote.f;
                         document.getElementById('quote-code').innerText = quote.id;
+                        document.getElementById('price-main').textContent = '–';
+                        document.getElementById('price-change').textContent = '–';
                         createWidget();
                         closeModal();
                     };
@@ -340,7 +577,133 @@
             };
         });
 
-        document.getElementById('search-input').oninput = function() { renderList(this.value); };
+        document.getElementById('search-input').oninput = function () { renderList(this.value); };
+
+        const calcAssets = [
+            { id: 'BTC', f: '₿', n: 'Bitcoin' },
+            { id: 'ETH', f: '💎', n: 'Ethereum' },
+            { id: 'TON', f: '💠', n: 'Toncoin' },
+            { id: 'USD', f: '🇺🇸', n: 'Доллар США' },
+            { id: 'EUR', f: '🇪🇺', n: 'Евро' },
+            { id: 'RUB', f: '🇷🇺', n: 'Рубль' },
+            { id: 'CNY', f: '🇨🇳', n: 'Юань' },
+            { id: 'GBP', f: '🇬🇧', n: 'Фунт' },
+        ];
+
+        async function fetchCalcRates() {
+            if (Date.now() - calcRateFetchTime < 60000 && Object.keys(calcRates).length > 0) return;
+            try {
+                const res = await fetch(
+                    'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,the-open-network&vs_currencies=usd,eur,rub,cny,gbp'
+                );
+                const data = await res.json();
+                calcRates = {
+                    BTC: { usd: data.bitcoin.usd, eur: data.bitcoin.eur, rub: data.bitcoin.rub, cny: data.bitcoin.cny, gbp: data.bitcoin.gbp },
+                    ETH: { usd: data.ethereum.usd, eur: data.ethereum.eur, rub: data.ethereum.rub, cny: data.ethereum.cny, gbp: data.ethereum.gbp },
+                    TON: { usd: data['the-open-network'].usd, eur: data['the-open-network'].eur, rub: data['the-open-network'].rub, cny: data['the-open-network'].cny, gbp: data['the-open-network'].gbp },
+                };
+                calcRateFetchTime = Date.now();
+                calcConvert();
+            } catch (e) {
+                document.getElementById('calc-rate').textContent = 'Ошибка загрузки курсов';
+            }
+        }
+
+        function getCalcRate(from, to) {
+            const fiat = ['USD', 'EUR', 'RUB', 'CNY', 'GBP'];
+            const crypto = ['BTC', 'ETH', 'TON'];
+
+            if (from === to) return 1;
+
+            if (crypto.includes(from) && fiat.includes(to)) {
+                return calcRates[from]?.[to.toLowerCase()] ?? null;
+            }
+            if (fiat.includes(from) && crypto.includes(to)) {
+                const rate = calcRates[to]?.[from.toLowerCase()];
+                return rate ? 1 / rate : null;
+            }
+            if (crypto.includes(from) && crypto.includes(to)) {
+                const fromUsd = calcRates[from]?.usd;
+                const toUsd = calcRates[to]?.usd;
+                return (fromUsd && toUsd) ? fromUsd / toUsd : null;
+            }
+            if (fiat.includes(from) && fiat.includes(to)) {
+                const fromBtc = calcRates.BTC?.[from.toLowerCase()];
+                const toBtc = calcRates.BTC?.[to.toLowerCase()];
+                return (fromBtc && toBtc) ? toBtc / fromBtc : null;
+            }
+            return null;
+        }
+
+        function calcConvert() {
+            const amount = parseFloat(document.getElementById('calc-input').value);
+            const rate = getCalcRate(calcFrom.id, calcTo.id);
+
+            if (rate === null) {
+                document.getElementById('calc-result').textContent = '–';
+                document.getElementById('calc-rate').textContent = 'Курс недоступен';
+                return;
+            }
+
+            const rateDisp = document.getElementById('calc-rate');
+            if (!isNaN(amount)) {
+                const result = amount * rate;
+                const fmt = (n) => n >= 1 ? n.toLocaleString('ru-RU', { maximumFractionDigits: 2 })
+                                          : n.toLocaleString('ru-RU', { maximumFractionDigits: 8 });
+                document.getElementById('calc-result').textContent = fmt(result);
+            } else {
+                document.getElementById('calc-result').textContent = '–';
+            }
+            const r1 = rate >= 1 ? rate.toLocaleString('ru-RU', { maximumFractionDigits: 2 })
+                                 : rate.toLocaleString('ru-RU', { maximumFractionDigits: 8 });
+            rateDisp.textContent = `1 ${calcFrom.id} = ${r1} ${calcTo.id}`;
+        }
+
+        function calcSwap() {
+            [calcFrom, calcTo] = [calcTo, calcFrom];
+            document.getElementById('calc-from-flag').textContent = calcFrom.f;
+            document.getElementById('calc-from-code').textContent = calcFrom.id;
+            document.getElementById('calc-to-flag').textContent = calcTo.f;
+            document.getElementById('calc-to-code').textContent = calcTo.id;
+            calcConvert();
+        }
+
+        function setCalcAmount(amount) {
+            document.getElementById('calc-input').value = amount;
+            calcConvert();
+        }
+
+        function openCalcModal(target) {
+            modalCalcTarget = target;
+            document.getElementById('modal-title').textContent = target === 'from' ? 'Конвертировать из' : 'Конвертировать в';
+            document.getElementById('modal-search').style.display = 'none';
+            document.getElementById('tabs').style.display = 'none';
+
+            const list = document.getElementById('assets-list');
+            list.innerHTML = '';
+            calcAssets.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'asset-item';
+                div.innerHTML = `<span class="asset-flag">${item.f}</span>
+                                 <div class="asset-info"><span class="asset-name-bold">${item.id}</span><span class="asset-name-sub">${item.n}</span></div>`;
+                div.onclick = () => {
+                    if (modalCalcTarget === 'from') {
+                        calcFrom = item;
+                        document.getElementById('calc-from-flag').textContent = item.f;
+                        document.getElementById('calc-from-code').textContent = item.id;
+                    } else {
+                        calcTo = item;
+                        document.getElementById('calc-to-flag').textContent = item.f;
+                        document.getElementById('calc-to-code').textContent = item.id;
+                    }
+                    calcConvert();
+                    closeModal();
+                };
+                list.appendChild(div);
+            });
+
+            document.getElementById('modal-overlay').classList.add('open');
+        }
 
         createWidget();
     </script>
