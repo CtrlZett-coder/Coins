@@ -313,6 +313,7 @@ body{margin:0;padding:0;height:100vh;background:var(--ios-bg);font-family:var(--
     <button class="mtab" data-t="cis" onclick="setTab('cis',this)">🇷🇺 СНГ</button>
     <button class="mtab" data-t="world" onclick="setTab('world',this)">🌍 Мировые</button>
     <button class="mtab active" data-t="crypto" onclick="setTab('crypto',this)">💎 Крипто</button>
+    <button class="mtab" data-t="metal" onclick="setTab('metal',this)">🥇 Металлы</button>
   </div>
   <div id="alist"></div>
 </div>
@@ -413,6 +414,7 @@ const ALL = [
   {id:'AFN',f:'🇦🇫',n:'Афганский афгани',t:'world'},
   {id:'BND',f:'🇧🇳',n:'Брунейский доллар',t:'world'},
   {id:'BTN',f:'🇧🇹',n:'Бутанский нгултрум',t:'world'},
+  {id:'BWP',f:'🇧🇼',n:'Ботсванская пула',t:'world'},
   {id:'KHR',f:'🇰🇭',n:'Камбоджийский риель',t:'world'},
   {id:'KPW',f:'🇰🇵',n:'Северокорейская вона',t:'world'},
   {id:'LAK',f:'🇱🇦',n:'Лаосский кип',t:'world'},
@@ -498,6 +500,7 @@ const ALL = [
   {id:'BNB', f:'🟡', n:'BNB',        t:'crypto'},
   {id:'SOL', f:'◎',  n:'Solana',     t:'crypto'},
   {id:'XRP', f:'✕',  n:'XRP',        t:'crypto'},
+  {id:'XMR', f:'🟠', n:'Monero',     t:'crypto'},
   {id:'ADA', f:'🔵', n:'Cardano',    t:'crypto'},
   {id:'DOGE',f:'🐶', n:'Dogecoin',   t:'crypto'},
   {id:'AVAX',f:'🔺', n:'Avalanche',  t:'crypto'},
@@ -509,13 +512,18 @@ const ALL = [
   {id:'UNI', f:'🦄', n:'Uniswap',    t:'crypto'},
   {id:'ATOM',f:'⚛️', n:'Cosmos',     t:'crypto'},
   {id:'IMOEX',f:'📊',n:'Индекс МосБиржи',t:'crypto'},
+  // Metals
+  {id:'XAU',f:'🥇',n:'Золото',t:'metal'},
+  {id:'XAG',f:'🥈',n:'Серебро',t:'metal'},
+  {id:'XPT',f:'⬜',n:'Платина',t:'metal'},
+  {id:'XPD',f:'🔘',n:'Палладий',t:'metal'},
 ];
 
 const CIDS = {
   BTC:'bitcoin',ETH:'ethereum',TON:'the-open-network',BNB:'binancecoin',
   SOL:'solana',XRP:'ripple',ADA:'cardano',DOGE:'dogecoin',AVAX:'avalanche-2',
   DOT:'polkadot',MATIC:'matic-network',LINK:'chainlink',LTC:'litecoin',
-  TRX:'tron',UNI:'uniswap',ATOM:'cosmos'
+  TRX:'tron',UNI:'uniswap',ATOM:'cosmos',XMR:'monero'
 };
 
 function find(id){ return ALL.find(a=>a.id===id); }
@@ -612,6 +620,8 @@ function renderQuick(){
 function quickAmounts(id){
   if(['IDR','VND','KRW','UZS','IRR','SLL','GNF','MMK','PYG','BIF'].includes(id)) return[100000,1000000,10000000];
   if(['RUB','KZT','AMD','COP','NGN','KES','DZD','ETB','HUF','ISK','SYP','TZS','AOA','HTG','MNT','PKR','YER','ZMW','CDF','MGA','IQD','KHR','RWF','UGX','LBP','MWK'].includes(id)) return[1000,10000,100000];
+  if(['XAU','XPD','XPT'].includes(id)) return[0.1,1,10];
+  if(id==='XAG') return[1,10,100];
   if(cryptoPrices[id]&&cryptoPrices[id]>1000) return[0.001,0.01,0.1];
   if(cryptoPrices[id]&&cryptoPrices[id]>10) return[0.1,1,10];
   if(cryptoPrices[id]) return[10,100,1000];
@@ -680,6 +690,7 @@ function buildSymbol(){
   const b=base.id, q=quote.id;
   if(b===q) return null;
   if(b==='IMOEX') return 'MOEX:IMOEX';
+  if(['XAU','XAG','XPT','XPD'].includes(b)) return `OANDA:${b}USD`;
   if(CIDS[b]){
     // Chart always uses a pair that exists on Binance; price ticker handles conversion
     if(q==='EUR') return `BINANCE:${b}EUR`;
@@ -724,9 +735,12 @@ function openModal(mode){
   document.getElementById('msearch').style.display='';
   document.getElementById('mtabs').style.display='';
   // Reset tabs
-  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
-  // Hide crypto tab when picking quote for a crypto base (no crypto/crypto pairs)
-  const noCrypto = base.t==='crypto' && base.id!=='IMOEX' && mode==='quote';
+  document.querySelectorAll('.mtab').forEach(t=>{ t.classList.remove('active'); t.style.display=''; });
+  // Metals tab: only available when picking base, never as quote
+  const metalTab = document.querySelector('.mtab[data-t="metal"]');
+  if(metalTab) metalTab.style.display = mode==='quote' ? 'none' : '';
+  // Crypto tab: hide when picking quote for crypto/metal base (no cross-asset quote)
+  const noCrypto = ((base.t==='crypto'&&base.id!=='IMOEX')||base.t==='metal') && mode==='quote';
   document.querySelector('.mtab[data-t="crypto"]').style.display = noCrypto ? 'none' : '';
   const defTab = noCrypto ? 'world' : 'crypto';
   activeTab=defTab;
@@ -760,6 +774,8 @@ function renderList(search){
         document.getElementById('base-flag').textContent=item.f;
         document.getElementById('base-code').textContent=item.id;
         if(item.t==='crypto'&&!['USD','EUR','GBP'].includes(quote.id))
+          { quote=find('USD'); updateQuoteUI(); }
+        if(item.t==='metal'&&(quote.t==='crypto'||quote.t==='metal'))
           { quote=find('USD'); updateQuoteUI(); }
       } else {
         quote=item;
@@ -840,6 +856,7 @@ function renderListConv(items){
 }
 function restoreModalHandlers(){
   document.querySelectorAll('.mtab').forEach(el=>{
+    el.style.display='';
     el.onclick=()=>setTab(el.dataset.t,el);
   });
   document.getElementById('sinput').oninput=function(){renderList(this.value);};
