@@ -23,7 +23,7 @@ load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 BASE_URL = "https://Ctrlzett-coder.github.io/Coins/"
 AI_API_KEY = os.getenv("AI_API_KEY")
-DB_PATH = "bot_data.db"
+DB_PATH = os.getenv("DB_PATH", "bot_data.db")
 
 # --- ЛОГИРОВАНИЕ ---
 logging.basicConfig(
