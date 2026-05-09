@@ -427,9 +427,8 @@ function find(id){ return ALL.find(a=>a.id===id); }
 let theme = localStorage.getItem('theme') ||
   (window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
 function applyTheme(t){ theme=t; localStorage.setItem('theme',t);
-  document.documentElement.setAttribute('data-theme',t); createWidget(); }
-function toggleTheme(){ applyTheme(theme==='light'?'dark':'light'); }
-applyTheme(theme);
+  document.documentElement.setAttribute('data-theme',t); }
+function toggleTheme(){ applyTheme(theme==='light'?'dark':'light'); createWidget(); }
 
 // ─── TAB SWITCHING ────────────────────────────────────────
 function switchTab(tab){
@@ -594,15 +593,24 @@ function buildSymbol(){
 function createWidget(){
   const sym=buildSymbol(); if(!sym) return;
   document.getElementById('tv-chart').innerHTML='';
-  new TradingView.widget({
-    autosize:true, symbol:sym, interval:curInterval,
-    timezone:'Etc/UTC', theme:theme, style:'3', locale:'ru',
-    container_id:'tv-chart', hide_top_toolbar:true, hide_legend:true,
-    range:curRange, save_image:false, allow_symbol_change:false, show_popup_button:false,
-    backgroundColor:theme==='light'?'#ffffff':'#000000',
-    gridColor:theme==='light'?'#f0f3fa':'#1e222d'
-  });
-  startTicker();
+  if(typeof TradingView==='undefined'){
+    document.getElementById('tv-chart').innerHTML=
+      '<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+      'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+      '<span style="font-size:36px">📊</span><span>График загружается...</span></div>';
+    startTicker(); return;
+  }
+  try{
+    new TradingView.widget({
+      autosize:true, symbol:sym, interval:curInterval,
+      timezone:'Etc/UTC', theme:theme, style:'3', locale:'ru',
+      container_id:'tv-chart', hide_top_toolbar:true, hide_legend:true,
+      range:curRange, save_image:false, allow_symbol_change:false, show_popup_button:false,
+      backgroundColor:theme==='light'?'#ffffff':'#000000',
+      gridColor:theme==='light'?'#f0f3fa':'#1e222d'
+    });
+    startTicker();
+  }catch(e){ startTicker(); }
 }
 function setRange(r,i,btn){
   curRange=r; curInterval=i;
@@ -827,6 +835,7 @@ function doPctChg(){
 // ─── INIT ─────────────────────────────────────────────────
 restoreModalHandlers();
 renderQuick();
+applyTheme(theme);
 createWidget();
 </script>
 </body>
