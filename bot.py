@@ -99,6 +99,7 @@ async def init_db():
                 price REAL NOT NULL
             )
         """)
+        # Миграция: добавить колонки если их нет (для старых БД)
         try:
             await db.execute("ALTER TABLE user_notifications ADD COLUMN custom_hour INTEGER")
         except Exception:
@@ -206,40 +207,54 @@ async def db_get_all_alerts() -> list[dict]:
             return [{"id": r[0], "user_id": r[1], "coin": r[2], "direction": r[3], "price": r[4]} for r in rows]
 
 
-def _fetch_market_data() -> str:
+# --- ДАННЫЕ РЫНКА ---
+def _fetch_market_data() -> dict:
     headers = {'User-Agent': 'Mozilla/5.0'}
-    data_str = ""
+    result = {}
+
     try:
-        res = requests.get(
-            "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true",
-            headers=headers, timeout=10
-        ).json()
-        btc_p, btc_c = res['bitcoin']['usd'], res['bitcoin']['usd_24h_change']
-        eth_p, eth_c = res['ethereum']['usd'], res['ethereum']['usd_24h_change']
-        data_str += f"BTC: ${btc_p} ({btc_c:+.2f}%), ETH: ${eth_p} ({eth_c:+.2f}%). "
+        crypto_url = (
+            "https://api.coingecko.com/api/v3/simple/price"
+            "?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true"
+        )
+        res = requests.get(crypto_url, headers=headers, timeout=10).json()
+        result['btc_price'] = res['bitcoin']['usd']
+        result['btc_change'] = res['bitcoin']['usd_24h_change']
+        result['eth_price'] = res['ethereum']['usd']
+        result['eth_change'] = res['ethereum']['usd_24h_change']
     except Exception as e:
         logger.warning("Не удалось получить данные крипты: %s", e)
-        data_str += "BTC: $69200 (+1.2%), ETH: $3520 (-0.5%). "
+        result['btc_price'] = 69200
+        result['btc_change'] = 1.2
+        result['eth_price'] = 3520
+        result['eth_change'] = -0.5
+
     try:
-        res = requests.get(
-            "https://iss.moex.com/iss/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off",
-            headers=headers, timeout=10
-        ).json()
+        moex_url = (
+            "https://iss.moex.com/iss/engines/stock/markets/index"
+            "/securities/IMOEX.json?iss.meta=off"
+        )
+        res = requests.get(moex_url, headers=headers, timeout=10).json()
         row = res['marketdata']['data'][0]
         current_val = row[2] if row[2] is not None else row[12]
         prev_close = row[3]
         change_pct = ((current_val - prev_close) / prev_close * 100) if prev_close else 0.0
-        data_str += f"IMOEX: {current_val:.2f} пт ({change_pct:+.2f}%)."
+        result['imoex_val'] = current_val
+        result['imoex_change'] = change_pct
     except Exception as e:
         logger.warning("Не удалось получить данные IMOEX: %s", e)
-        data_str += "IMOEX: 2772 пт (-0.3%)."
-    return data_str
+        result['imoex_val'] = 2772.0
+        result['imoex_change'] = -0.3
+
+    return result
 
 
 def _fetch_prices() -> dict:
+    """Возвращает текущие цены BTC и ETH в USD."""
     try:
         res = requests.get(
-            "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd",
+            "https://api.coingecko.com/api/v3/simple/price"
+            "?ids=bitcoin,ethereum&vs_currencies=usd",
             headers={'User-Agent': 'Mozilla/5.0'}, timeout=10
         ).json()
         return {"BTC": res['bitcoin']['usd'], "ETH": res['ethereum']['usd']}
@@ -247,50 +262,29 @@ def _fetch_prices() -> dict:
         return {}
 
 
-def _call_ai(market_context: str) -> str:
-    response = ai_client.chat.completions.create(
-        model="deepseek-chat",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "Ты — аналитический модуль системы CryptoPulse. Делай КРАТКИЙ дайджест. "
-                    "Используй ТОЛЬКО HTML (<b> для жирного). Запрещено использовать **. "
-                    "Для каждого актива ОБЯЗАТЕЛЬНО укажи цену и процент изменения. "
-                    "Формат строго такой:\n\n"
-                    "📊 <b>Краткий рыночный дайджест</b>\n\n"
-                    "Крипта:\n"
-                    "- BTC 🚀: $цена (процент) — короткая суть.\n"
-                    "- ETH ⚡: $цена (процент) — короткая суть.\n\n"
-                    "Мосбиржа (данные с задержкой):\n"
-                    "- IMOEX 📉: значение (процент) — кратко тренд.\n\n"
-                    "<b>Вывод:</b> одно емкое предложение с эмодзи."
-                )
-            },
-            {"role": "user", "content": f"Данные для анализа: {market_context}"}
-        ],
-        temperature=0.3,
-        timeout=15
-    )
-    return response.choices[0].message.content
-
-
 async def send_market_report(user_id: int) -> None:
-    market_context = await asyncio.to_thread(_fetch_market_data)
-    try:
-        ai_text = await asyncio.to_thread(_call_ai, market_context)
-        ai_text = ai_text.replace("**", "")
-    except Exception as e:
-        logger.error("Ошибка AI-клиента: %s", e)
-        ai_text = f"📊 <b>Краткий рыночный дайджест</b>\n\n<b>Вывод:</b> Рынок в движении. {market_context}"
+    data = await asyncio.to_thread(_fetch_market_data)
+
+    btc_emoji = "🚀" if data['btc_change'] >= 0 else "📉"
+    imoex_emoji = "📈" if data['imoex_change'] >= 0 else "📉"
+
+    text = (
+        "📊 <b>Краткий рыночный дайджест</b>\n\n"
+        "Крипта:\n"
+        f"- BTC {btc_emoji}: ${data['btc_price']:,.0f} ({data['btc_change']:+.2f}%)\n"
+        f"- ETH ⚡: ${data['eth_price']:,.2f} ({data['eth_change']:+.2f}%).\n\n"
+        "Мосбиржа (данные с задержкой):\n"
+        f"- IMOEX {imoex_emoji}: {data['imoex_val']:.2f} пт ({data['imoex_change']:+.2f}%).\n\n"
+        "Вывод: Рынок находится в движении, следите за обновлениями! 📈"
+    )
+
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Детали в приложении", web_app=types.WebAppInfo(url=BASE_URL))
-    try:
-        await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode="HTML")
-    except Exception as e:
-        await bot.send_message(user_id, ai_text, reply_markup=builder.as_markup(), parse_mode=None)
+
+    await bot.send_message(user_id, text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 
+# --- ПЛАНИРОВЩИК ---
 async def check_fixed_times() -> None:
     user_ids = await db_get_all_user_ids()
     for uid in user_ids:
@@ -299,6 +293,7 @@ async def check_fixed_times() -> None:
         notes = await db_get_notifications(uid)
         for n in notes:
             should_send = False
+
             if n['type'] == 'custom':
                 if (n['custom_hour'] is not None and
                         now.hour == n['custom_hour'] and
@@ -314,8 +309,10 @@ async def check_fixed_times() -> None:
                     should_send = True
                 elif n['type'] == "both" and now.hour in (10, 18):
                     should_send = True
+
                 if should_send and (time.time() - n['last_run']) < n['interval'] * 86400:
                     should_send = False
+
             if should_send:
                 await send_market_report(uid)
                 await db_update_last_run(n['id'], time.time())
@@ -325,9 +322,11 @@ async def check_alerts() -> None:
     alerts = await db_get_all_alerts()
     if not alerts:
         return
+
     prices = await asyncio.to_thread(_fetch_prices)
     if not prices:
         return
+
     triggered = []
     for alert in alerts:
         current = prices.get(alert['coin'])
@@ -337,8 +336,11 @@ async def check_alerts() -> None:
               (alert['direction'] == '<' and current < alert['price'])
         if hit:
             triggered.append(alert)
+
     for alert in triggered:
-        coin, direction, target = alert['coin'], alert['direction'], alert['price']
+        coin = alert['coin']
+        direction = alert['direction']
+        target = alert['price']
         current = prices.get(coin, 0)
         symbol = "выше" if direction == '>' else "ниже"
         text = (
@@ -356,6 +358,7 @@ async def check_alerts() -> None:
         await db_delete_alert(alert['id'])
 
 
+# --- ГЛАВНОЕ МЕНЮ ---
 MAIN_MENU_TEXT = (
     "👋 <b>Добро пожаловать к КриптоГению!</b>\n\n"
     "Я твой персональный финансовый ассистент. Вот что я умею:\n\n"
@@ -389,6 +392,7 @@ async def back_home(callback: types.CallbackQuery):
     await callback.message.edit_text(MAIN_MENU_TEXT, reply_markup=build_main_menu(), parse_mode="HTML")
 
 
+# --- ЧАСОВОЙ ПОЯС ---
 @dp.callback_query(F.data == "change_timezone")
 async def choose_timezone(callback: types.CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
@@ -408,16 +412,20 @@ async def set_timezone_handler(callback: types.CallbackQuery, state: FSMContext)
     await back_home(callback)
 
 
+# --- МГНОВЕННЫЙ ОТЧЁТ ---
 @dp.callback_query(F.data == "get_report_now")
 async def instant_report(callback: types.CallbackQuery):
-    await callback.answer("Запускаю интеллектуальный анализ...")
+    await callback.answer("Запускаю анализ...")
     await send_market_report(callback.from_user.id)
 
 
+# --- СПИСОК УВЕДОМЛЕНИЙ ---
 def _fmt_notification(n: dict) -> str:
     int_map = {1: "каждый день", 3: "раз в 3 дня", 7: "раз в неделю"}
     if n['type'] == 'custom':
-        time_str = f"{n['custom_hour']:02d}:{n['custom_minute']:02d}"
+        h = n['custom_hour']
+        m = n['custom_minute']
+        time_str = f"{h:02d}:{m:02d}"
     elif n['type'] == 'morning':
         time_str = "10:00"
     elif n['type'] == 'evening':
@@ -433,18 +441,21 @@ async def list_notifications(callback: types.CallbackQuery):
     notes = await db_get_notifications(uid)
     builder = InlineKeyboardBuilder()
     text = "<b>🔔 Ваши уведомления:</b>\n\n"
+
     if not notes:
         text += "У вас пока нет активных подписок."
     else:
         for i, n in enumerate(notes):
             text += f"{i+1}. {_fmt_notification(n)}\n"
             builder.button(text=f"❌ Удалить #{i+1}", callback_data=f"del_{n['id']}")
+
     builder.button(text="➕ Добавить уведомление", callback_data="setup_type")
     builder.button(text="⬅️ Назад", callback_data="back_to_main")
     builder.adjust(1)
     await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
 
 
+# --- НАСТРОЙКА УВЕДОМЛЕНИЙ ---
 @dp.callback_query(F.data == "setup_type")
 async def setup_type(callback: types.CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
@@ -455,7 +466,8 @@ async def setup_type(callback: types.CallbackQuery, state: FSMContext):
     builder.adjust(1)
     await callback.message.edit_text(
         "<b>Выберите время получения новостей:</b>",
-        reply_markup=builder.as_markup(), parse_mode="HTML"
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
     )
     await state.set_state(NotifyStates.choosing_type)
 
@@ -483,6 +495,7 @@ async def receive_custom_time(message: types.Message, state: FSMContext):
         await message.answer("❌ Недопустимое время. Часы 0-23, минуты 0-59.")
         return
     await state.update_data(custom_hour=h, custom_minute=m)
+
     builder = InlineKeyboardBuilder()
     builder.button(text="📅 Каждый день", callback_data="set_i_1")
     builder.button(text="🗓 Раз в 3 дня", callback_data="set_i_3")
@@ -490,7 +503,8 @@ async def receive_custom_time(message: types.Message, state: FSMContext):
     builder.adjust(1)
     await message.answer(
         f"✅ Время <b>{h:02d}:{m:02d}</b> выбрано.\n\n<b>Как часто присылать отчеты?</b>",
-        reply_markup=builder.as_markup(), parse_mode="HTML"
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
     )
     await state.set_state(NotifyStates.choosing_interval)
 
@@ -499,7 +513,7 @@ async def receive_custom_time(message: types.Message, state: FSMContext):
 async def setup_interval(callback: types.CallbackQuery, state: FSMContext):
     t = callback.data.replace("set_t_", "")
     if t == "custom":
-        return
+        return  # обрабатывается отдельным хендлером
     await state.update_data(time_type=t)
     builder = InlineKeyboardBuilder()
     builder.button(text="📅 Каждый день", callback_data="set_i_1")
@@ -508,7 +522,8 @@ async def setup_interval(callback: types.CallbackQuery, state: FSMContext):
     builder.adjust(1)
     await callback.message.edit_text(
         "<b>Как часто присылать отчеты?</b>",
-        reply_markup=builder.as_markup(), parse_mode="HTML"
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
     )
     await state.set_state(NotifyStates.choosing_interval)
 
@@ -519,8 +534,9 @@ async def finish_setup(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     uid = callback.from_user.id
     initial_last_run = time.time() - interval * 86400
-    await db_add_notification(uid, data['time_type'], interval, initial_last_run,
-                               data.get('custom_hour'), data.get('custom_minute'))
+    custom_hour = data.get('custom_hour')
+    custom_minute = data.get('custom_minute')
+    await db_add_notification(uid, data['time_type'], interval, initial_last_run, custom_hour, custom_minute)
     await callback.answer("Уведомление настроено!")
     await state.clear()
     await list_notifications(callback)
@@ -533,12 +549,14 @@ async def delete_note(callback: types.CallbackQuery):
     await list_notifications(callback)
 
 
+# --- ЦЕНОВЫЕ АЛЕРТЫ ---
 @dp.callback_query(F.data == "manage_alerts")
 async def list_alerts(callback: types.CallbackQuery):
     uid = callback.from_user.id
     alerts = await db_get_alerts(uid)
     builder = InlineKeyboardBuilder()
     text = "<b>⚡ Ваши ценовые алерты:</b>\n\n"
+
     if not alerts:
         text += "У вас пока нет активных алертов.\n\n<i>Алерт срабатывает один раз и удаляется.</i>"
     else:
@@ -546,6 +564,7 @@ async def list_alerts(callback: types.CallbackQuery):
             symbol = "выше" if a['direction'] == '>' else "ниже"
             text += f"{i+1}. {a['coin']} {a['direction']} ${a['price']:,.0f} ({symbol})\n"
             builder.button(text=f"❌ Удалить #{i+1}", callback_data=f"alrdel_{a['id']}")
+
     builder.button(text="➕ Добавить алерт", callback_data="alert_setup_coin")
     builder.button(text="⬅️ Назад", callback_data="back_to_main")
     builder.adjust(1)
@@ -560,7 +579,8 @@ async def alert_choose_coin(callback: types.CallbackQuery, state: FSMContext):
     builder.adjust(1)
     await callback.message.edit_text(
         "<b>Выберите монету для алерта:</b>",
-        reply_markup=builder.as_markup(), parse_mode="HTML"
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
     )
     await state.set_state(AlertStates.choosing_coin)
 
@@ -575,7 +595,8 @@ async def alert_choose_direction(callback: types.CallbackQuery, state: FSMContex
     builder.adjust(1)
     await callback.message.edit_text(
         f"<b>{coin} — выберите направление алерта:</b>",
-        reply_markup=builder.as_markup(), parse_mode="HTML"
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
     )
     await state.set_state(AlertStates.choosing_direction)
 
@@ -606,17 +627,22 @@ async def alert_save(message: types.Message, state: FSMContext):
     except ValueError:
         await message.answer("❌ Введите корректную цену, например: <code>100000</code>", parse_mode="HTML")
         return
+
     data = await state.get_data()
-    await db_add_alert(message.from_user.id, data['coin'], data['direction'], price)
+    uid = message.from_user.id
+    await db_add_alert(uid, data['coin'], data['direction'], price)
     await state.clear()
+
     symbol = "выше" if data['direction'] == '>' else "ниже"
     builder = InlineKeyboardBuilder()
     builder.button(text="⚡ Мои алерты", callback_data="manage_alerts")
     builder.button(text="🏠 Главное меню", callback_data="back_to_main")
     builder.adjust(1)
     await message.answer(
-        f"✅ <b>Алерт создан!</b>\n\nУведомлю когда <b>{data['coin']}</b> станет {symbol} <b>${price:,.0f}</b>",
-        parse_mode="HTML", reply_markup=builder.as_markup()
+        f"✅ <b>Алерт создан!</b>\n\n"
+        f"Уведомлю когда <b>{data['coin']}</b> станет {symbol} <b>${price:,.0f}</b>",
+        parse_mode="HTML",
+        reply_markup=builder.as_markup()
     )
 
 
