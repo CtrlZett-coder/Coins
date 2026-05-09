@@ -265,8 +265,8 @@ body{margin:0;padding:0;height:100vh;background:var(--ios-bg);font-family:var(--
     <button class="nb nd" onclick="ck('3')">3</button>
     <button class="nb no" id="btn-add" onclick="ck('+')">+</button>
     <button class="nb nd nz" onclick="ck('0')">0</button>
-    <button class="nb nd" onclick="ck('.'))">.</button>
-    <button class="nb neq" onclick="ck('=')">&#x3D;</button>
+    <button class="nb nd" onclick="ck('.')">.</button>
+    <button class="nb neq" onclick="ck('=')">=</button>
   </div>
   <div id="pctcalc">
     <div class="prow">
@@ -427,9 +427,8 @@ function find(id){ return ALL.find(a=>a.id===id); }
 let theme = localStorage.getItem('theme') ||
   (window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
 function applyTheme(t){ theme=t; localStorage.setItem('theme',t);
-  document.documentElement.setAttribute('data-theme',t); createWidget(); }
-function toggleTheme(){ applyTheme(theme==='light'?'dark':'light'); }
-applyTheme(theme);
+  document.documentElement.setAttribute('data-theme',t); }
+function toggleTheme(){ applyTheme(theme==='light'?'dark':'light'); createWidget(); }
 
 // ─── TAB SWITCHING ────────────────────────────────────────
 function switchTab(tab){
@@ -585,6 +584,7 @@ function buildSymbol(){
   if(b===q) return null;
   if(b==='IMOEX') return 'MOEX:IMOEX';
   if(CIDS[b]){
+    const pairs=['USD','EUR','GBP','BTC','ETH','BNB'];
     const qs=q==='USD'?'USDT':q;
     return `BINANCE:${b}${qs}`;
   }
@@ -593,15 +593,24 @@ function buildSymbol(){
 function createWidget(){
   const sym=buildSymbol(); if(!sym) return;
   document.getElementById('tv-chart').innerHTML='';
-  new TradingView.widget({
-    autosize:true, symbol:sym, interval:curInterval,
-    timezone:'Etc/UTC', theme:theme, style:'3', locale:'ru',
-    container_id:'tv-chart', hide_top_toolbar:true, hide_legend:true,
-    range:curRange, save_image:false, allow_symbol_change:false, show_popup_button:false,
-    backgroundColor:theme==='light'?'#ffffff':'#000000',
-    gridColor:theme==='light'?'#f0f3fa':'#1e222d'
-  });
-  startTicker();
+  if(typeof TradingView==='undefined'){
+    document.getElementById('tv-chart').innerHTML=
+      '<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+      'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+      '<span style="font-size:36px">📊</span><span>График загружается...</span></div>';
+    startTicker(); return;
+  }
+  try{
+    new TradingView.widget({
+      autosize:true, symbol:sym, interval:curInterval,
+      timezone:'Etc/UTC', theme:theme, style:'3', locale:'ru',
+      container_id:'tv-chart', hide_top_toolbar:true, hide_legend:true,
+      range:curRange, save_image:false, allow_symbol_change:false, show_popup_button:false,
+      backgroundColor:theme==='light'?'#ffffff':'#000000',
+      gridColor:theme==='light'?'#f0f3fa':'#1e222d'
+    });
+    startTicker();
+  }catch(e){ startTicker(); }
 }
 function setRange(r,i,btn){
   curRange=r; curInterval=i;
@@ -616,6 +625,7 @@ function openModal(mode){
   document.getElementById('mtitle').textContent='Выбор актива';
   document.getElementById('msearch').style.display='';
   document.getElementById('mtabs').style.display='';
+  // Reset tabs
   document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
   const defTab = (base.t==='crypto'&&mode==='quote')?'world':'crypto';
   activeTab=defTab;
@@ -677,18 +687,24 @@ function openCalcModal(target){
   document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
   document.querySelector('.mtab[data-t="crypto"]')?.classList.add('active');
 
+  const list=document.getElementById('alist'); list.innerHTML='';
+  // render is handled by renderList with overridden click
+  const q='';
   const items=ALL.filter(a=>a.t===activeTab);
   renderListConv(items);
   document.getElementById('modal-overlay').classList.add('open');
 
+  // Override tab clicks for conv modal
   document.querySelectorAll('.mtab').forEach(el=>{
     el.onclick=()=>{
       activeTab=el.dataset.t;
       document.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active'));
       el.classList.add('active');
-      const q=document.getElementById('sinput').value;
       renderListConv(ALL.filter(a=>
-        q?(a.id.includes(q.toUpperCase())||a.n.toUpperCase().includes(q.toUpperCase())):a.t===activeTab
+        (document.getElementById('sinput').value
+          ? (a.id.includes(document.getElementById('sinput').value.toUpperCase())||
+             a.n.toUpperCase().includes(document.getElementById('sinput').value.toUpperCase()))
+          : a.t===activeTab)
       ));
     };
   });
@@ -715,6 +731,7 @@ function renderListConv(items){
       }
       convCalc(); renderQuick();
       closeModal();
+      // restore chart modal tab handlers
       restoreModalHandlers();
     };
     list.appendChild(div);
@@ -730,11 +747,15 @@ function restoreModalHandlers(){
 // ─── CALCULATOR ───────────────────────────────────────────
 let cs={d:'0',prev:null,op:null,newN:true,hist:''};
 
+function calcMode(){ return document.getElementById('csubtabs').querySelector('.active').dataset?.mode||'std'; }
+
 function setCalcMode(m){
   document.querySelectorAll('.cst').forEach((el,i)=>el.classList.toggle('active',(i===0&&m==='std')||(i===1&&m==='pct')));
   document.getElementById('numpad').style.display=m==='std'?'grid':'none';
   document.getElementById('pctcalc').style.display=m==='pct'?'flex':'none';
 }
+// set data-mode on subtabs
+document.querySelectorAll('.cst').forEach((el,i)=>el.dataset.mode=i===0?'std':'pct');
 
 function dispCalc(){
   const el=document.getElementById('cdisp');
@@ -742,6 +763,7 @@ function dispCalc(){
   el.textContent=s;
   el.style.fontSize=s.length>12?'32px':s.length>9?'40px':'52px';
   document.getElementById('chist').textContent=cs.hist;
+  // highlight active op
   ['÷','×','−','+'].forEach(op=>{
     const id={'÷':'btn-div','×':'btn-mul','−':'btn-sub','+':'btn-add'}[op];
     document.getElementById(id)?.classList.toggle('aop',cs.op===op&&cs.newN);
@@ -782,6 +804,7 @@ function ck(key){
       cs.d=cleanNum(r); cs.prev=null; cs.op=null; cs.newN=true;
     }
   }
+  // Update AC label
   document.querySelector('#numpad .nf').textContent=
     (cs.d==='0'&&!cs.prev&&!cs.op)?'AC':'C';
   dispCalc();
@@ -812,6 +835,7 @@ function doPctChg(){
 // ─── INIT ─────────────────────────────────────────────────
 restoreModalHandlers();
 renderQuick();
+applyTheme(theme);
 createWidget();
 </script>
 </body>
