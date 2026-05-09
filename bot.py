@@ -23,7 +23,7 @@ load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 BASE_URL = "https://Ctrlzett-coder.github.io/Coins/"
 AI_API_KEY = os.getenv("AI_API_KEY")
-DB_PATH = "bot_data.db"
+DB_PATH = os.getenv("DB_PATH", "bot_data.db")
 
 # --- ЛОГИРОВАНИЕ ---
 logging.basicConfig(
@@ -367,7 +367,7 @@ async def setup_interval(callback: types.CallbackQuery, state: FSMContext):
     builder = InlineKeyboardBuilder()
     builder.button(text="📅 Каждый день", callback_data="set_i_1")
     builder.button(text="🗓 Раз в 3 дня", callback_data="set_i_3")
-    builder.button(text="📆 Раз в неделю", callback_data="set_i_7")
+    builder.button(text="🗆 Раз в неделю", callback_data="set_i_7")
     builder.adjust(1)
     await callback.message.edit_text(
         "<b>Как часто присылать отчеты?</b>",
