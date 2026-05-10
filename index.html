@@ -691,9 +691,14 @@ function buildSymbol(){
   if(b===q) return null;
   if(b==='IMOEX') return 'MOEX:IMOEX';
   if(['XAU','XAG','XPT','XPD'].includes(b)) return `OANDA:${b}USD`;
-  if(CIDS[b]) return `BINANCE:${b}USDT`;
-  if(b==='USD') return `FX_IDC:USD${q}`;
-  return `FX_IDC:${b}USD`;
+  if(CIDS[b]){
+    if(q==='EUR') return `BINANCE:${b}EUR`;
+    if(q==='GBP') return `BINANCE:${b}GBP`;
+    if(q==='TRY') return `BINANCE:${b}TRY`;
+    if(q==='BRL') return `BINANCE:${b}BRL`;
+    return `BINANCE:${b}USDT`;
+  }
+  return `FX_IDC:${b}${q}`;
 }
 function createWidget(){
   const sym=buildSymbol(); if(!sym) return;
@@ -714,7 +719,6 @@ function createWidget(){
       backgroundColor:theme==='light'?'#ffffff':'#000000',
       gridColor:theme==='light'?'#f0f3fa':'#1e222d'
     };
-    if(base.id!=='IMOEX') cfg.currency_code=quote.id;
     new TradingView.widget(cfg);
     startTicker();
   }catch(e){ startTicker(); }
