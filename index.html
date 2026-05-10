@@ -691,13 +691,9 @@ function buildSymbol(){
   if(b===q) return null;
   if(b==='IMOEX') return 'MOEX:IMOEX';
   if(['XAU','XAG','XPT','XPD'].includes(b)) return `OANDA:${b}USD`;
-  if(CIDS[b]){
-    // Chart always uses a pair that exists on Binance; price ticker handles conversion
-    if(q==='EUR') return `BINANCE:${b}EUR`;
-    if(q==='GBP') return `BINANCE:${b}GBP`;
-    return `BINANCE:${b}USDT`;
-  }
-  return `FX_IDC:${b}${q}`;
+  if(CIDS[b]) return `BINANCE:${b}USDT`;
+  if(b==='USD') return `FX_IDC:USD${q}`;
+  return `FX_IDC:${b}USD`;
 }
 function createWidget(){
   const sym=buildSymbol(); if(!sym) return;
@@ -710,14 +706,16 @@ function createWidget(){
     startTicker(); return;
   }
   try{
-    new TradingView.widget({
+    const cfg={
       autosize:true, symbol:sym, interval:curInterval,
       timezone:'Etc/UTC', theme:theme, style:'3', locale:'ru',
       container_id:'tv-chart', hide_top_toolbar:true, hide_legend:true,
       range:curRange, save_image:false, allow_symbol_change:false, show_popup_button:false,
       backgroundColor:theme==='light'?'#ffffff':'#000000',
       gridColor:theme==='light'?'#f0f3fa':'#1e222d'
-    });
+    };
+    if(base.id!=='IMOEX') cfg.currency_code=quote.id;
+    new TradingView.widget(cfg);
     startTicker();
   }catch(e){ startTicker(); }
 }
@@ -734,17 +732,18 @@ function openModal(mode){
   document.getElementById('mtitle').textContent='Выбор актива';
   document.getElementById('msearch').style.display='';
   document.getElementById('mtabs').style.display='';
-  // Reset tabs
+  // Reset all tabs
   document.querySelectorAll('.mtab').forEach(t=>{ t.classList.remove('active'); t.style.display=''; });
-  // Metals tab: only available when picking base, never as quote
-  const metalTab = document.querySelector('.mtab[data-t="metal"]');
-  if(metalTab) metalTab.style.display = mode==='quote' ? 'none' : '';
-  // Crypto tab: hide when picking quote for crypto/metal base (no cross-asset quote)
-  const noCrypto = ((base.t==='crypto'&&base.id!=='IMOEX')||base.t==='metal') && mode==='quote';
-  document.querySelector('.mtab[data-t="crypto"]').style.display = noCrypto ? 'none' : '';
-  const defTab = noCrypto ? 'world' : 'crypto';
-  activeTab=defTab;
-  document.querySelector(`.mtab[data-t="${defTab}"]`)?.classList.add('active');
+  if(mode==='quote'){
+    // Quote must always be fiat — crypto and metals never allowed as quote
+    document.querySelector('.mtab[data-t="crypto"]').style.display='none';
+    document.querySelector('.mtab[data-t="metal"]').style.display='none';
+    activeTab='world';
+    document.querySelector('.mtab[data-t="world"]')?.classList.add('active');
+  } else {
+    activeTab='crypto';
+    document.querySelector('.mtab[data-t="crypto"]')?.classList.add('active');
+  }
   renderList('');
   document.getElementById('modal-overlay').classList.add('open');
 }
