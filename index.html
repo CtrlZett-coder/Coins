@@ -741,23 +741,88 @@ async function createCryptoChart(){
   startTicker();
 }
 
+function fxDateRange(range){
+  const dates=[], now=new Date();
+  let numDays, step;
+  switch(range){
+    case '1D':  numDays=14;   step=1;  break;
+    case '1M':  numDays=30;   step=1;  break;
+    case '3M':  numDays=90;   step=3;  break;
+    case '6M':  numDays=180;  step=6;  break;
+    case '12M': numDays=365;  step=12; break;
+    case 'ALL': numDays=1825; step=60; break;
+    default:    numDays=14;   step=1;
+  }
+  for(let i=numDays;i>=0;i-=step){
+    const d=new Date(now); d.setDate(d.getDate()-i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return [...new Set(dates)];
+}
+
+async function createFiatChart(){
+  const el=document.getElementById('tv-chart');
+  if(lwRO){lwRO.disconnect();lwRO=null;}
+  if(lwChart){try{lwChart.remove();}catch(e){} lwChart=null;}
+  el.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+    'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+    '<span style="font-size:36px">📊</span><span>Загрузка...</span></div>';
+  try{
+    const b=base.id.toLowerCase(), q=quote.id.toLowerCase();
+    const dates=fxDateRange(curRange);
+    const raw=await Promise.all(dates.map(date=>
+      fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/${b}.json`)
+        .then(r=>r.ok?r.json():null).catch(()=>null)
+    ));
+    const data=[];
+    for(let i=0;i<dates.length;i++){
+      const d=raw[i];
+      const rate=d&&d[b]&&d[b][q]!=null?d[b][q]:null;
+      if(rate!=null){
+        const ts=new Date(dates[i]+'T12:00:00Z').getTime()/1000;
+        if(!data.length||data[data.length-1].time!==ts) data.push({time:ts,value:rate});
+      }
+    }
+    if(!data.length) throw new Error('no data');
+    el.innerHTML='';
+    const dk=theme==='dark';
+    lwChart=LightweightCharts.createChart(el,{
+      width:el.offsetWidth, height:el.offsetHeight||300,
+      layout:{background:{type:'solid',color:dk?'#000':'#fff'},textColor:dk?'#fff':'#000',fontSize:11},
+      grid:{vertLines:{visible:false},horzLines:{color:dk?'#1e222d':'#f0f3fa'}},
+      crosshair:{mode:1},
+      rightPriceScale:{borderColor:dk?'#38383a':'#e5e5ea',scaleMargins:{top:0.08,bottom:0.08}},
+      timeScale:{borderColor:dk?'#38383a':'#e5e5ea',timeVisible:false,fixLeftEdge:true,fixRightEdge:true},
+      handleScroll:true,handleScale:true,
+    });
+    const area=lwChart.addAreaSeries({
+      lineColor:'#34C759',topColor:'rgba(52,199,89,0.28)',bottomColor:'rgba(52,199,89,0)',
+      lineWidth:2,crosshairMarkerRadius:4,lastValueVisible:true,
+      priceLineVisible:true,priceLineColor:'#34C759',
+    });
+    area.setData(data);
+    lwChart.timeScale().fitContent();
+    lwRO=new ResizeObserver(()=>{if(lwChart)lwChart.applyOptions({width:el.offsetWidth,height:el.offsetHeight});});
+    lwRO.observe(el);
+  }catch(e){
+    if(lwRO){lwRO.disconnect();lwRO=null;}
+    if(lwChart){try{lwChart.remove();}catch(_){} lwChart=null;}
+    el.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+      'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+      '<span style="font-size:36px">📊</span><span>Ошибка загрузки</span></div>';
+  }
+  startTicker();
+}
+
 function buildSymbol(){
-  const b=base.id, q=quote.id;
-  if(b===q) return null;
+  const b=base.id;
   if(b==='IMOEX') return 'MOEX:IMOEX';
   if(['XAU','XAG','XPT','XPD'].includes(b)) return `OANDA:${b}USD`;
-  if(CIDS[b]){
-    if(q==='EUR') return `BINANCE:${b}EUR`;
-    return `BINANCE:${b}USDT`;
-  }
-  if(b==='USD') return `FX_IDC:USD${q}`;
-  return `FX_IDC:${b}USD`;
+  return null;
 }
 function createWidget(){
-  if(CIDS[base.id]){
-    createCryptoChart();
-    return;
-  }
+  if(CIDS[base.id]){ createCryptoChart(); return; }
+  if(base.t!=='metal'&&base.id!=='IMOEX'){ createFiatChart(); return; }
   if(lwRO){lwRO.disconnect();lwRO=null;}
   if(lwChart){try{lwChart.remove();}catch(e){} lwChart=null;}
   const sym=buildSymbol(); if(!sym) return;
@@ -778,8 +843,7 @@ function createWidget(){
       backgroundColor:theme==='light'?'#ffffff':'#000000',
       gridColor:theme==='light'?'#f0f3fa':'#1e222d'
     };
-    if(base.t==='metal'||(base.t!=='crypto'&&base.id!=='IMOEX'&&base.id!=='USD'))
-      cfg.currency_code=quote.id;
+    if(base.t==='metal') cfg.currency_code=quote.id;
     new TradingView.widget(cfg);
     startTicker();
   }catch(e){ startTicker(); }
@@ -885,8 +949,8 @@ function openCalcModal(target){
         document.getElementById('sinput').value
           ? (a.id.includes(document.getElementById('sinput').value.toUpperCase())||
              a.n.toUpperCase().includes(document.getElementById('sinput').value.toUpperCase()))
-          : a.t===activeTab)
-      ));
+          : a.t===activeTab))
+      );
     };
   });
   document.getElementById('sinput').oninput=function(){
