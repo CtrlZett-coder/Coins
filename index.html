@@ -266,7 +266,7 @@ body{margin:0;padding:0;height:100vh;background:var(--ios-bg);font-family:var(--
     <button class="nb no" id="btn-add" onclick="ck('+')">+</button>
     <button class="nb nd nz" onclick="ck('0')">0</button>
     <button class="nb nd" onclick="ck('.')">.</button>
-    <button class="nb neq" onclick="ck('=')">=</button>
+    <button class="nb neq" onclick="ck('=')">= </button>
   </div>
   <div id="pctcalc">
     <div class="prow">
@@ -319,6 +319,7 @@ body{margin:0;padding:0;height:100vh;background:var(--ios-bg);font-family:var(--
 </div>
 
 <script src="https://s3.tradingview.com/tv.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 const tg = window.Telegram.WebApp; tg.ready();
 
@@ -631,6 +632,11 @@ let base=find('BTC'), quote=find('USD');
 let curRange='1D', curInterval='5', selMode='base', activeTab='crypto';
 let priceTimer=null;
 let fxCache={}, fxCacheTime=0;
+let lwChart=null, lwRO=null;
+const BN_PARAMS={
+  '1D': ['5m', 288], '1M': ['1h', 720], '3M':  ['4h', 540],
+  '6M': ['1d', 182], '12M':['1d', 365], 'ALL': ['1w', 260]
+};
 
 async function ensureFX(){
   if(Date.now()-fxCacheTime<300000&&Object.keys(fxCache).length) return;
@@ -684,6 +690,57 @@ async function fetchAndShowPrice(){
 function startTicker(){ fetchAndShowPrice(); clearInterval(priceTimer);
   priceTimer=setInterval(fetchAndShowPrice,30000); }
 
+async function createCryptoChart(){
+  const el=document.getElementById('tv-chart');
+  if(lwRO){lwRO.disconnect();lwRO=null;}
+  if(lwChart){try{lwChart.remove();}catch(e){} lwChart=null;}
+  el.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+    'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+    '<span style="font-size:36px">📊</span><span>Загрузка...</span></div>';
+  try{
+    await ensureFX();
+    const [iv,lim]=BN_PARAMS[curRange]||BN_PARAMS['1D'];
+    const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${base.id}USDT&interval=${iv}&limit=${lim}`);
+    if(!r.ok) throw new Error('api');
+    const kl=await r.json();
+    if(!Array.isArray(kl)||!kl.length) throw new Error('empty');
+    const rate=quote.id==='USD'?1:(fxCache[quote.id]||1);
+    el.innerHTML='';
+    const dk=theme==='dark';
+    lwChart=LightweightCharts.createChart(el,{
+      width:el.offsetWidth, height:el.offsetHeight||300,
+      layout:{background:{type:'solid',color:dk?'#000':'#fff'},textColor:dk?'#fff':'#000',fontSize:11},
+      grid:{vertLines:{visible:false},horzLines:{color:dk?'#1e222d':'#f0f3fa'}},
+      crosshair:{mode:1},
+      rightPriceScale:{borderColor:dk?'#38383a':'#e5e5ea',scaleMargins:{top:0.08,bottom:0.2}},
+      timeScale:{borderColor:dk?'#38383a':'#e5e5ea',timeVisible:true,secondsVisible:false,fixLeftEdge:true,fixRightEdge:true},
+      handleScroll:true,handleScale:true,
+    });
+    const area=lwChart.addAreaSeries({
+      lineColor:'#007AFF',topColor:'rgba(0,122,255,0.28)',bottomColor:'rgba(0,122,255,0)',
+      lineWidth:2,crosshairMarkerRadius:4,lastValueVisible:true,
+      priceLineVisible:true,priceLineColor:'#007AFF',
+    });
+    area.setData(kl.map(k=>({time:Math.floor(k[0]/1000),value:parseFloat(k[4])*rate})));
+    const vol=lwChart.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:'vol'});
+    vol.priceScale().applyOptions({scaleMargins:{top:0.82,bottom:0}});
+    vol.setData(kl.map(k=>({
+      time:Math.floor(k[0]/1000),value:parseFloat(k[5]),
+      color:parseFloat(k[4])>=parseFloat(k[1])?'rgba(52,199,89,0.4)':'rgba(255,59,48,0.4)',
+    })));
+    lwChart.timeScale().fitContent();
+    lwRO=new ResizeObserver(()=>{if(lwChart)lwChart.applyOptions({width:el.offsetWidth,height:el.offsetHeight});});
+    lwRO.observe(el);
+  }catch(e){
+    if(lwRO){lwRO.disconnect();lwRO=null;}
+    if(lwChart){try{lwChart.remove();}catch(_){} lwChart=null;}
+    el.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+      'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+      '<span style="font-size:36px">📊</span><span>Ошибка загрузки</span></div>';
+  }
+  startTicker();
+}
+
 function buildSymbol(){
   const b=base.id, q=quote.id;
   if(b===q) return null;
@@ -697,6 +754,12 @@ function buildSymbol(){
   return `FX_IDC:${b}USD`;
 }
 function createWidget(){
+  if(CIDS[base.id]){
+    createCryptoChart();
+    return;
+  }
+  if(lwRO){lwRO.disconnect();lwRO=null;}
+  if(lwChart){try{lwChart.remove();}catch(e){} lwChart=null;}
   const sym=buildSymbol(); if(!sym) return;
   document.getElementById('tv-chart').innerHTML='';
   if(typeof TradingView==='undefined'){
@@ -715,11 +778,8 @@ function createWidget(){
       backgroundColor:theme==='light'?'#ffffff':'#000000',
       gridColor:theme==='light'?'#f0f3fa':'#1e222d'
     };
-    // For metals and non-USD fiat: chart is in USD, currency_code tells TradingView
-    // to convert the scale to the selected quote currency (same mechanism as the
-    // "Сменить валюту шкалы" button on tradingview.com)
-    if(base.t==='metal' || (base.t!=='crypto' && base.id!=='IMOEX' && base.id!=='USD'))
-      cfg.currency_code = quote.id;
+    if(base.t==='metal'||(base.t!=='crypto'&&base.id!=='IMOEX'&&base.id!=='USD'))
+      cfg.currency_code=quote.id;
     new TradingView.widget(cfg);
     startTicker();
   }catch(e){ startTicker(); }
@@ -821,8 +881,8 @@ function openCalcModal(target){
       activeTab=el.dataset.t;
       document.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active'));
       el.classList.add('active');
-      renderListConv(ALL.filter(a=>
-        (document.getElementById('sinput').value
+      renderListConv(ALL.filter(a=>(
+        document.getElementById('sinput').value
           ? (a.id.includes(document.getElementById('sinput').value.toUpperCase())||
              a.n.toUpperCase().includes(document.getElementById('sinput').value.toUpperCase()))
           : a.t===activeTab)
