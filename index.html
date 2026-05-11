@@ -500,12 +500,10 @@ const ALL = [
   {id:'BNB', f:'🟡', n:'BNB',        t:'crypto'},
   {id:'SOL', f:'◎',  n:'Solana',     t:'crypto'},
   {id:'XRP', f:'✕',  n:'XRP',        t:'crypto'},
-  {id:'XMR', f:'🟠', n:'Monero',     t:'crypto'},
   {id:'ADA', f:'🔵', n:'Cardano',    t:'crypto'},
   {id:'DOGE',f:'🐶', n:'Dogecoin',   t:'crypto'},
   {id:'AVAX',f:'🔺', n:'Avalanche',  t:'crypto'},
   {id:'DOT', f:'⚫', n:'Polkadot',   t:'crypto'},
-  {id:'MATIC',f:'🟣',n:'Polygon',    t:'crypto'},
   {id:'LINK',f:'🔗', n:'Chainlink',  t:'crypto'},
   {id:'LTC', f:'🥈', n:'Litecoin',   t:'crypto'},
   {id:'TRX', f:'🔴', n:'TRON',       t:'crypto'},
@@ -522,8 +520,8 @@ const ALL = [
 const CIDS = {
   BTC:'bitcoin',ETH:'ethereum',TON:'the-open-network',BNB:'binancecoin',
   SOL:'solana',XRP:'ripple',ADA:'cardano',DOGE:'dogecoin',AVAX:'avalanche-2',
-  DOT:'polkadot',MATIC:'matic-network',LINK:'chainlink',LTC:'litecoin',
-  TRX:'tron',UNI:'uniswap',ATOM:'cosmos',XMR:'monero'
+  DOT:'polkadot',LINK:'chainlink',LTC:'litecoin',
+  TRX:'tron',UNI:'uniswap',ATOM:'cosmos'
 };
 
 function find(id){ return ALL.find(a=>a.id===id); }
@@ -693,9 +691,6 @@ function buildSymbol(){
   if(['XAU','XAG','XPT','XPD'].includes(b)) return `OANDA:${b}USD`;
   if(CIDS[b]){
     if(q==='EUR') return `BINANCE:${b}EUR`;
-    if(q==='GBP') return `BINANCE:${b}GBP`;
-    if(q==='TRY') return `BINANCE:${b}TRY`;
-    if(q==='BRL') return `BINANCE:${b}BRL`;
     return `BINANCE:${b}USDT`;
   }
   return `FX_IDC:${b}${q}`;
@@ -776,7 +771,7 @@ function renderList(search){
         base=item;
         document.getElementById('base-flag').textContent=item.f;
         document.getElementById('base-code').textContent=item.id;
-        if(item.t==='crypto'&&!['USD','EUR','GBP'].includes(quote.id))
+        if(item.t==='crypto'&&!['USD','EUR'].includes(quote.id))
           { quote=find('USD'); updateQuoteUI(); }
         if(item.t==='metal'&&(quote.t==='crypto'||quote.t==='metal'))
           { quote=find('USD'); updateQuoteUI(); }
