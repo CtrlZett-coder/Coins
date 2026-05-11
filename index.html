@@ -500,12 +500,10 @@ const ALL = [
   {id:'BNB', f:'🟡', n:'BNB',        t:'crypto'},
   {id:'SOL', f:'◎',  n:'Solana',     t:'crypto'},
   {id:'XRP', f:'✕',  n:'XRP',        t:'crypto'},
-  {id:'XMR', f:'🟠', n:'Monero',     t:'crypto'},
   {id:'ADA', f:'🔵', n:'Cardano',    t:'crypto'},
   {id:'DOGE',f:'🐶', n:'Dogecoin',   t:'crypto'},
   {id:'AVAX',f:'🔺', n:'Avalanche',  t:'crypto'},
   {id:'DOT', f:'⚫', n:'Polkadot',   t:'crypto'},
-  {id:'MATIC',f:'🟣',n:'Polygon',    t:'crypto'},
   {id:'LINK',f:'🔗', n:'Chainlink',  t:'crypto'},
   {id:'LTC', f:'🥈', n:'Litecoin',   t:'crypto'},
   {id:'TRX', f:'🔴', n:'TRON',       t:'crypto'},
@@ -522,8 +520,8 @@ const ALL = [
 const CIDS = {
   BTC:'bitcoin',ETH:'ethereum',TON:'the-open-network',BNB:'binancecoin',
   SOL:'solana',XRP:'ripple',ADA:'cardano',DOGE:'dogecoin',AVAX:'avalanche-2',
-  DOT:'polkadot',MATIC:'matic-network',LINK:'chainlink',LTC:'litecoin',
-  TRX:'tron',UNI:'uniswap',ATOM:'cosmos',XMR:'monero'
+  DOT:'polkadot',LINK:'chainlink',LTC:'litecoin',
+  TRX:'tron',UNI:'uniswap',ATOM:'cosmos'
 };
 
 function find(id){ return ALL.find(a=>a.id===id); }
@@ -557,13 +555,13 @@ async function fetchRates(){
     const [fxRes,cgRes]=await Promise.all([
       fetch('https://open.er-api.com/v6/latest/USD'),
       fetch('https://api.coingecko.com/api/v3/simple/price?ids='+
-        Object.values(CIDS).join(',')+'&vs_currencies=usd')
+        Object.values(CIDS).join(',')+'&vs_currencies=usd,eur')
     ]);
     const fxD=await fxRes.json(), cgD=await cgRes.json();
     fxRates=fxD.rates||{};
     cryptoPrices={};
     for(const [tick,cid] of Object.entries(CIDS)){
-      if(cgD[cid]) cryptoPrices[tick]=cgD[cid].usd;
+      if(cgD[cid]) cryptoPrices[tick]={usd:cgD[cid].usd, eur:cgD[cid].eur};
     }
     ratesFetched=Date.now();
     convCalc();
@@ -573,7 +571,7 @@ async function fetchRates(){
 
 function toUSD(id){
   if(id==='USD') return 1;
-  if(cryptoPrices[id]!=null) return cryptoPrices[id];
+  if(cryptoPrices[id]!=null) return cryptoPrices[id].usd;
   const r=fxRates[id]; return r?1/r:null;
 }
 function getRate(from,to){
@@ -622,8 +620,8 @@ function quickAmounts(id){
   if(['RUB','KZT','AMD','COP','NGN','KES','DZD','ETB','HUF','ISK','SYP','TZS','AOA','HTG','MNT','PKR','YER','ZMW','CDF','MGA','IQD','KHR','RWF','UGX','LBP','MWK'].includes(id)) return[1000,10000,100000];
   if(['XAU','XPD','XPT'].includes(id)) return[0.1,1,10];
   if(id==='XAG') return[1,10,100];
-  if(cryptoPrices[id]&&cryptoPrices[id]>1000) return[0.001,0.01,0.1];
-  if(cryptoPrices[id]&&cryptoPrices[id]>10) return[0.1,1,10];
+  if(cryptoPrices[id]&&cryptoPrices[id].usd>1000) return[0.001,0.01,0.1];
+  if(cryptoPrices[id]&&cryptoPrices[id].usd>10) return[0.1,1,10];
   if(cryptoPrices[id]) return[10,100,1000];
   return[100,1000,10000];
 }
@@ -652,12 +650,13 @@ async function fetchAndShowPrice(){
       price=row[2]??row[12]; const prev=row[3];
       change=prev?((price-prev)/prev*100):0;
     } else if(CIDS[b]){
-      const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CIDS[b]}&vs_currencies=usd&include_24hr_change=true`);
+      const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CIDS[b]}&vs_currencies=usd,eur&include_24hr_change=true`);
       const d=await r.json(), cid=CIDS[b];
       const usd=d[cid]?.usd; change=d[cid]?.usd_24h_change;
       if(usd!=null){
         if(q==='USD'){ price=usd; }
-        else { await ensureFX(); price=q==='USD'?usd:usd*(fxCache[q]||1); }
+        else if(q==='EUR'){ price=d[cid]?.eur??null; }
+        else { await ensureFX(); price=usd*(fxCache[q]||1); }
       }
     } else {
       await ensureFX();
@@ -693,9 +692,6 @@ function buildSymbol(){
   if(['XAU','XAG','XPT','XPD'].includes(b)) return `OANDA:${b}USD`;
   if(CIDS[b]){
     if(q==='EUR') return `BINANCE:${b}EUR`;
-    if(q==='GBP') return `BINANCE:${b}GBP`;
-    if(q==='TRY') return `BINANCE:${b}TRY`;
-    if(q==='BRL') return `BINANCE:${b}BRL`;
     return `BINANCE:${b}USDT`;
   }
   return `FX_IDC:${b}${q}`;
@@ -776,7 +772,7 @@ function renderList(search){
         base=item;
         document.getElementById('base-flag').textContent=item.f;
         document.getElementById('base-code').textContent=item.id;
-        if(item.t==='crypto'&&!['USD','EUR','GBP'].includes(quote.id))
+        if(item.t==='crypto'&&!['USD','EUR'].includes(quote.id))
           { quote=find('USD'); updateQuoteUI(); }
         if(item.t==='metal'&&(quote.t==='crypto'||quote.t==='metal'))
           { quote=find('USD'); updateQuoteUI(); }
