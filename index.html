@@ -693,7 +693,8 @@ function buildSymbol(){
     if(q==='EUR') return `BINANCE:${b}EUR`;
     return `BINANCE:${b}USDT`;
   }
-  return `FX_IDC:${b}${q}`;
+  if(b==='USD') return `FX_IDC:USD${q}`;
+  return `FX_IDC:${b}USD`;
 }
 function createWidget(){
   const sym=buildSymbol(); if(!sym) return;
@@ -714,6 +715,11 @@ function createWidget(){
       backgroundColor:theme==='light'?'#ffffff':'#000000',
       gridColor:theme==='light'?'#f0f3fa':'#1e222d'
     };
+    // For metals and non-USD fiat: chart is in USD, currency_code tells TradingView
+    // to convert the scale to the selected quote currency (same mechanism as the
+    // "Сменить валюту шкалы" button on tradingview.com)
+    if(base.t==='metal' || (base.t!=='crypto' && base.id!=='IMOEX' && base.id!=='USD'))
+      cfg.currency_code = quote.id;
     new TradingView.widget(cfg);
     startTicker();
   }catch(e){ startTicker(); }
