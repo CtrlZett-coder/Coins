@@ -555,13 +555,13 @@ async function fetchRates(){
     const [fxRes,cgRes]=await Promise.all([
       fetch('https://open.er-api.com/v6/latest/USD'),
       fetch('https://api.coingecko.com/api/v3/simple/price?ids='+
-        Object.values(CIDS).join(',')+'&vs_currencies=usd,eur')
+        Object.values(CIDS).join(',')+'&vs_currencies=usd')
     ]);
     const fxD=await fxRes.json(), cgD=await cgRes.json();
     fxRates=fxD.rates||{};
     cryptoPrices={};
     for(const [tick,cid] of Object.entries(CIDS)){
-      if(cgD[cid]) cryptoPrices[tick]={usd:cgD[cid].usd, eur:cgD[cid].eur};
+      if(cgD[cid]) cryptoPrices[tick]=cgD[cid].usd;
     }
     ratesFetched=Date.now();
     convCalc();
@@ -571,7 +571,7 @@ async function fetchRates(){
 
 function toUSD(id){
   if(id==='USD') return 1;
-  if(cryptoPrices[id]!=null) return cryptoPrices[id].usd;
+  if(cryptoPrices[id]!=null) return cryptoPrices[id];
   const r=fxRates[id]; return r?1/r:null;
 }
 function getRate(from,to){
@@ -620,8 +620,8 @@ function quickAmounts(id){
   if(['RUB','KZT','AMD','COP','NGN','KES','DZD','ETB','HUF','ISK','SYP','TZS','AOA','HTG','MNT','PKR','YER','ZMW','CDF','MGA','IQD','KHR','RWF','UGX','LBP','MWK'].includes(id)) return[1000,10000,100000];
   if(['XAU','XPD','XPT'].includes(id)) return[0.1,1,10];
   if(id==='XAG') return[1,10,100];
-  if(cryptoPrices[id]&&cryptoPrices[id].usd>1000) return[0.001,0.01,0.1];
-  if(cryptoPrices[id]&&cryptoPrices[id].usd>10) return[0.1,1,10];
+  if(cryptoPrices[id]&&cryptoPrices[id]>1000) return[0.001,0.01,0.1];
+  if(cryptoPrices[id]&&cryptoPrices[id]>10) return[0.1,1,10];
   if(cryptoPrices[id]) return[10,100,1000];
   return[100,1000,10000];
 }
@@ -650,13 +650,12 @@ async function fetchAndShowPrice(){
       price=row[2]??row[12]; const prev=row[3];
       change=prev?((price-prev)/prev*100):0;
     } else if(CIDS[b]){
-      const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CIDS[b]}&vs_currencies=usd,eur&include_24hr_change=true`);
+      const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CIDS[b]}&vs_currencies=usd&include_24hr_change=true`);
       const d=await r.json(), cid=CIDS[b];
       const usd=d[cid]?.usd; change=d[cid]?.usd_24h_change;
       if(usd!=null){
         if(q==='USD'){ price=usd; }
-        else if(q==='EUR'){ price=d[cid]?.eur??null; }
-        else { await ensureFX(); price=usd*(fxCache[q]||1); }
+        else { await ensureFX(); price=q==='USD'?usd:usd*(fxCache[q]||1); }
       }
     } else {
       await ensureFX();
@@ -694,7 +693,8 @@ function buildSymbol(){
     if(q==='EUR') return `BINANCE:${b}EUR`;
     return `BINANCE:${b}USDT`;
   }
-  return `FX_IDC:${b}${q}`;
+  if(b==='USD') return `FX_IDC:USD${q}`;
+  return `FX_IDC:${b}USD`;
 }
 function createWidget(){
   const sym=buildSymbol(); if(!sym) return;
@@ -715,6 +715,11 @@ function createWidget(){
       backgroundColor:theme==='light'?'#ffffff':'#000000',
       gridColor:theme==='light'?'#f0f3fa':'#1e222d'
     };
+    // For metals and non-USD fiat: chart is in USD, currency_code tells TradingView
+    // to convert the scale to the selected quote currency (same mechanism as the
+    // "Сменить валюту шкалы" button on tradingview.com)
+    if(base.t==='metal' || (base.t!=='crypto' && base.id!=='IMOEX' && base.id!=='USD'))
+      cfg.currency_code = quote.id;
     new TradingView.widget(cfg);
     startTicker();
   }catch(e){ startTicker(); }
