@@ -356,9 +356,12 @@ class LevelSelect:
 # =================================================================== GAME
 
 class Game:
-    _MENU_BTN        = pygame.Rect(WIDTH - 88,  6,  80, 26)
-    _RESTART_BTN     = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 90, 190, 48)
-    _END_MENU_BTN    = pygame.Rect(WIDTH // 2 - 90,  HEIGHT // 2 + 150, 180, 48)
+    _PAUSE_BTN        = pygame.Rect(WIDTH - 88,  6,  80, 26)
+    _RESTART_BTN      = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 90,  190, 48)
+    _END_LEVELS_BTN   = pygame.Rect(WIDTH // 2 - 90,  HEIGHT // 2 + 150, 180, 48)
+    _RESUME_BTN       = pygame.Rect(WIDTH // 2 - 120, HEIGHT // 2 - 80,  240, 54)
+    _PAUSE_LEVELS_BTN = pygame.Rect(WIDTH // 2 - 120, HEIGHT // 2,       240, 54)
+    _PAUSE_LOBBY_BTN  = pygame.Rect(WIDTH // 2 - 120, HEIGHT // 2 + 80,  240, 54)
 
     def __init__(self, screen, clock, mode, start_level):
         self.screen      = screen
@@ -371,6 +374,7 @@ class Game:
         self._drag_finger   = None
         self._drag_start_fx = 0.0
         self._drag_start_px = 0.0
+        self._paused_from   = "playing"
         self._start_game()
 
     # ------------------------------------------------------ setup
@@ -417,12 +421,30 @@ class Game:
             self.state = "level_ready"   # wait for second touch to launch
             self.lives = 3               # restore lives on new level
 
+    def _toggle_pause(self):
+        if self.state == "paused":
+            self.state = self._paused_from
+        elif self.state in ("playing", "level_ready"):
+            self._paused_from = self.state
+            self.state = "paused"
+
     # --------------------------------------------------------- touch
 
     def _on_finger_down(self, fx, fy):
-        # In-game menu button (always checked first)
-        if self.state in ("playing", "level_ready") and self._MENU_BTN.collidepoint(fx, fy):
-            return "menu"
+        # Pause button (top-right)
+        if self.state in ("playing", "level_ready") and self._PAUSE_BTN.collidepoint(fx, fy):
+            self._toggle_pause()
+            return None
+
+        # Pause overlay buttons
+        if self.state == "paused":
+            if self._RESUME_BTN.collidepoint(fx, fy):
+                self._toggle_pause()
+            elif self._PAUSE_LEVELS_BTN.collidepoint(fx, fy):
+                return "menu"
+            elif self._PAUSE_LOBBY_BTN.collidepoint(fx, fy):
+                return "lobby"
+            return None
 
         if self.state == "playing":
             if self._drag_finger is None:
@@ -445,7 +467,7 @@ class Game:
                 self._drag_start_px = self.paddle.x
 
         elif self.state in ("game_over", "win"):
-            if self._END_MENU_BTN.collidepoint(fx, fy):
+            if self._END_LEVELS_BTN.collidepoint(fx, fy):
                 return "menu"
             else:
                 self._start_game()
@@ -469,7 +491,10 @@ class Game:
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return "menu"
+                    if self.state in ("playing", "level_ready", "paused"):
+                        self._toggle_pause()
+                    else:
+                        return "menu"
                 if event.key == pygame.K_SPACE:
                     if self.state == "playing":
                         if not self.ball.active:
@@ -479,20 +504,27 @@ class Game:
                     elif self.state == "level_ready":
                         self.ball.launch()
                         self.state = "playing"
-                    else:
+                    elif self.state not in ("paused",):
                         self._start_game()
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = event.pos
-                if self.state in ("playing", "level_ready") and self._MENU_BTN.collidepoint(mx, my):
-                    return "menu"
-                if self.state == "level_complete":
+                if self.state in ("playing", "level_ready") and self._PAUSE_BTN.collidepoint(mx, my):
+                    self._toggle_pause()
+                elif self.state == "paused":
+                    if self._RESUME_BTN.collidepoint(mx, my):
+                        self._toggle_pause()
+                    elif self._PAUSE_LEVELS_BTN.collidepoint(mx, my):
+                        return "menu"
+                    elif self._PAUSE_LOBBY_BTN.collidepoint(mx, my):
+                        return "lobby"
+                elif self.state == "level_complete":
                     self._advance_level()
                 elif self.state == "level_ready":
                     self.ball.launch()
                     self.state = "playing"
                 elif self.state in ("game_over", "win"):
-                    if self._END_MENU_BTN.collidepoint(mx, my):
+                    if self._END_LEVELS_BTN.collidepoint(mx, my):
                         return "menu"
                     else:
                         self._start_game()
@@ -569,12 +601,12 @@ class Game:
         self.screen.blit(score_s, (12, 8))
         lv_s = self.font_sm.render(f"Уровень {self.level + 1} / {len(LEVELS)}", True, (180, 180, 220))
         self.screen.blit(lv_s, (WIDTH // 2 - lv_s.get_width() // 2, 8))
-        # Menu button (top-right)
-        pygame.draw.rect(self.screen, (60, 60, 90), self._MENU_BTN, border_radius=6)
-        pygame.draw.rect(self.screen, (110, 110, 150), self._MENU_BTN, 1, border_radius=6)
-        mb = self.font_xs.render("= Меню", True, (200, 200, 220))
-        self.screen.blit(mb, (self._MENU_BTN.centerx - mb.get_width() // 2,
-                               self._MENU_BTN.centery - mb.get_height() // 2))
+        # Pause button (top-right)
+        pygame.draw.rect(self.screen, (60, 60, 90), self._PAUSE_BTN, border_radius=6)
+        pygame.draw.rect(self.screen, (110, 110, 150), self._PAUSE_BTN, 1, border_radius=6)
+        mb = self.font_xs.render("II  Пауза", True, (200, 200, 220))
+        self.screen.blit(mb, (self._PAUSE_BTN.centerx - mb.get_width() // 2,
+                               self._PAUSE_BTN.centery - mb.get_height() // 2))
         # Speed / paddle info
         spd_frac = min(1.0, (self.ball.speed - self.ball.base_speed) /
                        (self.ball.base_speed * (BALL_MAX_MULT - 1)))
@@ -625,6 +657,18 @@ class Game:
         s = self.font_sm.render(hint, True, (180, 220, 180))
         self.screen.blit(s, (WIDTH // 2 - s.get_width() // 2, HEIGHT // 2 + 50))
 
+    def _draw_pause(self):
+        self._draw_overlay_box()
+        cx = WIDTH // 2
+        t = self.font_lg.render("ПАУЗА", True, WHITE)
+        self.screen.blit(t, (cx - t.get_width() // 2, HEIGHT // 2 - 150))
+        self._draw_btn(self._RESUME_BTN,       "Продолжить",   (40, 140, 60))
+        self._draw_btn(self._PAUSE_LEVELS_BTN, "Выбор уровня", (50, 100, 180))
+        self._draw_btn(self._PAUSE_LOBBY_BTN,  "< Лобби",      (70, 70, 100))
+        if self.mode == "pc":
+            h = self.font_xs.render("Esc — продолжить", True, (100, 100, 120))
+            self.screen.blit(h, (cx - h.get_width() // 2, HEIGHT // 2 + 150))
+
     def _draw_end_screen(self, title, color=WHITE):
         self._draw_overlay_box()
         cx, cy = WIDTH // 2, HEIGHT // 2
@@ -633,11 +677,11 @@ class Game:
         self.screen.blit(t, (cx - t.get_width() // 2, cy - 70))
         self.screen.blit(s, (cx - s.get_width() // 2, cy - 10))
         if self.mode == "pc":
-            h = self.font_xs.render("Пробел — снова  |  Esc — меню", True, (130, 130, 130))
+            h = self.font_xs.render("Пробел — снова  |  Esc — пауза/меню", True, (130, 130, 130))
             self.screen.blit(h, (cx - h.get_width() // 2, cy + 35))
         else:
-            self._draw_btn(self._RESTART_BTN, "Снова", (50, 130, 50))
-            self._draw_btn(self._END_MENU_BTN, "< Меню")
+            self._draw_btn(self._RESTART_BTN,   "Снова",    (50, 130, 50))
+            self._draw_btn(self._END_LEVELS_BTN, "< Уровни")
 
     def _draw(self):
         self.screen.fill(BG)
@@ -656,6 +700,8 @@ class Game:
             self._draw_level_ready()
         elif self.state == "level_complete":
             self._draw_level_complete()
+        elif self.state == "paused":
+            self._draw_pause()
         elif self.state == "game_over":
             self._draw_end_screen("ИГРА ОКОНЧЕНА", (255, 100, 100))
         elif self.state == "win":
@@ -691,6 +737,8 @@ async def main():
             result = await Game(screen, clock, mode, level).run()
             if result is None:
                 return
-            # "menu" → back to level select
+            if result == "lobby":
+                break  # break inner while → back to mode select
+            # "menu" → continue inner while (level select)
 
 asyncio.run(main())
