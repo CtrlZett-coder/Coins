@@ -22,7 +22,15 @@ jobs:
         run: pip install pygbag
 
       - name: Build web version
-        run: python -m pygbag --build breakout_web/
+        run: |
+          rm -rf breakout_web/build/
+          python -m pygbag --build breakout_web/
+
+      - name: Verify build output
+        run: |
+          echo "=== Build output ==="
+          ls -la breakout_web/build/web/
+          test -f breakout_web/build/web/index.html || (echo "ERROR: index.html not found!" && exit 1)
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
