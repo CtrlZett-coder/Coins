@@ -14,12 +14,12 @@ BG    = (15, 15, 30)
 PADDLE_Y      = HEIGHT - 50
 PADDLE_H      = 14
 PADDLE_SPEED  = 7
-PADDLE_SHRINK = 5    # px per paddle hit
+PADDLE_SHRINK = 5
 
 BALL_RADIUS       = 9
 BALL_ACCEL_BRICK  = 0.08
 BALL_ACCEL_PADDLE = 0.06
-BALL_MAX_MULT     = 2.5   # cap speed at 2.5× initial
+BALL_MAX_MULT     = 2.5
 
 BRICK_W, BRICK_H = 68, 22
 BRICK_GAP        = 6
@@ -31,7 +31,6 @@ BRICK_TYPES = {
     3: ((100, 200,  80), 30),
 }
 
-# cols, hit-pattern per row (top→bottom), ball speed, initial paddle width
 LEVELS = [
     {"cols": 8,  "rows": [1, 1, 1],              "speed": 4.5, "paddle_w": 120},
     {"cols": 8,  "rows": [2, 1, 1],              "speed": 4.8, "paddle_w": 115},
@@ -44,6 +43,8 @@ LEVELS = [
     {"cols": 10, "rows": [3, 3, 3, 2, 2, 2, 1],  "speed": 6.6, "paddle_w": 80},
     {"cols": 10, "rows": [3, 3, 3, 3, 2, 2, 1],  "speed": 7.0, "paddle_w": 75},
 ]
+
+_max_unlocked = 0  # highest unlocked level index (persists in session)
 
 # ================================================================ HELPERS
 
@@ -107,7 +108,6 @@ class Ball:
         return self.y - self.radius > HEIGHT
 
     def draw(self, surface):
-        # tint ball slightly warmer as it speeds up
         t = min(1.0, (self.speed - self.base_speed) / (self.base_speed * (BALL_MAX_MULT - 1)))
         color = lerp_color((255, 255, 255), (255, 160, 60), t)
         pos = (int(self.x), int(self.y))
@@ -158,7 +158,7 @@ class Paddle:
 
     @property
     def health(self):
-        return self.w / self.initial_w  # 0.0 – 1.0
+        return self.w / self.initial_w
 
     def draw(self, surface):
         if self.w < 1:
@@ -212,7 +212,7 @@ class Menu:
         self.font_btn   = pygame.font.SysFont("Arial", 30, bold=True)
         self.font_hint  = pygame.font.SysFont("Arial", 17)
         cx = WIDTH // 2
-        cy = HEIGHT // 2 + 30
+        cy = HEIGHT // 2 + 20
         self.buttons = [
             {"label": "Компьютер", "hint": "<- / ->  +  Пробел",
              "rect": pygame.Rect(cx - self.BTN_W - 24, cy, self.BTN_W, self.BTN_H),
@@ -245,13 +245,14 @@ class Menu:
     def _draw(self, mp):
         self.screen.fill(BG)
         t = self.font_title.render("BREAKOUT", True, WHITE)
-        self.screen.blit(t, (WIDTH // 2 - t.get_width() // 2, HEIGHT // 4 - 20))
+        self.screen.blit(t, (WIDTH // 2 - t.get_width() // 2, HEIGHT // 4 - 30))
         s = self.font_hint.render("Выбери режим управления", True, (150, 150, 190))
-        self.screen.blit(s, (WIDTH // 2 - s.get_width() // 2, HEIGHT // 4 + 58))
-        info = self.font_hint.render("10 уровней  |  мяч ускоряется  |  платформа сужается", True, (120, 120, 160))
-        self.screen.blit(info, (WIDTH // 2 - info.get_width() // 2, HEIGHT // 4 + 84))
+        self.screen.blit(s, (WIDTH // 2 - s.get_width() // 2, HEIGHT // 4 + 50))
+        info = self.font_hint.render("10 уровней  |  мяч ускоряется  |  платформа сужается",
+                                     True, (120, 120, 160))
+        self.screen.blit(info, (WIDTH // 2 - info.get_width() // 2, HEIGHT // 4 + 76))
         for i in range(3):
-            draw_heart(self.screen, WIDTH // 2 - 32 + i * 32, HEIGHT // 4 + 118, 18)
+            draw_heart(self.screen, WIDTH // 2 - 32 + i * 32, HEIGHT // 4 + 112, 18)
         for btn in self.buttons:
             hovered = btn["rect"].collidepoint(mp)
             color   = tuple(min(255, v + 35) for v in btn["color"]) if hovered else btn["color"]
@@ -265,20 +266,108 @@ class Menu:
             self.screen.blit(hint, (cx - hint.get_width() // 2, cy + 14))
         pygame.display.flip()
 
+# =============================================================== LEVEL SELECT
+
+class LevelSelect:
+    COLS   = 5
+    BTN_W  = 130
+    BTN_H  = 64
+    GAP    = 10
+
+    def __init__(self, screen, clock, mode):
+        self.screen     = screen
+        self.clock      = clock
+        self.mode       = mode
+        self.font_title = pygame.font.SysFont("Arial", 46, bold=True)
+        self.font_num   = pygame.font.SysFont("Arial", 30, bold=True)
+        self.font_xs    = pygame.font.SysFont("Arial", 14)
+
+        total_w = self.COLS * self.BTN_W + (self.COLS - 1) * self.GAP
+        ox      = (WIDTH  - total_w) // 2
+        rows    = (len(LEVELS) + self.COLS - 1) // self.COLS
+        total_h = rows * self.BTN_H + (rows - 1) * self.GAP
+        oy      = (HEIGHT - total_h) // 2 + 30
+
+        self.buttons = []
+        for i in range(len(LEVELS)):
+            row = i // self.COLS
+            col = i % self.COLS
+            x = ox + col * (self.BTN_W + self.GAP)
+            y = oy + row * (self.BTN_H + self.GAP)
+            self.buttons.append({
+                "idx":      i,
+                "rect":     pygame.Rect(x, y, self.BTN_W, self.BTN_H),
+                "unlocked": i <= _max_unlocked,
+            })
+
+    def run(self):
+        while True:
+            self.clock.tick(FPS)
+            mp = pygame.mouse.get_pos()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit(); sys.exit()
+                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                    return -1  # back to mode select
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    for btn in self.buttons:
+                        if btn["unlocked"] and btn["rect"].collidepoint(mp):
+                            return btn["idx"]
+                if event.type == pygame.FINGERDOWN:
+                    fx, fy = event.x * WIDTH, event.y * HEIGHT
+                    for btn in self.buttons:
+                        if btn["unlocked"] and btn["rect"].collidepoint(fx, fy):
+                            return btn["idx"]
+            self._draw(mp)
+
+    def _draw(self, mp):
+        self.screen.fill(BG)
+        t = self.font_title.render("Выбор уровня", True, WHITE)
+        self.screen.blit(t, (WIDTH // 2 - t.get_width() // 2, 50))
+
+        for btn in self.buttons:
+            i, unlocked = btn["idx"], btn["unlocked"]
+            hovered = btn["rect"].collidepoint(mp) and unlocked
+            frac    = i / (len(LEVELS) - 1)
+            base    = lerp_color((40, 160, 80), (200, 55, 55), frac)
+            color   = tuple(min(255, c + 40) for c in base) if hovered else (base if unlocked else (45, 45, 58))
+            border  = WHITE if hovered else ((150, 150, 170) if unlocked else (65, 65, 80))
+
+            pygame.draw.rect(self.screen, color,  btn["rect"], border_radius=10)
+            pygame.draw.rect(self.screen, border, btn["rect"], 2, border_radius=10)
+
+            num = self.font_num.render(str(i + 1), True, WHITE if unlocked else (70, 70, 85))
+            self.screen.blit(num, (btn["rect"].centerx - num.get_width() // 2,
+                                   btn["rect"].centery - 14))
+            if unlocked:
+                cfg  = LEVELS[i]
+                info = self.font_xs.render(f"v{cfg['speed']}  {cfg['paddle_w']}px",
+                                           True, (190, 190, 190))
+            else:
+                info = self.font_xs.render("LOCKED", True, (70, 70, 85))
+            self.screen.blit(info, (btn["rect"].centerx - info.get_width() // 2,
+                                    btn["rect"].centery + 10))
+
+        hint_text = "ESC - назад" if self.mode == "pc" else "< назад: перезайди в меню"
+        hint = self.font_xs.render(hint_text, True, (90, 90, 110))
+        self.screen.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 30))
+        pygame.display.flip()
+
 # =================================================================== GAME
 
 class Game:
-    _NEXT_BTN    = pygame.Rect(WIDTH // 2 - 90, HEIGHT // 2 + 90, 180, 48)
-    _RESTART_BTN = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 90, 190, 48)
-    _MENU_BTN    = pygame.Rect(WIDTH // 2 - 90,  HEIGHT // 2 + 150, 180, 48)
+    _MENU_BTN        = pygame.Rect(WIDTH - 88,  6,  80, 26)
+    _RESTART_BTN     = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 90, 190, 48)
+    _END_MENU_BTN    = pygame.Rect(WIDTH // 2 - 90,  HEIGHT // 2 + 150, 180, 48)
 
-    def __init__(self, screen, clock, mode):
-        self.screen  = screen
-        self.clock   = clock
-        self.mode    = mode
-        self.font_sm = pygame.font.SysFont("Arial", 22, bold=True)
-        self.font_lg = pygame.font.SysFont("Arial", 48, bold=True)
-        self.font_xs = pygame.font.SysFont("Arial", 17)
+    def __init__(self, screen, clock, mode, start_level):
+        self.screen      = screen
+        self.clock       = clock
+        self.mode        = mode
+        self.start_level = start_level
+        self.font_sm     = pygame.font.SysFont("Arial", 22, bold=True)
+        self.font_lg     = pygame.font.SysFont("Arial", 48, bold=True)
+        self.font_xs     = pygame.font.SysFont("Arial", 17)
         self._drag_finger   = None
         self._drag_start_fx = 0.0
         self._drag_start_px = 0.0
@@ -287,17 +376,17 @@ class Game:
     # ------------------------------------------------------ setup
 
     def _start_game(self):
-        self.level = 0
+        self.level = self.start_level
         self.score = 0
         self.lives = 3
         self._load_level()
 
     def _load_level(self):
-        cfg           = LEVELS[self.level]
-        self.paddle   = Paddle(cfg["paddle_w"])
-        self.ball     = Ball(WIDTH // 2, PADDLE_Y - BALL_RADIUS - 2, cfg["speed"])
-        self.bricks   = self._build_bricks(cfg)
-        self.state    = "playing"
+        cfg          = LEVELS[self.level]
+        self.paddle  = Paddle(cfg["paddle_w"])
+        self.ball    = Ball(WIDTH // 2, PADDLE_Y - BALL_RADIUS - 2, cfg["speed"])
+        self.bricks  = self._build_bricks(cfg)
+        self.state   = "playing"
         self._drag_finger = None
 
     def _build_bricks(self, cfg):
@@ -317,9 +406,24 @@ class Game:
         self.ball.reset(self.paddle.center_x, PADDLE_Y - BALL_RADIUS - 2)
         self._drag_finger = None
 
-    # ------------------------------------------------------ touch
+    def _advance_level(self):
+        global _max_unlocked
+        _max_unlocked = max(_max_unlocked, self.level + 1)
+        self.level += 1
+        if self.level >= len(LEVELS):
+            self.state = "win"
+        else:
+            self._load_level()
+            self.state   = "level_ready"   # wait for second touch to launch
+            self.lives   = 3               # restore lives on new level
+
+    # --------------------------------------------------------- touch
 
     def _on_finger_down(self, fx, fy):
+        # In-game menu button (always checked first)
+        if self.state in ("playing", "level_ready") and self._MENU_BTN.collidepoint(fx, fy):
+            return "menu"
+
         if self.state == "playing":
             if self._drag_finger is None:
                 self._drag_finger   = True
@@ -327,17 +431,28 @@ class Game:
                 self._drag_start_px = self.paddle.x
             if not self.ball.active:
                 self.ball.launch()
+
         elif self.state == "level_complete":
-            self._advance_level()   # любое касание продолжает
+            self._advance_level()  # → state becomes "level_ready"
+
+        elif self.state == "level_ready":
+            # Second touch: launch ball
+            self.ball.launch()
+            self.state = "playing"
+            if self._drag_finger is None:
+                self._drag_finger   = True
+                self._drag_start_fx = fx
+                self._drag_start_px = self.paddle.x
+
         elif self.state in ("game_over", "win"):
-            if self._MENU_BTN.collidepoint(fx, fy):
+            if self._END_MENU_BTN.collidepoint(fx, fy):
                 return "menu"
             else:
                 self._start_game()
         return None
 
     def _on_finger_motion(self, fx, _fy):
-        if self.state == "playing" and self._drag_finger is not None:
+        if self.state in ("playing", "level_ready") and self._drag_finger is not None:
             delta = fx - self._drag_start_fx
             self.paddle.x = self._drag_start_px + delta
             self.paddle._clamp_x()
@@ -345,16 +460,15 @@ class Game:
     def _on_finger_up(self):
         self._drag_finger = None
 
-    # ------------------------------------------------------ events
+    # --------------------------------------------------------- events
 
     def _handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return "quit"
+
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    return "quit"
-                if event.key == pygame.K_r and self.state != "playing":
                     return "menu"
                 if event.key == pygame.K_SPACE:
                     if self.state == "playing":
@@ -362,15 +476,23 @@ class Game:
                             self.ball.launch()
                     elif self.state == "level_complete":
                         self._advance_level()
-                    else:  # game_over / win
+                    elif self.state == "level_ready":
+                        self.ball.launch()
+                        self.state = "playing"
+                    else:
                         self._start_game()
-            # MOUSEBUTTONDOWN handles taps on Android (fallback when FINGERDOWN absent)
+
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 mx, my = event.pos
+                if self.state in ("playing", "level_ready") and self._MENU_BTN.collidepoint(mx, my):
+                    return "menu"
                 if self.state == "level_complete":
                     self._advance_level()
+                elif self.state == "level_ready":
+                    self.ball.launch()
+                    self.state = "playing"
                 elif self.state in ("game_over", "win"):
-                    if self._MENU_BTN.collidepoint(mx, my):
+                    if self._END_MENU_BTN.collidepoint(mx, my):
                         return "menu"
                     else:
                         self._start_game()
@@ -384,9 +506,10 @@ class Game:
                     self._on_finger_motion(event.x * WIDTH, event.y * HEIGHT)
                 elif event.type == pygame.FINGERUP:
                     self._on_finger_up()
+
         return None
 
-    # ------------------------------------------------------ physics
+    # --------------------------------------------------------- physics
 
     def _collide_paddle(self):
         ball, pad = self.ball, self.paddle
@@ -415,34 +538,21 @@ class Game:
             self.ball.accelerate(BALL_ACCEL_BRICK)
             break
 
-    # ------------------------------------------------------ update
-
-    def _advance_level(self):
-        self.level += 1
-        if self.level >= len(LEVELS):
-            self.state = "win"
-        else:
-            self._load_level()
+    # --------------------------------------------------------- update
 
     def _update(self):
-        if self.state != "playing":
+        if self.state not in ("playing",):
             return
-
         if self.mode == "pc":
             self.paddle.update_keys(pygame.key.get_pressed())
-
-        # auto-launch if paddle is gone
         if self.paddle.w < 1 and not self.ball.active:
             self.ball.launch()
-
         if not self.ball.active:
             self.ball.x = self.paddle.center_x
             return
-
         self.ball.update()
         self._collide_paddle()
         self._collide_bricks()
-
         if self.ball.is_lost():
             self._drag_finger = None
             self.lives -= 1
@@ -450,34 +560,37 @@ class Game:
                 self.state = "game_over"
             else:
                 self._reset_ball_and_paddle()
-
         if all(not b.alive for b in self.bricks):
             self.state = "level_complete"
 
-    # ------------------------------------------------------ draw
+    # --------------------------------------------------------- draw helpers
 
     def _draw_hud(self):
-        # score
-        s = self.font_sm.render(f"Счёт: {self.score}", True, WHITE)
-        self.screen.blit(s, (12, 10))
-        # level
-        lv = self.font_sm.render(f"Уровень {self.level + 1} / {len(LEVELS)}", True, (180, 180, 220))
-        self.screen.blit(lv, (WIDTH // 2 - lv.get_width() // 2, 10))
-        # lives (hearts)
-        for i in range(self.lives):
-            draw_heart(self.screen, WIDTH - 20 - i * 28, 18, 20)
-        # paddle health bar (thin strip at very bottom)
-        bar_w = int(WIDTH * self.paddle.health)
-        bar_color = lerp_color((220, 60, 60), (60, 180, 255), self.paddle.health)
-        pygame.draw.rect(self.screen, (40, 40, 60), pygame.Rect(0, HEIGHT - 5, WIDTH, 5))
-        pygame.draw.rect(self.screen, bar_color,    pygame.Rect(0, HEIGHT - 5, bar_w, 5))
-        # speed indicator (small dot row)
+        # Row 1: score | level | menu btn
+        score_s = self.font_sm.render(f"Счёт: {self.score}", True, WHITE)
+        self.screen.blit(score_s, (12, 8))
+        lv_s = self.font_sm.render(f"Уровень {self.level + 1} / {len(LEVELS)}", True, (180, 180, 220))
+        self.screen.blit(lv_s, (WIDTH // 2 - lv_s.get_width() // 2, 8))
+        # Menu button
+        pygame.draw.rect(self.screen, (60, 60, 90), self._MENU_BTN, border_radius=6)
+        pygame.draw.rect(self.screen, (110, 110, 150), self._MENU_BTN, 1, border_radius=6)
+        mb = self.font_xs.render("= Меню", True, (200, 200, 220))
+        self.screen.blit(mb, (self._MENU_BTN.centerx - mb.get_width() // 2,
+                               self._MENU_BTN.centery - mb.get_height() // 2))
+        # Row 2: speed | paddle | lives
         spd_frac = min(1.0, (self.ball.speed - self.ball.base_speed) /
                        (self.ball.base_speed * (BALL_MAX_MULT - 1)))
-        spd_txt = self.font_xs.render(
+        spd_s = self.font_xs.render(
             f"Скорость: {int(spd_frac * 100)}%  Платформа: {int(self.paddle.w)}px",
-            True, (120, 120, 150))
-        self.screen.blit(spd_txt, (12, HEIGHT - 22))
+            True, (110, 110, 140))
+        self.screen.blit(spd_s, (12, 36))
+        for i in range(self.lives):
+            draw_heart(self.screen, WIDTH - 18 - i * 26, 38, 18)
+        # Paddle health bar at very bottom
+        bar_w = int(WIDTH * self.paddle.health)
+        pygame.draw.rect(self.screen, (40, 40, 60), pygame.Rect(0, HEIGHT - 5, WIDTH, 5))
+        pygame.draw.rect(self.screen, lerp_color((220, 60, 60), (60, 180, 255), self.paddle.health),
+                         pygame.Rect(0, HEIGHT - 5, bar_w, 5))
 
     def _draw_overlay_box(self):
         ov = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
@@ -494,23 +607,24 @@ class Game:
     def _draw_level_complete(self):
         self._draw_overlay_box()
         cx, cy = WIDTH // 2, HEIGHT // 2
-        next_lvl = self.level + 2  # display number (1-based)
-        lines = [
-            (self.font_lg, f"Уровень {self.level + 1} пройден!", WHITE),
-            (self.font_sm, f"Счёт: {self.score}", (200, 200, 200)),
-        ]
+        t = self.font_lg.render(f"Уровень {self.level + 1} пройден!", True, (120, 255, 140))
+        s = self.font_sm.render(f"Счёт: {self.score}", True, (200, 200, 200))
+        self.screen.blit(t, (cx - t.get_width() // 2, cy - 60))
+        self.screen.blit(s, (cx - s.get_width() // 2, cy))
         if self.level + 1 < len(LEVELS):
-            cfg = LEVELS[self.level + 1]
-            lines.append((self.font_xs,
-                          f"Следующий: скорость {cfg['speed']}  платформа {cfg['paddle_w']}px",
-                          (140, 140, 180)))
-        offsets = [-60, -10, 30]
-        for (font, text, color), dy in zip(lines, offsets):
-            s = font.render(text, True, color)
-            self.screen.blit(s, (cx - s.get_width() // 2, cy + dy))
-        hint_text = "Пробел — продолжить" if self.mode == "pc" else "Коснись экрана — продолжить"
-        h = self.font_xs.render(hint_text, True, (160, 160, 160))
-        self.screen.blit(h, (cx - h.get_width() // 2, cy + 65))
+            cfg  = LEVELS[self.level + 1]
+            info = self.font_xs.render(
+                f"Следующий: скорость {cfg['speed']}  платформа {cfg['paddle_w']}px",
+                True, (140, 140, 180))
+            self.screen.blit(info, (cx - info.get_width() // 2, cy + 36))
+        hint = "Пробел — продолжить" if self.mode == "pc" else "Коснись экрана — продолжить"
+        h = self.font_xs.render(hint, True, (150, 150, 150))
+        self.screen.blit(h, (cx - h.get_width() // 2, cy + 70))
+
+    def _draw_level_ready(self):
+        hint = "Пробел — запустить мяч" if self.mode == "pc" else "Коснись для запуска"
+        s = self.font_sm.render(hint, True, (180, 220, 180))
+        self.screen.blit(s, (WIDTH // 2 - s.get_width() // 2, HEIGHT // 2 + 50))
 
     def _draw_end_screen(self, title, color=WHITE):
         self._draw_overlay_box()
@@ -520,11 +634,11 @@ class Game:
         self.screen.blit(t, (cx - t.get_width() // 2, cy - 70))
         self.screen.blit(s, (cx - s.get_width() // 2, cy - 10))
         if self.mode == "pc":
-            h = self.font_xs.render("Пробел — снова  |  R — меню", True, (130, 130, 130))
+            h = self.font_xs.render("Пробел — снова  |  Esc — меню", True, (130, 130, 130))
             self.screen.blit(h, (cx - h.get_width() // 2, cy + 35))
         else:
             self._draw_btn(self._RESTART_BTN, "Снова", (50, 130, 50))
-            self._draw_btn(self._MENU_BTN,    "< Меню")
+            self._draw_btn(self._END_MENU_BTN, "< Меню")
 
     def _draw(self):
         self.screen.fill(BG)
@@ -534,12 +648,14 @@ class Game:
         self.ball.draw(self.screen)
         self._draw_hud()
 
-        if not self.ball.active and self.state == "playing":
+        if self.state == "playing" and not self.ball.active:
             hint = "Коснись и тяни" if self.mode == "mobile" else "Пробел — запуск"
             s = self.font_sm.render(hint, True, (180, 180, 180))
             self.screen.blit(s, (WIDTH // 2 - s.get_width() // 2, HEIGHT // 2 + 40))
 
-        if self.state == "level_complete":
+        if self.state == "level_ready":
+            self._draw_level_ready()
+        elif self.state == "level_complete":
             self._draw_level_complete()
         elif self.state == "game_over":
             self._draw_end_screen("ИГРА ОКОНЧЕНА", (255, 100, 100))
@@ -547,8 +663,6 @@ class Game:
             self._draw_end_screen("ПОБЕДА!", (100, 255, 140))
 
         pygame.display.flip()
-
-    # ------------------------------------------------------ run
 
     def run(self):
         while True:
@@ -567,10 +681,15 @@ def main():
     pygame.display.set_caption(TITLE)
     clock  = pygame.time.Clock()
     while True:
-        mode   = Menu(screen, clock).run()
-        result = Game(screen, clock, mode).run()
-        if result == "quit":
-            pygame.quit(); sys.exit()
+        mode = Menu(screen, clock).run()
+        while True:
+            level = LevelSelect(screen, clock, mode).run()
+            if level == -1:
+                break  # back to mode select
+            result = Game(screen, clock, mode, level).run()
+            if result == "quit":
+                pygame.quit(); sys.exit()
+            # "menu" → back to level select
 
 if __name__ == "__main__":
     main()
