@@ -26,10 +26,55 @@ BRICK_GAP        = 6
 BRICK_OFFSET_Y   = 65
 
 BRICK_TYPES = {
-    1: ((220,  80,  80), 10),
-    2: ((220, 150,  50), 20),
-    3: ((100, 200,  80), 30),
+    1: ((220,  80,  80), 10),   # red
+    2: ((220, 150,  50), 20),   # orange
+    3: ((100, 200,  80), 30),   # green
+    4: ((240, 230,   0), 12),   # yellow  (1-hit, pattern levels)
+    5: (( 60, 140, 220), 12),   # blue    (1-hit, pattern levels)
+    6: ((190,  60, 220), 12),   # violet  (1-hit, pattern levels)
+    7: ((255, 140, 180), 12),   # pink    (1-hit, pattern levels)
 }
+BRICK_HITS = {1: 1, 2: 2, 3: 3, 4: 1, 5: 1, 6: 1, 7: 1}
+
+# ============================================================ LEVEL PATTERNS
+
+_SPIRAL = [
+    [3,3,3,3,3,3,3,3,3,3,3,3],
+    [3,0,0,0,0,0,0,0,0,0,0,3],
+    [3,0,2,2,2,2,2,2,2,2,0,3],
+    [3,0,2,0,0,0,0,0,0,2,0,3],
+    [3,0,2,0,1,1,1,1,0,2,0,3],
+    [3,0,2,0,1,0,0,1,0,2,0,3],
+    [3,0,2,0,1,1,1,1,0,2,0,3],
+    [3,0,2,0,0,0,0,0,0,2,0,3],
+    [3,0,2,2,2,2,2,2,2,2,0,3],
+    [3,0,0,0,0,0,0,0,0,0,0,3],
+    [3,3,3,3,3,3,3,3,3,3,3,3],
+]
+
+_NYAN = [
+    [1,1,1,1,1, 0,7,7,0,7,7,0,0],
+    [2,2,2,2,2, 7,7,7,7,7,7,7,0],
+    [4,4,4,4,4, 7,0,7,7,7,0,7,0],
+    [3,3,3,3,3, 7,7,7,7,7,7,7,0],
+    [5,5,5,5,5, 7,1,1,1,1,1,7,0],
+    [6,6,6,6,6, 7,1,1,1,1,1,7,7],
+    [0,0,0,0,0, 7,7,7,7,7,7,7,7],
+    [0,0,0,0,0, 0,7,0,7,0,7,0,0],
+]
+
+_HEART = [
+    [0,0,1,1,0,0,0,1,1,0,0,0],
+    [0,1,7,7,1,0,1,7,7,1,0,0],
+    [1,7,7,7,7,1,7,7,7,7,1,0],
+    [1,7,7,7,7,7,7,7,7,7,1,0],
+    [1,7,7,7,7,7,7,7,7,7,1,0],
+    [0,1,7,7,7,7,7,7,7,1,0,0],
+    [0,0,1,7,7,7,7,7,1,0,0,0],
+    [0,0,0,1,7,7,7,1,0,0,0,0],
+    [0,0,0,0,1,7,1,0,0,0,0,0],
+    [0,0,0,0,0,1,0,0,0,0,0,0],
+]
 
 LEVELS = [
     {"cols": 8,  "rows": [1, 1, 1],              "speed": 4.5, "paddle_w": 120},
@@ -42,6 +87,13 @@ LEVELS = [
     {"cols": 10, "rows": [3, 3, 3, 2, 2, 1],     "speed": 6.3, "paddle_w": 85},
     {"cols": 10, "rows": [3, 3, 3, 2, 2, 2, 1],  "speed": 6.6, "paddle_w": 80},
     {"cols": 10, "rows": [3, 3, 3, 3, 2, 2, 1],  "speed": 7.0, "paddle_w": 75},
+    # --- pattern levels ---
+    {"speed": 7.2, "paddle_w": 72, "name": "Спираль",
+     "brick_w": 56, "brick_h": 18, "brick_gap": 4, "pattern": _SPIRAL},
+    {"speed": 7.5, "paddle_w": 70, "name": "Нян Кет",
+     "brick_w": 52, "brick_h": 18, "brick_gap": 4, "pattern": _NYAN},
+    {"speed": 7.8, "paddle_w": 68, "name": "Сердечко",
+     "brick_w": 56, "brick_h": 20, "brick_gap": 4, "pattern": _HEART},
 ]
 
 _max_unlocked = 0  # highest unlocked level index (persists in session)
@@ -173,22 +225,23 @@ class Paddle:
 # ================================================================== BRICK
 
 class Brick:
-    def __init__(self, x, y, hits=1):
-        self.rect     = pygame.Rect(x, y, BRICK_W, BRICK_H)
-        self.max_hits = hits
-        self.hits     = hits
-        self.alive    = True
+    def __init__(self, x, y, hits=1, brick_type=None, w=BRICK_W, h=BRICK_H):
+        self.rect       = pygame.Rect(x, y, w, h)
+        self.brick_type = brick_type if brick_type is not None else hits
+        self.max_hits   = hits
+        self.hits       = hits
+        self.alive      = True
 
     def hit(self):
         self.hits -= 1
         if self.hits <= 0:
             self.alive = False
-            return BRICK_TYPES[self.max_hits][1]
+            return BRICK_TYPES[self.brick_type][1]
         return 0
 
     @property
     def color(self):
-        base, _ = BRICK_TYPES[self.max_hits]
+        base, _ = BRICK_TYPES[self.brick_type]
         r = self.hits / self.max_hits
         return tuple(int(c * r + 40 * (1 - r)) for c in base)
 
@@ -197,7 +250,7 @@ class Brick:
             return
         pygame.draw.rect(surface, self.color, self.rect, border_radius=4)
         pygame.draw.rect(surface, (0, 0, 0), self.rect, 1, border_radius=4)
-        hl = pygame.Rect(self.rect.x + 4, self.rect.y + 3, self.rect.width - 8, 4)
+        hl = pygame.Rect(self.rect.x + 4, self.rect.y + 3, max(1, self.rect.width - 8), 4)
         pygame.draw.rect(surface, tuple(min(255, c + 80) for c in self.color), hl, border_radius=2)
 
 # =================================================================== MENU
@@ -394,6 +447,8 @@ class Game:
         self._drag_finger = None
 
     def _build_bricks(self, cfg):
+        if "pattern" in cfg:
+            return self._build_pattern_bricks(cfg)
         cols    = cfg["cols"]
         total_w = cols * BRICK_W + (cols - 1) * BRICK_GAP
         ox      = (WIDTH - total_w) // 2
@@ -403,6 +458,25 @@ class Game:
                 x = ox + col * (BRICK_W + BRICK_GAP)
                 y = BRICK_OFFSET_Y + row * (BRICK_H + BRICK_GAP)
                 bricks.append(Brick(x, y, hits))
+        return bricks
+
+    def _build_pattern_bricks(self, cfg):
+        bw  = cfg.get("brick_w",   BRICK_W)
+        bh  = cfg.get("brick_h",   BRICK_H)
+        gap = cfg.get("brick_gap", BRICK_GAP)
+        pat = cfg["pattern"]
+        cols    = len(pat[0])
+        total_w = cols * bw + (cols - 1) * gap
+        ox      = (WIDTH - total_w) // 2
+        bricks  = []
+        for ri, row in enumerate(pat):
+            for ci, btype in enumerate(row):
+                if btype == 0:
+                    continue
+                x = ox + ci * (bw + gap)
+                y = BRICK_OFFSET_Y + ri * (bh + gap)
+                hits = BRICK_HITS.get(btype, 1)
+                bricks.append(Brick(x, y, hits, brick_type=btype, w=bw, h=bh))
         return bricks
 
     def _reset_ball_and_paddle(self):
@@ -644,8 +718,9 @@ class Game:
         self.screen.blit(s, (cx - s.get_width() // 2, cy))
         if self.level + 1 < len(LEVELS):
             cfg  = LEVELS[self.level + 1]
+            nxt  = cfg.get("name", f"Уровень {self.level + 2}")
             info = self.font_xs.render(
-                f"Следующий: скорость {cfg['speed']}  платформа {cfg['paddle_w']}px",
+                f"Следующий: {nxt}  v{cfg['speed']}  {cfg['paddle_w']}px",
                 True, (140, 140, 180))
             self.screen.blit(info, (cx - info.get_width() // 2, cy + 36))
         hint = "Пробел — продолжить" if self.mode == "pc" else "Коснись экрана — продолжить"
