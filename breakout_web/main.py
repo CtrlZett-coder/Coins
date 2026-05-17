@@ -253,6 +253,38 @@ class Brick:
         hl = pygame.Rect(self.rect.x + 4, self.rect.y + 3, max(1, self.rect.width - 8), 4)
         pygame.draw.rect(surface, tuple(min(255, c + 80) for c in self.color), hl, border_radius=2)
 
+# ================================================================= FIREBALL
+
+class Fireball:
+    RADIUS = 11
+    SPEED  = 3.2
+
+    def __init__(self, x):
+        self.x           = float(x)
+        self.y           = float(BRICK_OFFSET_Y)
+        self._hit_paddle = False
+        self.alive       = True
+
+    def update(self):
+        self.y += self.SPEED
+        if self.y - self.RADIUS > HEIGHT:
+            self.alive = False
+
+    @property
+    def rect(self):
+        d = self.RADIUS * 2
+        return pygame.Rect(int(self.x) - self.RADIUS, int(self.y) - self.RADIUS, d, d)
+
+    def draw(self, surface):
+        if not self.alive:
+            return
+        flicker = int(abs(math.sin(pygame.time.get_ticks() * 0.015)) * 3)
+        r = self.RADIUS + flicker
+        cx, cy = int(self.x), int(self.y)
+        pygame.draw.circle(surface, (200,  60,   0), (cx, cy), r)
+        pygame.draw.circle(surface, (255, 160,   0), (cx, cy), max(1, r * 2 // 3))
+        pygame.draw.circle(surface, (255, 240,  80), (cx, cy), max(1, r // 3))
+
 # =================================================================== MENU
 
 class Menu:
@@ -352,6 +384,25 @@ class LevelSelect:
                 "unlocked": i <= _max_unlocked,
             })
 
+        self._code_buf    = ""
+        self._code_active = False
+        self._code_ok     = False
+        self._code_timer  = 0
+        self._input_rect  = pygame.Rect(WIDTH // 2 - 90, HEIGHT - 54, 160, 28)
+        self._input_btn   = pygame.Rect(WIDTH // 2 + 74, HEIGHT - 54,  52, 28)
+
+    def _check_code(self):
+        global _max_unlocked
+        if self._code_buf == "levelall":
+            _max_unlocked = len(LEVELS) - 1
+            for btn in self.buttons:
+                btn["unlocked"] = True
+            self._code_ok    = True
+            self._code_timer = 220
+        self._code_buf    = ""
+        self._code_active = False
+        pygame.key.stop_text_input()
+
     async def run(self):
         while True:
             self.clock.tick(FPS)
@@ -359,17 +410,45 @@ class LevelSelect:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     return None
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    return -1  # back to mode select
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        return -1
+                    if self._code_active:
+                        if event.key == pygame.K_BACKSPACE:
+                            self._code_buf = self._code_buf[:-1]
+                        elif event.key == pygame.K_RETURN:
+                            self._check_code()
+                if event.type == pygame.TEXTINPUT and self._code_active:
+                    for ch in event.text:
+                        if ch.isalpha() and len(self._code_buf) < 8:
+                            self._code_buf += ch.lower()
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                    for btn in self.buttons:
-                        if btn["unlocked"] and btn["rect"].collidepoint(mp):
-                            return btn["idx"]
+                    if self._input_rect.collidepoint(mp):
+                        self._code_active = True
+                        pygame.key.start_text_input()
+                    elif self._input_btn.collidepoint(mp):
+                        self._check_code()
+                    else:
+                        if self._code_active:
+                            self._code_active = False
+                            pygame.key.stop_text_input()
+                        for btn in self.buttons:
+                            if btn["unlocked"] and btn["rect"].collidepoint(mp):
+                                return btn["idx"]
                 if event.type == pygame.FINGERDOWN:
                     fx, fy = event.x * WIDTH, event.y * HEIGHT
-                    for btn in self.buttons:
-                        if btn["unlocked"] and btn["rect"].collidepoint(fx, fy):
-                            return btn["idx"]
+                    if self._input_rect.collidepoint(fx, fy):
+                        self._code_active = True
+                        pygame.key.start_text_input()
+                    elif self._input_btn.collidepoint(fx, fy):
+                        self._check_code()
+                    else:
+                        if self._code_active:
+                            self._code_active = False
+                            pygame.key.stop_text_input()
+                        for btn in self.buttons:
+                            if btn["unlocked"] and btn["rect"].collidepoint(fx, fy):
+                                return btn["idx"]
             self._draw(mp)
             await asyncio.sleep(0)
 
@@ -401,8 +480,25 @@ class LevelSelect:
             self.screen.blit(info, (btn["rect"].centerx - info.get_width() // 2,
                                     btn["rect"].centery + 10))
 
-        hint_text = "ESC - назад" if self.mode == "pc" else "Нажми уровень для игры"
-        hint = self.font_xs.render(hint_text, True, (90, 90, 110))
+        box_color = (50, 50, 75) if self._code_active else (28, 28, 44)
+        brd_color = (100, 100, 140) if self._code_active else (55, 55, 80)
+        pygame.draw.rect(self.screen, box_color, self._input_rect, border_radius=5)
+        pygame.draw.rect(self.screen, brd_color, self._input_rect, 1, border_radius=5)
+        display = self._code_buf + ("|" if self._code_active else "")
+        ct = self.font_xs.render(display, True, (150, 150, 190))
+        self.screen.blit(ct, (self._input_rect.x + 6, self._input_rect.y + 7))
+        pygame.draw.rect(self.screen, (40, 40, 62), self._input_btn, border_radius=5)
+        pygame.draw.rect(self.screen, (60, 60, 90), self._input_btn, 1, border_radius=5)
+        et = self.font_xs.render("Ввод", True, (120, 120, 160))
+        self.screen.blit(et, (self._input_btn.centerx - et.get_width() // 2,
+                               self._input_btn.centery - et.get_height() // 2))
+        if self._code_timer > 0:
+            self._code_timer -= 1
+            msg = self.font_xs.render("Все уровни открыты!", True, (80, 255, 120))
+            self.screen.blit(msg, (WIDTH // 2 - msg.get_width() // 2, HEIGHT - 80))
+
+        hint_text = "ESC — назад" if self.mode == "pc" else "Нажми уровень для игры"
+        hint = self.font_xs.render(hint_text, True, (70, 70, 95))
         self.screen.blit(hint, (WIDTH // 2 - hint.get_width() // 2, HEIGHT - 30))
         pygame.display.flip()
 
@@ -424,10 +520,12 @@ class Game:
         self.font_sm     = pygame.font.SysFont("Arial", 22, bold=True)
         self.font_lg     = pygame.font.SysFont("Arial", 48, bold=True)
         self.font_xs     = pygame.font.SysFont("Arial", 17)
-        self._drag_finger   = None
-        self._drag_start_fx = 0.0
-        self._drag_start_px = 0.0
-        self._paused_from   = "playing"
+        self._drag_finger      = None
+        self._drag_start_fx    = 0.0
+        self._drag_start_px    = 0.0
+        self._paused_from      = "playing"
+        self._fireballs        = []
+        self._no_paddle_timer  = 0.0
         self._start_game()
 
     # ------------------------------------------------------ setup
@@ -439,12 +537,14 @@ class Game:
         self._load_level()
 
     def _load_level(self):
-        cfg          = LEVELS[self.level]
-        self.paddle  = Paddle(cfg["paddle_w"])
-        self.ball    = Ball(WIDTH // 2, PADDLE_Y - BALL_RADIUS - 2, cfg["speed"])
-        self.bricks  = self._build_bricks(cfg)
-        self.state   = "playing"
-        self._drag_finger = None
+        cfg                   = LEVELS[self.level]
+        self.paddle           = Paddle(cfg["paddle_w"])
+        self.ball             = Ball(WIDTH // 2, PADDLE_Y - BALL_RADIUS - 2, cfg["speed"])
+        self.bricks           = self._build_bricks(cfg)
+        self.state            = "playing"
+        self._drag_finger     = None
+        self._fireballs       = []
+        self._no_paddle_timer = 0.0
 
     def _build_bricks(self, cfg):
         if "pattern" in cfg:
@@ -628,6 +728,7 @@ class Game:
         ball.y  = pad.y - ball.radius - 1
         ball.accelerate(BALL_ACCEL_PADDLE)
         pad.shrink()
+        self._no_paddle_timer = 0.0
 
     def _collide_bricks(self):
         for brick in self.bricks:
@@ -644,6 +745,26 @@ class Game:
             break
 
     # --------------------------------------------------------- update
+
+    def _spawn_fireball(self):
+        x = max(Fireball.RADIUS + 10,
+                min(WIDTH - Fireball.RADIUS - 10, int(self.ball.x)))
+        self._fireballs.append(Fireball(x))
+
+    def _update_fireballs(self):
+        for fb in self._fireballs[:]:
+            fb.update()
+            if not fb.alive:
+                self._fireballs.remove(fb)
+                continue
+            for brick in self.bricks:
+                if brick.alive and fb.rect.colliderect(brick.rect):
+                    self.score += BRICK_TYPES[brick.brick_type][1]
+                    brick.alive = False
+            if not fb._hit_paddle and fb.rect.colliderect(self.paddle.rect):
+                fb._hit_paddle = True
+                self.paddle.w = max(0.0, self.paddle.w - 15)
+                self.paddle._clamp_x()
 
     def _update(self):
         if self.state not in ("playing",):
@@ -667,6 +788,12 @@ class Game:
                 self._reset_ball_and_paddle()
         if all(not b.alive for b in self.bricks):
             self.state = "level_complete"
+        if self.ball.active:
+            self._no_paddle_timer += 1.0 / FPS
+            if self._no_paddle_timer >= 5.0 and self.ball.y < HEIGHT * 0.5:
+                self._spawn_fireball()
+                self._no_paddle_timer = 0.0
+        self._update_fireballs()
 
     # --------------------------------------------------------- draw helpers
 
@@ -770,6 +897,15 @@ class Game:
             hint = "Коснись и тяни" if self.mode == "mobile" else "Пробел — запуск"
             s = self.font_sm.render(hint, True, (180, 180, 180))
             self.screen.blit(s, (WIDTH // 2 - s.get_width() // 2, HEIGHT // 2 + 40))
+
+        for fb in self._fireballs:
+            fb.draw(self.screen)
+        if self.state == "playing" and self.ball.active:
+            frac = min(1.0, self._no_paddle_timer / 5.0)
+            if frac > 0.25:
+                bar_color = lerp_color((255, 180, 0), (255, 30, 0), frac)
+                pygame.draw.rect(self.screen, bar_color,
+                                 pygame.Rect(0, 58, int(WIDTH * frac), 4))
 
         if self.state == "level_ready":
             self._draw_level_ready()
