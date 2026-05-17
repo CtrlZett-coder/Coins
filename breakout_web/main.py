@@ -385,11 +385,13 @@ class LevelSelect:
             })
 
         self._code_buf    = ""
-        self._code_active = False
+        self._code_active = mode == "mobile"
         self._code_ok     = False
         self._code_timer  = 0
-        self._input_rect  = pygame.Rect(WIDTH // 2 - 90, HEIGHT - 54, 160, 28)
-        self._input_btn   = pygame.Rect(WIDTH // 2 + 74, HEIGHT - 54,  52, 28)
+        self._input_rect  = pygame.Rect(WIDTH - 272, HEIGHT - 52, 190, 28)
+        self._input_btn   = pygame.Rect(WIDTH -  76, HEIGHT - 52,  70, 28)
+        if mode == "mobile":
+            pygame.key.start_text_input()
 
     def _check_code(self):
         global _max_unlocked
@@ -429,7 +431,7 @@ class LevelSelect:
                     elif self._input_btn.collidepoint(mp):
                         self._check_code()
                     else:
-                        if self._code_active:
+                        if self.mode == "pc":
                             self._code_active = False
                             pygame.key.stop_text_input()
                         for btn in self.buttons:
@@ -443,9 +445,6 @@ class LevelSelect:
                     elif self._input_btn.collidepoint(fx, fy):
                         self._check_code()
                     else:
-                        if self._code_active:
-                            self._code_active = False
-                            pygame.key.stop_text_input()
                         for btn in self.buttons:
                             if btn["unlocked"] and btn["rect"].collidepoint(fx, fy):
                                 return btn["idx"]
@@ -582,7 +581,9 @@ class Game:
     def _reset_ball_and_paddle(self):
         self.paddle.reset()
         self.ball.reset(self.paddle.center_x, PADDLE_Y - BALL_RADIUS - 2)
-        self._drag_finger = None
+        self._drag_finger     = None
+        self._fireballs       = []
+        self._no_paddle_timer = 0.0
 
     def _advance_level(self):
         global _max_unlocked
@@ -790,7 +791,7 @@ class Game:
             self.state = "level_complete"
         if self.ball.active:
             self._no_paddle_timer += 1.0 / FPS
-            if self._no_paddle_timer >= 5.0 and self.ball.y < HEIGHT * 0.5:
+            if self._no_paddle_timer >= 8.0 and self.ball.y < HEIGHT * 0.5:
                 self._spawn_fireball()
                 self._no_paddle_timer = 0.0
         self._update_fireballs()
@@ -901,7 +902,7 @@ class Game:
         for fb in self._fireballs:
             fb.draw(self.screen)
         if self.state == "playing" and self.ball.active:
-            frac = min(1.0, self._no_paddle_timer / 5.0)
+            frac = min(1.0, self._no_paddle_timer / 8.0)
             if frac > 0.25:
                 bar_color = lerp_color((255, 180, 0), (255, 30, 0), frac)
                 pygame.draw.rect(self.screen, bar_color,
