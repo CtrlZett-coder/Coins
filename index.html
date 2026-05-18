@@ -1,438 +1,1088 @@
-<html lang="en-us"><script src="https://pygame-web.github.io/cdn/0.9.3/pythons.js" type=module id="site" data-python="python3.12" data-LINES=42 data-COLUMNS=132 data-os="vtx,snd,gui" async defer>#<!--
-
-print("""
-Loading breakout_web from breakout_web.apk
-    Pygbag Version : 0.9.3
-    Template Version : 0.9.3
-    Python  : 3.12
-    CDN URL : https://pygame-web.github.io/cdn/0.9.3/
-    Screen  : 1280x720
-    Title   : breakout_web
-    Folder  : breakout_web
-    Authors : pgw
-    SPDX-License-Identifier: cookiecutter.spdx
-
-""")
-
-import sys
-import asyncio
-import platform
-import json
-from pathlib import Path
-
-# do not rename
-async def custom_site():
-    import embed
-    platform.document.body.style.background = "#7f7f7f"
-
-    platform.window.transfer.hidden = true
-    platform.window.canvas.style.visibility = "visible"
-
-
-    bundle = "breakout_web"
-
-    # the C or js loader could do that but be explicit.
-    appdir = Path(f"/data/data/{bundle}") # /data/data/breakout_web
-    appdir.mkdir()
-
-
-    # unpack filesystem from compressed archive into work dir
-    if platform.window.location.host.find('.itch.zone')>0:
-        import zipfile
-        async with platform.fopen("breakout_web.apk", "rb") as archive:
-            with zipfile.ZipFile(archive) as zip_ref:
-                zip_ref.extractall(appdir.as_posix())
-    else:
-        import tarfile
-        async with platform.fopen("breakout_web.tar.gz", "rb") as archive:
-            tar = tarfile.open(fileobj=archive, mode="r:gz")
-            tar.extractall(path=appdir.as_posix(), filter='tar')
-            tar.close()
-
-    # preloader will change to work dir and prepend it to sys.path
-    platform.run_main(PyConfig, loaderhome= appdir / "assets", loadermain=None)
-
-
-    # wait preloading complete : that includes images and wasm compilation of bundled modules
-    while embed.counter()<0:
-        await asyncio.sleep(.1)
-
-    main = appdir / "assets" / "main.py"
-
-    # TODO: test for window.webkitAudioContext and block aio loop until gesture if accessing media manager play
-    # before a gesture is recorded ( touch or click )
-
-    # test/wait user media interaction
-    if not platform.window.MM.UME:
-
-        # now that apk is mounted we have access to font cache
-        # but we need to fill __file__ that is not yet set
-        __import__(__name__).__file__ = main
-
-        # now make a prompt
-        msg  = "Ready to start ! Please click/touch page"
-        platform.window.infobox.innerText = msg
-        print("\n"*4, f"    * Waiting for media user engagement. {msg} *" , "\n"*4)
-
-        while not platform.window.MM.UME:
-            await asyncio.sleep(.1)
-
-    # start async top level machinery if not started and add a console in any case if requested.
-    await TopLevel_async_handler.start_toplevel(platform.shell, console=window.python.config.debug)
-
-    # now that apk is mounted we have access to font cache
-    # but we need to fill __file__/__name__ that are not yet set
-    __import__(__name__).__file__ = main
-
-
-    def ui_callback(pkg):
-        platform.window.infobox.innerText = f"installing {pkg}"
-
-    await shell.source(main, callback=ui_callback)
-
-    # if you don't reach that step
-    # your main.py has an infinite sync loop somewhere !
-
-    platform.window.infobox.style.display = "none"
-    platform.window.config.gui_divider = 1
-    platform.window.window_resize()
-    print("default.tmpl: done")
-
-    shell.interactive()
-
-asyncio.run( custom_site() )
-
-
-
-
-
-
-
-
-
-
-
-
-# BEGIN BLOCK
-#
-# now this is the html part you can (and should) customize
-# It is not mandatory : pygame-script when it reads the first line (also called
-# shebang ) of above code create absolute minimal widget set
-# required for running with default rules
-#
-# do not alter that comment block it is separating python code from html code
-# =============================================================================
-# --></script><head><!--
-//=============================================================================
-//
-//
-//
-//
-//
-//
-//
-
-    {%- if cookiecutter.comment != "" -%}
-{{cookiecutter.comment}}
-    {% endif %}
-
---><script type="application/javascript">
-// END BLOCK
-
-
-
-// this dict is available under PyConfig.config from __main__
-
-config = {
-    xtermjs : "1" ,
-    _sdl2 : "canvas",
-    user_canvas : 0,
-    user_canvas_managed : 0,
-    gui_divider : 2,
-    ume_block : 1,
-    can_close : 0,
-    archive : "breakout_web",
-    gui_debug : 2,
-    cdn : "https://pygame-web.github.io/cdn/0.9.3/",
-    autorun : 0,
-    PYBUILD : "3.12",
-    fb_ar   :  1.77,
-    fb_width : "1280",
-    fb_height : "720"
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>CryptoGenius Pro</title>
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root {
+  --font:'Inter',sans-serif; --ios-bg:#fff; --ios-gray:#f2f2f7;
+  --ios-blue:#007AFF; --ios-sec:#8e8e93; --ios-border:#e5e5ea;
+  --ios-text:#000; --hbg:#fff; --green:#34C759; --red:#FF3B30; --orange:#FF9500;
 }
-
-function show_infobox() {
-    infobox.style.display = "block";
-
-    // Measure box
-    const w = infobox.offsetWidth;
-    const h = infobox.offsetHeight;
-
-    // Center in viewport
-    const left = (window.innerWidth - w) / 2;
-    const top = (window.innerHeight - h) / 2;
-
-    infobox.style.left = left + "px";
-    infobox.style.top = top + "px";
+[data-theme="dark"] {
+  --ios-bg:#000; --ios-gray:#1c1c1e; --ios-blue:#0A84FF;
+  --ios-border:#38383a; --ios-text:#fff; --hbg:#1c1c1e;
 }
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;padding:0;height:100vh;background:var(--ios-bg);font-family:var(--font);
+  color:var(--ios-text);display:flex;flex-direction:column;overflow:hidden;transition:background .3s,color .3s}
 
-</script>
+/* TOP TABS */
+#top-tabs{display:flex;background:var(--hbg);border-bottom:.5px solid var(--ios-border);padding:0 4px;flex-shrink:0}
+.top-tab{flex:1;padding:11px 0;text-align:center;font-size:11px;font-weight:600;color:var(--ios-sec);
+  border-bottom:2px solid transparent;cursor:pointer;transition:color .2s,border-color .2s}
+.top-tab.active{color:var(--ios-blue);border-bottom-color:var(--ios-blue)}
 
-    <title>breakout_web</title>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="viewport" content="height=device-height, initial-scale=1.0">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes"/>
+/* CHART */
+#screen-chart{display:flex;flex-direction:column;flex:1;overflow:hidden}
+#dual-header{display:flex;align-items:center;padding:10px 14px;border-bottom:.5px solid var(--ios-border);
+  gap:8px;background:var(--hbg);flex-shrink:0}
+.selector-box{flex:1;display:flex;align-items:center;background:var(--ios-gray);
+  padding:8px 10px;border-radius:12px;cursor:pointer}
+.selector-box:active{opacity:.7}
+.sel-flag{font-size:18px;margin-right:7px;width:22px;text-align:center}
+.sel-label{flex-grow:1;overflow:hidden}
+.sel-code{font-weight:800;font-size:14px;display:block}
+.sel-desc{font-size:9px;color:var(--ios-sec);text-transform:uppercase}
+.sel-chevron{font-size:10px;color:var(--ios-sec);margin-left:4px}
+.divider-icon{font-size:15px;color:var(--ios-sec)}
 
+#price-ticker{padding:8px 16px 6px;background:var(--hbg);border-bottom:.5px solid var(--ios-border);flex-shrink:0}
+#price-main{font-size:26px;font-weight:800;letter-spacing:-.5px;line-height:1}
+#price-row{display:flex;align-items:center;gap:8px;margin-top:2px}
+#price-change{font-size:12px;font-weight:600}
+#price-change.up{color:var(--green)}
+#price-change.down{color:var(--red)}
+#price-updated{font-size:11px;color:var(--ios-sec)}
 
-    <link rel="icon" type="image/png" href="favicon.png" sizes="16x16">
+#chart-wrapper{flex-grow:1;position:relative}
+#tv-chart{width:100%;height:100%}
+#hitbox-fix{position:absolute;top:0;right:0;width:120px;height:40px;z-index:10}
 
-    <style>
-        #status {
-            display: inline-block;
-            vertical-align: top;
-            margin-top: 20px;
-            margin-left: 30px;
-            font-weight: bold;
-            color: rgb(120, 120, 120);
-        }
+#footer-controls{padding:10px 12px 20px;border-top:.5px solid var(--ios-border);background:var(--hbg);flex-shrink:0}
+#periods{display:flex;background:var(--ios-gray);padding:2px;border-radius:10px;gap:2px}
+.period-btn{flex:1;border:none;background:none;padding:9px 0;font-size:11px;font-weight:700;
+  border-radius:8px;color:var(--ios-sec);cursor:pointer}
+.period-btn.active{background:var(--ios-text);color:var(--ios-bg)}
 
-        #progress {
-            height: 20px;
-            width: 300px;
-        }
+/* CONVERTER */
+#screen-conv{display:none;flex-direction:column;flex:1;overflow-y:auto;padding:14px;gap:10px}
+.cc{background:var(--ios-gray);border-radius:16px;padding:14px}
+.cl{font-size:11px;color:var(--ios-sec);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.cir{display:flex;align-items:center;gap:10px}
+.ccb{display:flex;align-items:center;gap:6px;background:var(--ios-bg);border-radius:12px;
+  padding:8px 10px;cursor:pointer;border:none;color:var(--ios-text);flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.ccb .cf{font-size:19px}.ccb .ck{font-size:13px;font-weight:700}.ccb .cv{font-size:10px;color:var(--ios-sec)}
+.ci{flex:1;background:none;border:none;outline:none;font-size:26px;font-weight:700;
+  color:var(--ios-text);font-family:var(--font);text-align:right;min-width:0}
+.ci::placeholder{color:var(--ios-sec)}
+.csb{display:flex;align-items:center;justify-content:center;margin:-5px auto;
+  width:36px;height:36px;border-radius:18px;background:var(--ios-blue);color:#fff;
+  font-size:16px;border:none;cursor:pointer;z-index:1;position:relative;
+  box-shadow:0 2px 8px rgba(0,122,255,.4)}
+.rv{font-size:26px;font-weight:800;color:var(--ios-blue);text-align:right;flex:1}
+.rt{font-size:12px;color:var(--ios-sec)}
+.qrow{display:flex;gap:6px;flex-wrap:wrap}
+.qbtn{flex:1;min-width:50px;padding:9px 4px;background:var(--ios-gray);border:none;
+  border-radius:10px;font-size:12px;font-weight:600;color:var(--ios-blue);cursor:pointer}
 
-        #infobox {
-            position: fixed; /* center relative to viewport */
-            background: green;
-            color: blue;
-            font-weight: bold;
-            padding: 12px 24px;
- /*           display: none; */
-            z-index: 999999;
-        }
-        div.emscripten { text-align: center; }
-        div.emscripten_border { border: 1px solid black; }
-        div.thick_border { border: 4px solid black; }
+/* CALCULATOR SCREEN */
+#screen-calc{display:none;flex-direction:column;flex:1;overflow:hidden;background:var(--ios-bg)}
+#cdw{background:var(--hbg);flex-shrink:0;padding:10px 20px 8px;border-bottom:.5px solid var(--ios-border)}
+#chist{font-size:13px;color:var(--ios-sec);text-align:right;min-height:18px;font-weight:400}
+#cdisp{font-size:52px;font-weight:300;text-align:right;letter-spacing:-2px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.1}
+#csubtabs{display:flex;background:var(--ios-gray);margin:10px 12px 6px;border-radius:10px;padding:2px;flex-shrink:0}
+.cst{flex:1;padding:8px;text-align:center;font-size:12px;font-weight:600;color:var(--ios-sec);
+  border-radius:8px;cursor:pointer}
+.cst.active{background:var(--ios-bg);color:var(--ios-text);box-shadow:0 1px 3px rgba(0,0,0,.12)}
 
-        /* the canvas *must not* have any border or padding, or mouse coords will be wrong */
-        /* average size of droid screen 470dp x 320dp  */
-        canvas.emscripten {
-            border: 0px none;
-            background-color: transparent;
-            width: 100%;
-            height: 100%;
-            z-index: 5;
+/* NUMPAD */
+#numpad{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:4px 12px 16px;flex-shrink:0}
+.nb{border:none;border-radius:14px;font-size:22px;font-weight:400;cursor:pointer;
+  aspect-ratio:1;display:flex;align-items:center;justify-content:center;
+  transition:opacity .1s;font-family:var(--font);color:var(--ios-text)}
+.nb:active{opacity:.5}
+.nf{background:#a5a5a5;color:#000}
+[data-theme="dark"] .nf{background:#636366;color:#fff}
+.no{background:var(--orange);color:#fff}
+.no.aop{background:#fff;color:var(--orange)}
+.nd{background:#e0e0e2;color:#000}
+[data-theme="dark"] .nd{background:#2c2c2e}
+.nz{grid-column:span 2;border-radius:14px;aspect-ratio:auto;padding:0 0 0 26px;
+  justify-content:flex-start;height:64px}
+.neq{background:var(--orange);color:#fff}
 
-            padding: 0;
-            margin: 0 auto;
+/* PERCENT CALC */
+#pctcalc{display:none;flex-direction:column;gap:10px;padding:4px 12px 16px;overflow-y:auto;flex:1}
+.prow{display:flex;gap:8px}
+.piw{flex:1;background:var(--ios-gray);border-radius:12px;padding:10px 12px}
+.pil{font-size:11px;color:var(--ios-sec);font-weight:600;margin-bottom:4px}
+.pi{width:100%;background:none;border:none;outline:none;font-size:22px;font-weight:700;
+  color:var(--ios-text);font-family:var(--font)}
+.pi::placeholder{color:var(--ios-sec)}
+.pres{display:flex;flex-direction:column;gap:7px}
+.pr{background:var(--ios-gray);border-radius:12px;padding:11px 14px;
+  display:flex;justify-content:space-between;align-items:center}
+.prl{font-size:13px;color:var(--ios-sec)}
+.prv{font-size:18px;font-weight:700;color:var(--ios-blue)}
+.prv.g{color:var(--green)}.prv.r{color:var(--red)}
+.psect{text-align:center;font-size:11px;color:var(--ios-sec);font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;margin-top:4px}
 
-            position: absolute;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            right: 0;
-        }
+/* MODAL */
+#modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--ios-bg);
+  z-index:9999;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  display:flex;flex-direction:column}
+#modal-overlay.open{transform:translateY(0)}
+#mhdr{padding:14px 16px;border-bottom:.5px solid var(--ios-border);display:flex;
+  justify-content:space-between;align-items:center;flex-shrink:0}
+#mtitle{font-weight:800;font-size:17px}
+#msearch{padding:10px 16px;flex-shrink:0}
+#sinput{width:100%;padding:10px 12px;border-radius:10px;border:none;
+  background:var(--ios-gray);font-size:15px;outline:none;color:var(--ios-text)}
+#mtabs{display:flex;padding:0 16px 10px;gap:8px;overflow-x:auto;flex-shrink:0}
+.mtab{padding:7px 14px;background:var(--ios-gray);border-radius:20px;font-size:12px;
+  font-weight:700;color:var(--ios-sec);cursor:pointer;white-space:nowrap;border:none}
+.mtab.active{background:var(--ios-blue);color:#fff}
+#alist{overflow-y:auto;flex-grow:1}
+.ai{display:flex;align-items:center;padding:11px 16px;border-bottom:.5px solid var(--ios-gray);cursor:pointer}
+.ai.dis{opacity:.25;pointer-events:none}
+.af{font-size:22px;margin-right:12px;width:28px;text-align:center}
+.an{display:flex;flex-direction:column}
+.ab{font-weight:700;font-size:15px}
+.as{font-size:11px;color:var(--ios-sec)}
 
-        body {
-            font-family: arial;
-            margin: 0;
-            padding: none;
-            background-color:powderblue;
-        }
-
-        .topright{
-           position:absolute;
-           top:0px;
-           right:0px;
-        }
-
-        .bottomright {
-            position:absolute;
-            top: 40%;
-            right: 0px;
-        }
-
-        .center {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .trinfo{
-           position: relative;
-           right: 0px;
-           border: 1px solid black;
-        }
-
-        .framed{
-           position: relative;
-           top: 150px;
-           right: 10px;
-           border: 1px solid black;
-        }
-    </style>
-
-    <script>
-/*
-        if (navigator.serviceWorker)
-            navigator.serviceWorker.register("https://pygame-web.github.io/cdn/0.9.3/pygbag0.9.3.js")
-        else
-            console.warn("Service workers not supported")
-*/
-    </script>
-
-    <script src="https://pygame-web.github.io/cdn/0.9.3//browserfs.min.js"></script>
-
+#theme-btn{position:fixed;bottom:72px;right:16px;z-index:100;background:var(--ios-blue);
+  color:#fff;width:40px;height:40px;border-radius:20px;display:flex;align-items:center;
+  justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.2);border:none;font-size:18px;cursor:pointer}
+</style>
 </head>
-
 <body>
+<button id="theme-btn" onclick="toggleTheme()">🌓</button>
 
-    <div id="transfer" align=center>
-<!--        <div class="spinner" id='spinner'></div> -->
-        <div class="emscripten" id="status">Downloading...</div>
-        <div class="emscripten">
-            <progress value="0" max="100" id="progress"></progress>
-        </div>
+<div id="top-tabs">
+  <div class="top-tab active" onclick="switchTab('chart')">📈 График</div>
+  <div class="top-tab" onclick="switchTab('conv')">💱 Конвертер</div>
+  <div class="top-tab" onclick="switchTab('calc')">🧮 Калькулятор</div>
+</div>
+
+<!-- CHART -->
+<div id="screen-chart">
+  <div id="dual-header">
+    <div class="selector-box" onclick="openModal('base')">
+      <span class="sel-flag" id="base-flag">₿</span>
+      <div class="sel-label">
+        <span class="sel-code" id="base-code">BTC</span>
+        <span class="sel-desc">Объект</span>
+      </div>
+      <span class="sel-chevron">▼</span>
     </div>
-
-
-
-    <canvas class="emscripten" id="canvas"
-width="1px"
-height="1px"
-    oncontextmenu="event.preventDefault()" tabindex=1>
-    </canvas>
-
-    <canvas class="emscripten" id="canvas3d"
-width="1280px"
-height="720px"
-    oncontextmenu="event.preventDefault()" tabindex=1 hidden>
-    </canvas>
-
-    <div id="infobox">Loading, please wait ...</div>
-
-    <div id=html></div>
-
-    <div id=crt  class=bottomright >
-
-        <div id="system" hidden>
-            <div class="button-container">
-                <button id="aiostop" disabled>AIO ⏏︎</button>
-                <button id="aiopaused_true" disabled>AIO ■</button>
-                <button id="aiopaused_false" disabled>AIO ▶</button>
-                <button id="pygame_mixer_music_pause" disabled>Music ■</button>
-            </div>
-
-            <div class="button-container">
-                <div id=load_min>min</div>
-                <div id=load_avg>avg</div>
-                <div id=load_max>max</div>
-              <button id="load_rst" disabled>RESET</button>
-            </div>
-
-            <div id="level">(battery level unknown)</div>
-            <div id="stateBattery">(charging state unknown)</div>
-
-        </div>
-
-        <div id=box class="emscripten_border" hidden=true>
-
-            <div id="info" class="trinfo"></div>
-
-            <iframe id="iframe" class="framed" name="iframe"
-width="470px" height="90%"
-allowtransparency="true"
-style="z-index: 10;"
-style="background: #FFFFFF;"
-frameborder="1"
-                allowfullscreen="true"
-                webkitallowfullscreen="true"
-                msallowfullscreen="true"
-                mozallowfullscreen="true"
-                sandbox="allow-same-origin allow-top-navigation allow-scripts allow-pointer-lock"
-                allow="autoplay; fullscreen *; geolocation; microphone; camera; midi; monetization; xr-spatial-tracking; gamepad; gyroscope; accelerometer; xr; cross-origin-isolated"
-                src="https://pygame-web.github.io/cdn/0.9.3/empty.html"
-                scrolling="yes">
-            </iframe>
-        </div>
-
+    <div class="divider-icon">/</div>
+    <div class="selector-box" onclick="openModal('quote')">
+      <span class="sel-flag" id="quote-flag">🇺🇸</span>
+      <div class="sel-label">
+        <span class="sel-code" id="quote-code">USD</span>
+        <span class="sel-desc">Валюта</span>
+      </div>
+      <span class="sel-chevron">▼</span>
     </div>
-
-
-    <div id="dlg" hidden>
-        <input type="file" id="dlg_multifile" multiple accept="image/*">
-        <label for="dlg_multifile">Select files</label>
+  </div>
+  <div id="price-ticker">
+    <div id="price-main">–</div>
+    <div id="price-row">
+      <span id="price-change" class="up">–</span>
+      <span id="price-updated"></span>
     </div>
-
-    <div id="pyconsole">
-        <div id="terminal" tabIndex=1 align="left"></div>
+  </div>
+  <div id="chart-wrapper">
+    <div id="hitbox-fix"></div>
+    <div id="tv-chart"></div>
+  </div>
+  <div id="footer-controls">
+    <div id="periods">
+      <button class="period-btn active" onclick="setRange('1D','5',this)">1Д</button>
+      <button class="period-btn" onclick="setRange('1M','D',this)">1М</button>
+      <button class="period-btn" onclick="setRange('3M','D',this)">3М</button>
+      <button class="period-btn" onclick="setRange('6M','D',this)">6М</button>
+      <button class="period-btn" onclick="setRange('12M','W',this)">1Г</button>
+      <button class="period-btn" onclick="setRange('ALL','M',this)">Все</button>
     </div>
+  </div>
+</div>
 
-    <script type="application/javascript">
+<!-- CONVERTER -->
+<div id="screen-conv">
+  <div class="cc">
+    <div class="cl">Из</div>
+    <div class="cir">
+      <button class="ccb" onclick="openCalcModal('from')">
+        <span class="cf" id="cf-flag">₿</span>
+        <span class="ck" id="cf-code">BTC</span>
+        <span class="cv">▼</span>
+      </button>
+      <input class="ci" id="conv-input" type="number" placeholder="0" oninput="convCalc()">
+    </div>
+  </div>
+  <button class="csb" onclick="convSwap()">⇅</button>
+  <div class="cc">
+    <div class="cl">В</div>
+    <div class="cir">
+      <button class="ccb" onclick="openCalcModal('to')">
+        <span class="cf" id="ct-flag">🇺🇸</span>
+        <span class="ck" id="ct-code">USD</span>
+        <span class="cv">▼</span>
+      </button>
+      <div class="rv" id="conv-result">–</div>
+    </div>
+  </div>
+  <div class="cc">
+    <div class="cl">Курс</div>
+    <div class="rt" id="conv-rate">Загрузка...</div>
+  </div>
+  <div class="qrow" id="quick-row"></div>
+</div>
 
-    globalThis.__canvas_resized = (self, ecw, ech) => {
-        console.warn("TODO: panda3d canvas monitor", self, ecw, ech)
+<!-- CALCULATOR -->
+<div id="screen-calc">
+  <div id="cdw">
+    <div id="chist"></div>
+    <div id="cdisp">0</div>
+  </div>
+  <div id="csubtabs">
+    <div class="cst active" onclick="setCalcMode('std')">🔢 Калькулятор</div>
+    <div class="cst" onclick="setCalcMode('pct')">📊 Проценты</div>
+  </div>
+  <div id="numpad">
+    <button class="nb nf" onclick="ck('AC')">AC</button>
+    <button class="nb nf" onclick="ck('±')">±</button>
+    <button class="nb nf" onclick="ck('%')">%</button>
+    <button class="nb no" id="btn-div" onclick="ck('÷')">÷</button>
+    <button class="nb nd" onclick="ck('7')">7</button>
+    <button class="nb nd" onclick="ck('8')">8</button>
+    <button class="nb nd" onclick="ck('9')">9</button>
+    <button class="nb no" id="btn-mul" onclick="ck('×')">×</button>
+    <button class="nb nd" onclick="ck('4')">4</button>
+    <button class="nb nd" onclick="ck('5')">5</button>
+    <button class="nb nd" onclick="ck('6')">6</button>
+    <button class="nb no" id="btn-sub" onclick="ck('−')">−</button>
+    <button class="nb nd" onclick="ck('1')">1</button>
+    <button class="nb nd" onclick="ck('2')">2</button>
+    <button class="nb nd" onclick="ck('3')">3</button>
+    <button class="nb no" id="btn-add" onclick="ck('+')">+</button>
+    <button class="nb nd nz" onclick="ck('0')">0</button>
+    <button class="nb nd" onclick="ck('.')">.</button>
+    <button class="nb neq" onclick="ck('=')">= </button>
+  </div>
+  <div id="pctcalc">
+    <div class="prow">
+      <div class="piw">
+        <div class="pil">Число (A)</div>
+        <input class="pi" id="pa" type="number" placeholder="1000" oninput="doPct()">
+      </div>
+      <div class="piw">
+        <div class="pil">Процент %</div>
+        <input class="pi" id="pb" type="number" placeholder="15" oninput="doPct()">
+      </div>
+    </div>
+    <div class="pres">
+      <div class="pr"><span class="prl">A × B% (часть числа)</span><span class="prv" id="pr1">–</span></div>
+      <div class="pr"><span class="prl">A + B% (увеличение)</span><span class="prv g" id="pr2">–</span></div>
+      <div class="pr"><span class="prl">A − B% (уменьшение)</span><span class="prv r" id="pr3">–</span></div>
+    </div>
+    <div class="psect">% изменения</div>
+    <div class="prow">
+      <div class="piw">
+        <div class="pil">Было (A)</div>
+        <input class="pi" id="pc" type="number" placeholder="1000" oninput="doPctChg()">
+      </div>
+      <div class="piw">
+        <div class="pil">Стало (B)</div>
+        <input class="pi" id="pd" type="number" placeholder="1150" oninput="doPctChg()">
+      </div>
+    </div>
+    <div class="pres">
+      <div class="pr"><span class="prl">Изменение %</span><span class="prv" id="pr4">–</span></div>
+      <div class="pr"><span class="prl">Абсолютно (B − A)</span><span class="prv" id="pr5">–</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="mhdr">
+    <div id="mtitle">Выбор актива</div>
+    <div style="color:var(--ios-blue);font-weight:600;cursor:pointer" onclick="closeModal()">Готово</div>
+  </div>
+  <div id="msearch"><input type="text" id="sinput" placeholder="Поиск..." oninput="renderList(this.value)"></div>
+  <div id="mtabs">
+    <button class="mtab" data-t="cis" onclick="setTab('cis',this)">🇷🇺 СНГ</button>
+    <button class="mtab" data-t="world" onclick="setTab('world',this)">🌍 Мировые</button>
+    <button class="mtab active" data-t="crypto" onclick="setTab('crypto',this)">💎 Крипто</button>
+    <button class="mtab" data-t="metal" onclick="setTab('metal',this)">🥇 Металлы</button>
+  </div>
+  <div id="alist"></div>
+</div>
+
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const tg = window.Telegram.WebApp; tg.ready();
+
+// ─── ASSETS ───────────────────────────────────────────────
+const ALL = [
+  // CIS
+  {id:'RUB',f:'🇷🇺',n:'Российский рубль',t:'cis'},
+  {id:'UAH',f:'🇺🇦',n:'Украинская гривна',t:'cis'},
+  {id:'KZT',f:'🇰🇿',n:'Казахстанский тенге',t:'cis'},
+  {id:'BYN',f:'🇧🇾',n:'Белорусский рубль',t:'cis'},
+  {id:'UZS',f:'🇺🇿',n:'Узбекский сум',t:'cis'},
+  {id:'AZN',f:'🇦🇿',n:'Азербайджанский манат',t:'cis'},
+  {id:'AMD',f:'🇦🇲',n:'Армянский драм',t:'cis'},
+  {id:'GEL',f:'🇬🇪',n:'Грузинский лари',t:'cis'},
+  {id:'KGS',f:'🇰🇬',n:'Киргизский сом',t:'cis'},
+  {id:'TJS',f:'🇹🇯',n:'Таджикский сомони',t:'cis'},
+  {id:'TMT',f:'🇹🇲',n:'Туркменский манат',t:'cis'},
+  {id:'MDL',f:'🇲🇩',n:'Молдавский лей',t:'cis'},
+  // World — major
+  {id:'USD',f:'🇺🇸',n:'Доллар США',t:'world'},
+  {id:'EUR',f:'🇪🇺',n:'Евро',t:'world'},
+  {id:'GBP',f:'🇬🇧',n:'Британский фунт',t:'world'},
+  {id:'JPY',f:'🇯🇵',n:'Японская иена',t:'world'},
+  {id:'CHF',f:'🇨🇭',n:'Швейцарский франк',t:'world'},
+  {id:'CAD',f:'🇨🇦',n:'Канадский доллар',t:'world'},
+  {id:'AUD',f:'🇦🇺',n:'Австралийский доллар',t:'world'},
+  {id:'NZD',f:'🇳🇿',n:'Новозеландский доллар',t:'world'},
+  {id:'SEK',f:'🇸🇪',n:'Шведская крона',t:'world'},
+  {id:'NOK',f:'🇳🇴',n:'Норвежская крона',t:'world'},
+  {id:'DKK',f:'🇩🇰',n:'Датская крона',t:'world'},
+  // World — Asia
+  {id:'CNY',f:'🇨🇳',n:'Китайский юань',t:'world'},
+  {id:'HKD',f:'🇭🇰',n:'Гонконгский доллар',t:'world'},
+  {id:'SGD',f:'🇸🇬',n:'Сингапурский доллар',t:'world'},
+  {id:'KRW',f:'🇰🇷',n:'Корейская вона',t:'world'},
+  {id:'TWD',f:'🇹🇼',n:'Тайваньский доллар',t:'world'},
+  {id:'THB',f:'🇹🇭',n:'Тайский бат',t:'world'},
+  {id:'MYR',f:'🇲🇾',n:'Малайзийский ринггит',t:'world'},
+  {id:'IDR',f:'🇮🇩',n:'Индонезийская рупия',t:'world'},
+  {id:'VND',f:'🇻🇳',n:'Вьетнамский донг',t:'world'},
+  {id:'PHP',f:'🇵🇭',n:'Филиппинское песо',t:'world'},
+  {id:'INR',f:'🇮🇳',n:'Индийская рупия',t:'world'},
+  {id:'PKR',f:'🇵🇰',n:'Пакистанская рупия',t:'world'},
+  {id:'BDT',f:'🇧🇩',n:'Бангладешская така',t:'world'},
+  {id:'LKR',f:'🇱🇰',n:'Шриланкийская рупия',t:'world'},
+  // World — Middle East
+  {id:'AED',f:'🇦🇪',n:'Дирхам ОАЭ',t:'world'},
+  {id:'SAR',f:'🇸🇦',n:'Саудовский риял',t:'world'},
+  {id:'QAR',f:'🇶🇦',n:'Катарский риял',t:'world'},
+  {id:'KWD',f:'🇰🇼',n:'Кувейтский динар',t:'world'},
+  {id:'BHD',f:'🇧🇭',n:'Бахрейнский динар',t:'world'},
+  {id:'OMR',f:'🇴🇲',n:'Оманский риял',t:'world'},
+  {id:'JOD',f:'🇯🇴',n:'Иорданский динар',t:'world'},
+  {id:'ILS',f:'🇮🇱',n:'Израильский шекель',t:'world'},
+  {id:'TRY',f:'🇹🇷',n:'Турецкая лира',t:'world'},
+  // World — Africa
+  {id:'EGP',f:'🇪🇬',n:'Египетский фунт',t:'world'},
+  {id:'NGN',f:'🇳🇬',n:'Нигерийская найра',t:'world'},
+  {id:'ZAR',f:'🇿🇦',n:'Южноафриканский рэнд',t:'world'},
+  {id:'KES',f:'🇰🇪',n:'Кенийский шиллинг',t:'world'},
+  {id:'GHS',f:'🇬🇭',n:'Ганский седи',t:'world'},
+  {id:'MAD',f:'🇲🇦',n:'Марокканский дирхам',t:'world'},
+  // World — Americas
+  {id:'BRL',f:'🇧🇷',n:'Бразильский реал',t:'world'},
+  {id:'MXN',f:'🇲🇽',n:'Мексиканское песо',t:'world'},
+  {id:'ARS',f:'🇦🇷',n:'Аргентинское песо',t:'world'},
+  {id:'CLP',f:'🇨🇱',n:'Чилийское песо',t:'world'},
+  {id:'COP',f:'🇨🇴',n:'Колумбийское песо',t:'world'},
+  {id:'PEN',f:'🇵🇪',n:'Перуанский соль',t:'world'},
+  // World — Europe other
+  {id:'PLN',f:'🇵🇱',n:'Польский злотый',t:'world'},
+  {id:'CZK',f:'🇨🇿',n:'Чешская крона',t:'world'},
+  {id:'HUF',f:'🇭🇺',n:'Венгерский форинт',t:'world'},
+  {id:'RON',f:'🇷🇴',n:'Румынский лей',t:'world'},
+  {id:'BGN',f:'🇧🇬',n:'Болгарский лев',t:'world'},
+  {id:'ISK',f:'🇮🇸',n:'Исландская крона',t:'world'},
+  // World — Europe additional
+  {id:'ALL',f:'🇦🇱',n:'Албанский лек',t:'world'},
+  {id:'BAM',f:'🇧🇦',n:'Марка Боснии',t:'world'},
+  {id:'HRK',f:'🇭🇷',n:'Хорватская куна',t:'world'},
+  {id:'MKD',f:'🇲🇰',n:'Македонский денар',t:'world'},
+  {id:'RSD',f:'🇷🇸',n:'Сербский динар',t:'world'},
+  // World — Middle East & North Africa additional
+  {id:'DZD',f:'🇩🇿',n:'Алжирский динар',t:'world'},
+  {id:'IQD',f:'🇮🇶',n:'Иракский динар',t:'world'},
+  {id:'IRR',f:'🇮🇷',n:'Иранский риал',t:'world'},
+  {id:'LBP',f:'🇱🇧',n:'Ливанский фунт',t:'world'},
+  {id:'LYD',f:'🇱🇾',n:'Ливийский динар',t:'world'},
+  {id:'SYP',f:'🇸🇾',n:'Сирийский фунт',t:'world'},
+  {id:'TND',f:'🇹🇳',n:'Тунисский динар',t:'world'},
+  {id:'YER',f:'🇾🇪',n:'Йеменский риал',t:'world'},
+  // World — Asia additional
+  {id:'AFN',f:'🇦🇫',n:'Афганский афгани',t:'world'},
+  {id:'BND',f:'🇧🇳',n:'Брунейский доллар',t:'world'},
+  {id:'BTN',f:'🇧🇹',n:'Бутанский нгултрум',t:'world'},
+  {id:'BWP',f:'🇧🇼',n:'Ботсванская пула',t:'world'},
+  {id:'KHR',f:'🇰🇭',n:'Камбоджийский риель',t:'world'},
+  {id:'KPW',f:'🇰🇵',n:'Северокорейская вона',t:'world'},
+  {id:'LAK',f:'🇱🇦',n:'Лаосский кип',t:'world'},
+  {id:'MMK',f:'🇲🇲',n:'Мьянманский кьят',t:'world'},
+  {id:'MNT',f:'🇲🇳',n:'Монгольский тугрик',t:'world'},
+  {id:'MOP',f:'🇲🇴',n:'Патака Макао',t:'world'},
+  {id:'MVR',f:'🇲🇻',n:'Мальдивская руфия',t:'world'},
+  {id:'NPR',f:'🇳🇵',n:'Непальская рупия',t:'world'},
+  // World — Africa additional
+  {id:'AOA',f:'🇦🇴',n:'Ангольская кванза',t:'world'},
+  {id:'BIF',f:'🇧🇮',n:'Бурундийский франк',t:'world'},
+  {id:'CDF',f:'🇨🇩',n:'Конголезский франк',t:'world'},
+  {id:'CVE',f:'🇨🇻',n:'Эскудо Кабо-Верде',t:'world'},
+  {id:'DJF',f:'🇩🇯',n:'Франк Джибути',t:'world'},
+  {id:'ERN',f:'🇪🇷',n:'Эритрейская накфа',t:'world'},
+  {id:'ETB',f:'🇪🇹',n:'Эфиопский быр',t:'world'},
+  {id:'GMD',f:'🇬🇲',n:'Гамбийский даласи',t:'world'},
+  {id:'GNF',f:'🇬🇳',n:'Гвинейский франк',t:'world'},
+  {id:'KMF',f:'🇰🇲',n:'Франк Коморских о-вов',t:'world'},
+  {id:'LRD',f:'🇱🇷',n:'Либерийский доллар',t:'world'},
+  {id:'LSL',f:'🇱🇸',n:'Лесотский лоти',t:'world'},
+  {id:'MGA',f:'🇲🇬',n:'Малагасийский ариари',t:'world'},
+  {id:'MRU',f:'🇲🇷',n:'Мавританская угия',t:'world'},
+  {id:'MUR',f:'🇲🇺',n:'Маврикийская рупия',t:'world'},
+  {id:'MWK',f:'🇲🇼',n:'Малавийская квача',t:'world'},
+  {id:'MZN',f:'🇲🇿',n:'Мозамбикский метикал',t:'world'},
+  {id:'NAD',f:'🇳🇦',n:'Намибийский доллар',t:'world'},
+  {id:'RWF',f:'🇷🇼',n:'Франк Руанды',t:'world'},
+  {id:'SCR',f:'🇸🇨',n:'Сейшельская рупия',t:'world'},
+  {id:'SDG',f:'🇸🇩',n:'Суданский фунт',t:'world'},
+  {id:'SHP',f:'🇸🇭',n:'Фунт о-ва Св. Елены',t:'world'},
+  {id:'SLL',f:'🇸🇱',n:'Леоне Сьерра-Леоне',t:'world'},
+  {id:'SOS',f:'🇸🇴',n:'Сомалийский шиллинг',t:'world'},
+  {id:'SSP',f:'🇸🇸',n:'Южносуданский фунт',t:'world'},
+  {id:'STN',f:'🇸🇹',n:'Добра Сан-Томе',t:'world'},
+  {id:'SZL',f:'🇸🇿',n:'Лилангени Эсватини',t:'world'},
+  {id:'TZS',f:'🇹🇿',n:'Танзанийский шиллинг',t:'world'},
+  {id:'UGX',f:'🇺🇬',n:'Угандийский шиллинг',t:'world'},
+  {id:'XAF',f:'🌍',n:'Франк КФА ВЕАС',t:'world'},
+  {id:'XOF',f:'🌍',n:'Франк КФА ВСЕАО',t:'world'},
+  {id:'ZMW',f:'🇿🇲',n:'Замбийская квача',t:'world'},
+  {id:'ZWL',f:'🇿🇼',n:'Доллар Зимбабве',t:'world'},
+  // World — Americas additional
+  {id:'ANG',f:'🇨🇼',n:'Нидерл. антильский гульден',t:'world'},
+  {id:'AWG',f:'🇦🇼',n:'Арубанский флорин',t:'world'},
+  {id:'BBD',f:'🇧🇧',n:'Барбадосский доллар',t:'world'},
+  {id:'BMD',f:'🇧🇲',n:'Бермудский доллар',t:'world'},
+  {id:'BOB',f:'🇧🇴',n:'Боливийский боливиано',t:'world'},
+  {id:'BSD',f:'🇧🇸',n:'Багамский доллар',t:'world'},
+  {id:'BZD',f:'🇧🇿',n:'Белизский доллар',t:'world'},
+  {id:'CRC',f:'🇨🇷',n:'Костариканский колон',t:'world'},
+  {id:'CUP',f:'🇨🇺',n:'Кубинское песо',t:'world'},
+  {id:'DOP',f:'🇩🇴',n:'Доминиканское песо',t:'world'},
+  {id:'FKP',f:'🇫🇰',n:'Фунт Фолклендских о-вов',t:'world'},
+  {id:'GTQ',f:'🇬🇹',n:'Гватемальский кетсаль',t:'world'},
+  {id:'GYD',f:'🇬🇾',n:'Гайанский доллар',t:'world'},
+  {id:'HNL',f:'🇭🇳',n:'Гондурасская лемпира',t:'world'},
+  {id:'HTG',f:'🇭🇹',n:'Гаитянский гурд',t:'world'},
+  {id:'JMD',f:'🇯🇲',n:'Ямайский доллар',t:'world'},
+  {id:'KYD',f:'🇰🇾',n:'Доллар Каймановых о-вов',t:'world'},
+  {id:'NIO',f:'🇳🇮',n:'Никарагуанская кордоба',t:'world'},
+  {id:'PAB',f:'🇵🇦',n:'Панамский бальбоа',t:'world'},
+  {id:'PYG',f:'🇵🇾',n:'Парагвайский гуарани',t:'world'},
+  {id:'SRD',f:'🇸🇷',n:'Суринамский доллар',t:'world'},
+  {id:'SVC',f:'🇸🇻',n:'Сальвадорский колон',t:'world'},
+  {id:'TTD',f:'🇹🇹',n:'Доллар Тринидада и Тоб.',t:'world'},
+  {id:'UYU',f:'🇺🇾',n:'Уругвайское песо',t:'world'},
+  {id:'VES',f:'🇻🇪',n:'Венесуэльский боливар',t:'world'},
+  {id:'XCD',f:'🌎',n:'Восточно-карибский доллар',t:'world'},
+  // World — Pacific & other
+  {id:'FJD',f:'🇫🇯',n:'Доллар Фиджи',t:'world'},
+  {id:'GIP',f:'🇬🇮',n:'Гибралтарский фунт',t:'world'},
+  {id:'PGK',f:'🇵🇬',n:'Кина Папуа — Н. Гвинеи',t:'world'},
+  {id:'SBD',f:'🇸🇧',n:'Доллар Соломоновых о-вов',t:'world'},
+  {id:'TOP',f:'🇹🇴',n:'Тонганская паанга',t:'world'},
+  {id:'VUV',f:'🇻🇺',n:'Вату Вануату',t:'world'},
+  {id:'WST',f:'🇼🇸',n:'Самоанская тала',t:'world'},
+  {id:'XPF',f:'🇵🇫',n:'Тихоокеанский франк',t:'world'},
+  // Crypto
+  {id:'BTC', f:'₿',  n:'Bitcoin',    t:'crypto'},
+  {id:'ETH', f:'💎', n:'Ethereum',   t:'crypto'},
+  {id:'TON', f:'💠', n:'Toncoin',    t:'crypto'},
+  {id:'BNB', f:'🟡', n:'BNB',        t:'crypto'},
+  {id:'SOL', f:'◎',  n:'Solana',     t:'crypto'},
+  {id:'XRP', f:'✕',  n:'XRP',        t:'crypto'},
+  {id:'ADA', f:'🔵', n:'Cardano',    t:'crypto'},
+  {id:'DOGE',f:'🐶', n:'Dogecoin',   t:'crypto'},
+  {id:'AVAX',f:'🔺', n:'Avalanche',  t:'crypto'},
+  {id:'DOT', f:'⚫', n:'Polkadot',   t:'crypto'},
+  {id:'LINK',f:'🔗', n:'Chainlink',  t:'crypto'},
+  {id:'LTC', f:'🥈', n:'Litecoin',   t:'crypto'},
+  {id:'TRX', f:'🔴', n:'TRON',       t:'crypto'},
+  {id:'UNI', f:'🦄', n:'Uniswap',    t:'crypto'},
+  {id:'ATOM',f:'⚛️', n:'Cosmos',     t:'crypto'},
+  {id:'IMOEX',f:'📊',n:'Индекс МосБиржи',t:'crypto'},
+  // Metals
+  {id:'XAU',f:'🥇',n:'Золото',t:'metal'},
+  {id:'XAG',f:'🥈',n:'Серебро',t:'metal'},
+  {id:'XPT',f:'⬜',n:'Платина',t:'metal'},
+  {id:'XPD',f:'🔘',n:'Палладий',t:'metal'},
+];
+
+const CIDS = {
+  BTC:'bitcoin',ETH:'ethereum',TON:'the-open-network',BNB:'binancecoin',
+  SOL:'solana',XRP:'ripple',ADA:'cardano',DOGE:'dogecoin',AVAX:'avalanche-2',
+  DOT:'polkadot',LINK:'chainlink',LTC:'litecoin',
+  TRX:'tron',UNI:'uniswap',ATOM:'cosmos'
+};
+
+function find(id){ return ALL.find(a=>a.id===id); }
+
+// ─── THEME ────────────────────────────────────────────────
+let theme = localStorage.getItem('theme') ||
+  (window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
+function applyTheme(t){ theme=t; localStorage.setItem('theme',t);
+  document.documentElement.setAttribute('data-theme',t); }
+function toggleTheme(){ applyTheme(theme==='light'?'dark':'light'); createWidget(); }
+
+// ─── TAB SWITCHING ────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.top-tab').forEach((el,i)=>{
+    el.classList.toggle('active',
+      (i===0&&tab==='chart')||(i===1&&tab==='conv')||(i===2&&tab==='calc'));
+  });
+  document.getElementById('screen-chart').style.display = tab==='chart'?'flex':'none';
+  document.getElementById('screen-conv').style.display  = tab==='conv' ?'flex':'none';
+  document.getElementById('screen-calc').style.display  = tab==='calc' ?'flex':'none';
+  document.getElementById('theme-btn').style.display    = tab==='chart'?'':'none';
+  if(tab==='conv') fetchRates();
+}
+
+// ─── FOREX / RATES ────────────────────────────────────────
+let fxRates={}, cryptoPrices={}, ratesFetched=0;
+
+async function fetchRates(){
+  if(Date.now()-ratesFetched<60000 && Object.keys(fxRates).length) return;
+  try{
+    const [fxRes,cgRes]=await Promise.all([
+      fetch('https://open.er-api.com/v6/latest/USD'),
+      fetch('https://api.coingecko.com/api/v3/simple/price?ids='+
+        Object.values(CIDS).join(',')+'&vs_currencies=usd')
+    ]);
+    const fxD=await fxRes.json(), cgD=await cgRes.json();
+    fxRates=fxD.rates||{};
+    cryptoPrices={};
+    for(const [tick,cid] of Object.entries(CIDS)){
+      if(cgD[cid]) cryptoPrices[tick]=cgD[cid].usd;
     }
+    ratesFetched=Date.now();
+    convCalc();
+    renderQuick();
+  } catch(e){ document.getElementById('conv-rate').textContent='Ошибка загрузки'; }
+}
 
-    async function custom_onload(debug_hidden) {
-        // this is called before anything python is loaded
-        // make your js customization here
-        console.log(__FILE__, "custom_onload")
+function toUSD(id){
+  if(id==='USD') return 1;
+  if(cryptoPrices[id]!=null) return cryptoPrices[id];
+  const r=fxRates[id]; return r?1/r:null;
+}
+function getRate(from,to){
+  if(from===to) return 1;
+  const f=toUSD(from), t=toUSD(to);
+  return (f!=null&&t!=null)?f/t:null;
+}
+function fmtAmt(n,decimals){
+  if(n==null||isNaN(n)) return '–';
+  const d = decimals!=null ? decimals : (n>=1000?0:n>=1?2:6);
+  return n.toLocaleString('ru-RU',{maximumFractionDigits:d});
+}
 
-        pyconsole.hidden = debug_hidden
-        system.hidden = debug_hidden
-        transfer.hidden = debug_hidden
-        info.hidden = debug_hidden
-        box.hidden =  debug_hidden
+// ─── CONVERTER ────────────────────────────────────────────
+let convFrom=find('BTC'), convTo=find('USD'), convModalTarget='from';
 
-        show_infobox()
+function convCalc(){
+  const amt=parseFloat(document.getElementById('conv-input').value);
+  const rate=getRate(convFrom.id,convTo.id);
+  if(rate==null){ document.getElementById('conv-result').textContent='–';
+    document.getElementById('conv-rate').textContent='Курс недоступен'; return; }
+  document.getElementById('conv-result').textContent = isNaN(amt)?'–':fmtAmt(amt*rate);
+  const r=rate>=1?fmtAmt(rate):fmtAmt(rate,6);
+  document.getElementById('conv-rate').textContent=`1 ${convFrom.id} = ${r} ${convTo.id}`;
+}
+function convSwap(){
+  [convFrom,convTo]=[convTo,convFrom];
+  document.getElementById('cf-flag').textContent=convFrom.f;
+  document.getElementById('cf-code').textContent=convFrom.id;
+  document.getElementById('ct-flag').textContent=convTo.f;
+  document.getElementById('ct-code').textContent=convTo.id;
+  convCalc(); renderQuick();
+}
+function renderQuick(){
+  const row=document.getElementById('quick-row'); row.innerHTML='';
+  const amts=quickAmounts(convFrom.id);
+  amts.forEach(a=>{
+    const b=document.createElement('button');
+    b.className='qbtn'; b.textContent=fmtAmt(a,0)+' '+convFrom.id;
+    b.onclick=()=>{ document.getElementById('conv-input').value=a; convCalc(); };
+    row.appendChild(b);
+  });
+}
+function quickAmounts(id){
+  if(['IDR','VND','KRW','UZS','IRR','SLL','GNF','MMK','PYG','BIF'].includes(id)) return[100000,1000000,10000000];
+  if(['RUB','KZT','AMD','COP','NGN','KES','DZD','ETB','HUF','ISK','SYP','TZS','AOA','HTG','MNT','PKR','YER','ZMW','CDF','MGA','IQD','KHR','RWF','UGX','LBP','MWK'].includes(id)) return[1000,10000,100000];
+  if(['XAU','XPD','XPT'].includes(id)) return[0.1,1,10];
+  if(id==='XAG') return[1,10,100];
+  if(cryptoPrices[id]&&cryptoPrices[id]>1000) return[0.001,0.01,0.1];
+  if(cryptoPrices[id]&&cryptoPrices[id]>10) return[0.1,1,10];
+  if(cryptoPrices[id]) return[10,100,1000];
+  return[100,1000,10000];
+}
+
+// ─── CHART ────────────────────────────────────────────────
+let base=find('BTC'), quote=find('USD');
+let curRange='1D', curInterval='5', selMode='base', activeTab='crypto';
+let priceTimer=null;
+let fxCache={}, fxCacheTime=0;
+let lwChart=null, lwRO=null;
+const BN_PARAMS={
+  '1D': ['5m', 288], '1M': ['1h', 720], '3M':  ['4h', 540],
+  '6M': ['1d', 182], '12M':['1d', 365], 'ALL': ['1w', 260]
+};
+
+async function ensureFX(){
+  if(Date.now()-fxCacheTime<300000&&Object.keys(fxCache).length) return;
+  try{
+    const r=await fetch('https://open.er-api.com/v6/latest/USD');
+    const d=await r.json(); fxCache=d.rates||{}; fxCacheTime=Date.now();
+  }catch(e){}
+}
+
+async function fetchAndShowPrice(){
+  const b=base.id, q=quote.id;
+  try{
+    let price=null, change=null;
+    if(b==='IMOEX'){
+      const r=await fetch('https://iss.moex.com/iss/engines/stock/markets/index/securities/IMOEX.json?iss.meta=off');
+      const d=await r.json(), row=d.marketdata.data[0];
+      price=row[2]??row[12]; const prev=row[3];
+      change=prev?((price-prev)/prev*100):0;
+    } else if(CIDS[b]){
+      const r=await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${CIDS[b]}&vs_currencies=usd&include_24hr_change=true`);
+      const d=await r.json(), cid=CIDS[b];
+      const usd=d[cid]?.usd; change=d[cid]?.usd_24h_change;
+      if(usd!=null){
+        if(q==='USD'){ price=usd; }
+        else { await ensureFX(); price=q==='USD'?usd:usd*(fxCache[q]||1); }
+      }
+    } else {
+      await ensureFX();
+      if(b==='USD'){ price=fxCache[q]; }
+      else if(q==='USD'){ price=fxCache[b]?1/fxCache[b]:null; }
+      else if(fxCache[b]&&fxCache[q]){ price=fxCache[q]/fxCache[b]; }
     }
-
-    function custom_prerun(){
-        // no python main and no (MEMFS + VFS) yet.
-        console.log(__FILE__, "custom_prerun")
-
+    if(price!=null){
+      const sym = b==='IMOEX'?'':( ['USD','EUR','GBP','JPY','CHF'].includes(q)?
+        ({USD:'$',EUR:'€',GBP:'£',JPY:'¥',CHF:'₣'}[q]):q+' ');
+      const str=b==='IMOEX'
+        ?price.toLocaleString('ru-RU',{maximumFractionDigits:2})+' пт'
+        :sym+price.toLocaleString('ru-RU',{maximumFractionDigits:price>=100?2:price>=1?4:6});
+      document.getElementById('price-main').textContent=str;
+      if(change!=null){
+        const el=document.getElementById('price-change');
+        el.textContent=`${change>=0?'+':''}${change.toFixed(2)}% за 24ч`;
+        el.className=change<0?'down':'up';
+      }
+      const now=new Date();
+      document.getElementById('price-updated').textContent=
+        `Обновлено ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
     }
+  }catch(e){}
+}
+function startTicker(){ fetchAndShowPrice(); clearInterval(priceTimer);
+  priceTimer=setInterval(fetchAndShowPrice,30000); }
 
-    function custom_postrun(){
-        // python main and no VFS filesystem yet.
-        console.log(__FILE__, "custom_postrun")
+async function createCryptoChart(){
+  const el=document.getElementById('tv-chart');
+  if(lwRO){lwRO.disconnect();lwRO=null;}
+  if(lwChart){try{lwChart.remove();}catch(e){} lwChart=null;}
+  el.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+    'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+    '<span style="font-size:36px">📊</span><span>Загрузка...</span></div>';
+  try{
+    await ensureFX();
+    const [iv,lim]=BN_PARAMS[curRange]||BN_PARAMS['1D'];
+    const r=await fetch(`https://api.binance.com/api/v3/klines?symbol=${base.id}USDT&interval=${iv}&limit=${lim}`);
+    if(!r.ok) throw new Error('api');
+    const kl=await r.json();
+    if(!Array.isArray(kl)||!kl.length) throw new Error('empty');
+    const rate=quote.id==='USD'?1:(fxCache[quote.id]||1);
+    el.innerHTML='';
+    const dk=theme==='dark';
+    lwChart=LightweightCharts.createChart(el,{
+      width:el.offsetWidth, height:el.offsetHeight||300,
+      layout:{background:{type:'solid',color:dk?'#000':'#fff'},textColor:dk?'#fff':'#000',fontSize:11},
+      grid:{vertLines:{visible:false},horzLines:{color:dk?'#1e222d':'#f0f3fa'}},
+      crosshair:{mode:1},
+      rightPriceScale:{borderColor:dk?'#38383a':'#e5e5ea',scaleMargins:{top:0.08,bottom:0.2}},
+      timeScale:{borderColor:dk?'#38383a':'#e5e5ea',timeVisible:true,secondsVisible:false,fixLeftEdge:true,fixRightEdge:true},
+      handleScroll:true,handleScale:true,
+    });
+    const area=lwChart.addAreaSeries({
+      lineColor:'#007AFF',topColor:'rgba(0,122,255,0.28)',bottomColor:'rgba(0,122,255,0)',
+      lineWidth:2,crosshairMarkerRadius:4,lastValueVisible:true,
+      priceLineVisible:true,priceLineColor:'#007AFF',
+    });
+    area.setData(kl.map(k=>({time:Math.floor(k[0]/1000),value:parseFloat(k[4])*rate})));
+    const vol=lwChart.addHistogramSeries({priceFormat:{type:'volume'},priceScaleId:'vol'});
+    vol.priceScale().applyOptions({scaleMargins:{top:0.82,bottom:0}});
+    vol.setData(kl.map(k=>({
+      time:Math.floor(k[0]/1000),value:parseFloat(k[5]),
+      color:parseFloat(k[4])>=parseFloat(k[1])?'rgba(52,199,89,0.4)':'rgba(255,59,48,0.4)',
+    })));
+    lwChart.timeScale().fitContent();
+    lwRO=new ResizeObserver(()=>{if(lwChart)lwChart.applyOptions({width:el.offsetWidth,height:el.offsetHeight});});
+    lwRO.observe(el);
+  }catch(e){
+    if(lwRO){lwRO.disconnect();lwRO=null;}
+    if(lwChart){try{lwChart.remove();}catch(_){} lwChart=null;}
+    el.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+      'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+      '<span style="font-size:36px">📊</span><span>Ошибка загрузки</span></div>';
+  }
+  startTicker();
+}
 
+function fxDateRange(range){
+  const dates=[], now=new Date();
+  let numDays, step;
+  switch(range){
+    case '1D':  numDays=14;   step=1;  break;
+    case '1M':  numDays=30;   step=1;  break;
+    case '3M':  numDays=90;   step=3;  break;
+    case '6M':  numDays=180;  step=6;  break;
+    case '12M': numDays=365;  step=12; break;
+    case 'ALL': numDays=1825; step=60; break;
+    default:    numDays=14;   step=1;
+  }
+  for(let i=numDays;i>=0;i-=step){
+    const d=new Date(now); d.setDate(d.getDate()-i);
+    dates.push(d.toISOString().split('T')[0]);
+  }
+  return [...new Set(dates)];
+}
+
+async function createFiatChart(){
+  const el=document.getElementById('tv-chart');
+  if(lwRO){lwRO.disconnect();lwRO=null;}
+  if(lwChart){try{lwChart.remove();}catch(e){} lwChart=null;}
+  el.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+    'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+    '<span style="font-size:36px">📊</span><span>Загрузка...</span></div>';
+  try{
+    const b=base.id.toLowerCase(), q=quote.id.toLowerCase();
+    const dates=fxDateRange(curRange);
+    const raw=await Promise.all(dates.map(date=>
+      fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${date}/v1/currencies/${b}.json`)
+        .then(r=>r.ok?r.json():null).catch(()=>null)
+    ));
+    const data=[];
+    for(let i=0;i<dates.length;i++){
+      const d=raw[i];
+      const rate=d&&d[b]&&d[b][q]!=null?d[b][q]:null;
+      if(rate!=null){
+        const ts=new Date(dates[i]+'T12:00:00Z').getTime()/1000;
+        if(!data.length||data[data.length-1].time!==ts) data.push({time:ts,value:rate});
+      }
     }
+    if(!data.length) throw new Error('no data');
+    el.innerHTML='';
+    const dk=theme==='dark';
+    lwChart=LightweightCharts.createChart(el,{
+      width:el.offsetWidth, height:el.offsetHeight||300,
+      layout:{background:{type:'solid',color:dk?'#000':'#fff'},textColor:dk?'#fff':'#000',fontSize:11},
+      grid:{vertLines:{visible:false},horzLines:{color:dk?'#1e222d':'#f0f3fa'}},
+      crosshair:{mode:1},
+      rightPriceScale:{borderColor:dk?'#38383a':'#e5e5ea',scaleMargins:{top:0.08,bottom:0.08}},
+      timeScale:{borderColor:dk?'#38383a':'#e5e5ea',timeVisible:false,fixLeftEdge:true,fixRightEdge:true},
+      handleScroll:true,handleScale:true,
+    });
+    const area=lwChart.addAreaSeries({
+      lineColor:'#34C759',topColor:'rgba(52,199,89,0.28)',bottomColor:'rgba(52,199,89,0)',
+      lineWidth:2,crosshairMarkerRadius:4,lastValueVisible:true,
+      priceLineVisible:true,priceLineColor:'#34C759',
+    });
+    area.setData(data);
+    lwChart.timeScale().fitContent();
+    lwRO=new ResizeObserver(()=>{if(lwChart)lwChart.applyOptions({width:el.offsetWidth,height:el.offsetHeight});});
+    lwRO.observe(el);
+  }catch(e){
+    if(lwRO){lwRO.disconnect();lwRO=null;}
+    if(lwChart){try{lwChart.remove();}catch(_){} lwChart=null;}
+    el.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+      'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+      '<span style="font-size:36px">📊</span><span>Ошибка загрузки</span></div>';
+  }
+  startTicker();
+}
 
-    function debug() {
-        // allow to gain access to dev tools from js console
-        // but only on desktop. difficult to reach when in iframe
-        python.config.debug = true
-        custom_onload(false)
-        Module.PyRun_SimpleString("shell.uptime()")
-        window_resize()
+function buildSymbol(){
+  const b=base.id;
+  if(b==='IMOEX') return 'MOEX:IMOEX';
+  if(['XAU','XAG','XPT','XPD'].includes(b)) return `OANDA:${b}USD`;
+  return null;
+}
+function createWidget(){
+  if(CIDS[base.id]){ createCryptoChart(); return; }
+  if(base.t!=='metal'&&base.id!=='IMOEX'){ createFiatChart(); return; }
+  if(lwRO){lwRO.disconnect();lwRO=null;}
+  if(lwChart){try{lwChart.remove();}catch(e){} lwChart=null;}
+  const sym=buildSymbol(); if(!sym) return;
+  document.getElementById('tv-chart').innerHTML='';
+  if(typeof TradingView==='undefined'){
+    document.getElementById('tv-chart').innerHTML=
+      '<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
+      'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
+      '<span style="font-size:36px">📊</span><span>График загружается...</span></div>';
+    startTicker(); return;
+  }
+  try{
+    const cfg={
+      autosize:true, symbol:sym, interval:curInterval,
+      timezone:'Etc/UTC', theme:theme, style:'3', locale:'ru',
+      container_id:'tv-chart', hide_top_toolbar:true, hide_legend:true,
+      range:curRange, save_image:false, allow_symbol_change:false, show_popup_button:false,
+      backgroundColor:theme==='light'?'#ffffff':'#000000',
+      gridColor:theme==='light'?'#f0f3fa':'#1e222d'
+    };
+    if(base.t==='metal') cfg.currency_code=quote.id;
+    new TradingView.widget(cfg);
+    startTicker();
+  }catch(e){ startTicker(); }
+}
+function setRange(r,i,btn){
+  curRange=r; curInterval=i;
+  document.querySelectorAll('.period-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); createWidget();
+}
+
+// ─── MODAL ────────────────────────────────────────────────
+function openModal(mode){
+  selMode=mode;
+  document.getElementById('sinput').value='';
+  document.getElementById('mtitle').textContent='Выбор актива';
+  document.getElementById('msearch').style.display='';
+  document.getElementById('mtabs').style.display='';
+  // Reset all tabs
+  document.querySelectorAll('.mtab').forEach(t=>{ t.classList.remove('active'); t.style.display=''; });
+  if(mode==='quote'){
+    // Quote must always be fiat — crypto and metals never allowed as quote
+    document.querySelector('.mtab[data-t="crypto"]').style.display='none';
+    document.querySelector('.mtab[data-t="metal"]').style.display='none';
+    activeTab='world';
+    document.querySelector('.mtab[data-t="world"]')?.classList.add('active');
+  } else {
+    activeTab='crypto';
+    document.querySelector('.mtab[data-t="crypto"]')?.classList.add('active');
+  }
+  renderList('');
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+function setTab(t,el){
+  activeTab=t;
+  document.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active'));
+  el.classList.add('active');
+  renderList(document.getElementById('sinput').value);
+}
+function renderList(search){
+  const list=document.getElementById('alist'); list.innerHTML='';
+  const q=search.toUpperCase();
+  const items=ALL.filter(a=>
+    (q?(a.id.includes(q)||a.n.toUpperCase().includes(q)):a.t===activeTab)
+  );
+  items.forEach(item=>{
+    const div=document.createElement('div'); div.className='ai';
+    if(selMode==='quote'&&item.id===base.id) div.classList.add('dis');
+    div.innerHTML=`<span class="af">${item.f}</span>
+      <div class="an"><span class="ab">${item.id}</span><span class="as">${item.n}</span></div>`;
+    if(!div.classList.contains('dis')) div.onclick=()=>{
+      if(selMode==='base'){
+        base=item;
+        document.getElementById('base-flag').textContent=item.f;
+        document.getElementById('base-code').textContent=item.id;
+        if(item.t==='crypto'&&!['USD','EUR'].includes(quote.id))
+          { quote=find('USD'); updateQuoteUI(); }
+        if(item.t==='metal'&&(quote.t==='crypto'||quote.t==='metal'))
+          { quote=find('USD'); updateQuoteUI(); }
+      } else {
+        quote=item;
+        updateQuoteUI();
+      }
+      document.getElementById('price-main').textContent='–';
+      document.getElementById('price-change').textContent='–';
+      createWidget(); closeModal();
+    };
+    list.appendChild(div);
+  });
+}
+function updateQuoteUI(){
+  document.getElementById('quote-flag').textContent=quote.f;
+  document.getElementById('quote-code').textContent=quote.id;
+}
+
+// ─── CONVERTER MODAL ─────────────────────────────────────
+function openCalcModal(target){
+  convModalTarget=target;
+  document.getElementById('sinput').value='';
+  document.getElementById('mtitle').textContent=target==='from'?'Конвертировать из':'Конвертировать в';
+  document.getElementById('msearch').style.display='';
+  document.getElementById('mtabs').style.display='';
+  activeTab='crypto';
+  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.mtab[data-t="crypto"]')?.classList.add('active');
+
+  const list=document.getElementById('alist'); list.innerHTML='';
+  // render is handled by renderList with overridden click
+  const q='';
+  const items=ALL.filter(a=>a.t===activeTab);
+  renderListConv(items);
+  document.getElementById('modal-overlay').classList.add('open');
+
+  // Override tab clicks for conv modal
+  document.querySelectorAll('.mtab').forEach(el=>{
+    el.onclick=()=>{
+      activeTab=el.dataset.t;
+      document.querySelectorAll('.mtab').forEach(x=>x.classList.remove('active'));
+      el.classList.add('active');
+      renderListConv(ALL.filter(a=>(
+        document.getElementById('sinput').value
+          ? (a.id.includes(document.getElementById('sinput').value.toUpperCase())||
+             a.n.toUpperCase().includes(document.getElementById('sinput').value.toUpperCase()))
+          : a.t===activeTab)))
+      );
+    };
+  });
+  document.getElementById('sinput').oninput=function(){
+    const q=this.value.toUpperCase();
+    renderListConv(ALL.filter(a=>q?(a.id.includes(q)||a.n.toUpperCase().includes(q)):a.t===activeTab));
+  };
+}
+function renderListConv(items){
+  const list=document.getElementById('alist'); list.innerHTML='';
+  items.forEach(item=>{
+    const div=document.createElement('div'); div.className='ai';
+    div.innerHTML=`<span class="af">${item.f}</span>
+      <div class="an"><span class="ab">${item.id}</span><span class="as">${item.n}</span></div>`;
+    div.onclick=()=>{
+      if(convModalTarget==='from'){
+        convFrom=item;
+        document.getElementById('cf-flag').textContent=item.f;
+        document.getElementById('cf-code').textContent=item.id;
+      } else {
+        convTo=item;
+        document.getElementById('ct-flag').textContent=item.f;
+        document.getElementById('ct-code').textContent=item.id;
+      }
+      convCalc(); renderQuick();
+      closeModal();
+      // restore chart modal tab handlers
+      restoreModalHandlers();
+    };
+    list.appendChild(div);
+  });
+}
+function restoreModalHandlers(){
+  document.querySelectorAll('.mtab').forEach(el=>{
+    el.style.display='';
+    el.onclick=()=>setTab(el.dataset.t,el);
+  });
+  document.getElementById('sinput').oninput=function(){renderList(this.value);};
+}
+
+// ─── CALCULATOR ───────────────────────────────────────────
+let cs={d:'0',prev:null,op:null,newN:true,hist:''};
+
+function calcMode(){ return document.getElementById('csubtabs').querySelector('.active').dataset?.mode||'std'; }
+
+function setCalcMode(m){
+  document.querySelectorAll('.cst').forEach((el,i)=>el.classList.toggle('active',(i===0&&m==='std')||(i===1&&m==='pct')));
+  document.getElementById('numpad').style.display=m==='std'?'grid':'none';
+  document.getElementById('pctcalc').style.display=m==='pct'?'flex':'none';
+}
+// set data-mode on subtabs
+document.querySelectorAll('.cst').forEach((el,i)=>el.dataset.mode=i===0?'std':'pct');
+
+function dispCalc(){
+  const el=document.getElementById('cdisp');
+  const s=cs.d.replace('.',',');
+  el.textContent=s;
+  el.style.fontSize=s.length>12?'32px':s.length>9?'40px':'52px';
+  document.getElementById('chist').textContent=cs.hist;
+  // highlight active op
+  ['÷','×','−','+'].forEach(op=>{
+    const id={'÷':'btn-div','×':'btn-mul','−':'btn-sub','+':'btn-add'}[op];
+    document.getElementById(id)?.classList.toggle('aop',cs.op===op&&cs.newN);
+  });
+}
+function cleanNum(n){
+  if(!isFinite(n)||isNaN(n)) return 'Ошибка';
+  return parseFloat(n.toPrecision(10)).toString();
+}
+function compute(a,b,op){
+  switch(op){case'+':return a+b;case'−':return a-b;case'×':return a*b;case'÷':return b?a/b:NaN;}
+}
+function ck(key){
+  if('0123456789'.includes(key)){
+    if(cs.newN){ cs.d=key==='0'?'0':key; cs.newN=false; }
+    else if(cs.d.replace('-','').replace('.','').length<9)
+      cs.d=cs.d==='0'?key:cs.d+key;
+  } else if(key==='.'){
+    if(cs.newN){ cs.d='0.'; cs.newN=false; }
+    else if(!cs.d.includes('.')) cs.d+='.';
+  } else if(key==='AC'){
+    cs={d:'0',prev:null,op:null,newN:true,hist:''};
+  } else if(key==='±'){
+    if(cs.d!=='0') cs.d=cs.d.startsWith('-')?cs.d.slice(1):'-'+cs.d;
+  } else if(key==='%'){
+    const v=parseFloat(cs.d);
+    cs.d=(cs.prev!=null?cs.prev*v/100:v/100).toString();
+  } else if(['+','−','×','÷'].includes(key)){
+    if(!cs.newN&&cs.op){
+      const r=compute(cs.prev,parseFloat(cs.d),cs.op);
+      cs.prev=r; cs.d=cleanNum(r);
+    } else { cs.prev=parseFloat(cs.d); }
+    cs.op=key; cs.hist=cs.d+' '+key; cs.newN=true;
+  } else if(key==='='){
+    if(cs.op&&cs.prev!=null){
+      const b=parseFloat(cs.d), r=compute(cs.prev,b,cs.op);
+      cs.hist=cs.prev+' '+cs.op+' '+b+' =';
+      cs.d=cleanNum(r); cs.prev=null; cs.op=null; cs.newN=true;
     }
+  }
+  // Update AC label
+  document.querySelector('#numpad .nf').textContent=
+    (cs.d==='0'&&!cs.prev&&!cs.op)?'AC':'C';
+  dispCalc();
+}
 
-    function info_inline(data){
-        document.getElementById("info").innerHTML = data
-    }
+// ─── PERCENT CALC ─────────────────────────────────────────
+function fmt4(n){ return isNaN(n)?'–':n.toLocaleString('ru-RU',{maximumFractionDigits:4}); }
+function doPct(){
+  const a=parseFloat(document.getElementById('pa').value);
+  const b=parseFloat(document.getElementById('pb').value);
+  document.getElementById('pr1').textContent=(!isNaN(a)&&!isNaN(b))?fmt4(a*b/100):'–';
+  document.getElementById('pr2').textContent=(!isNaN(a)&&!isNaN(b))?fmt4(a+a*b/100):'–';
+  document.getElementById('pr3').textContent=(!isNaN(a)&&!isNaN(b))?fmt4(a-a*b/100):'–';
+}
+function doPctChg(){
+  const c=parseFloat(document.getElementById('pc').value);
+  const d=parseFloat(document.getElementById('pd').value);
+  const el4=document.getElementById('pr4'), el5=document.getElementById('pr5');
+  if(!isNaN(c)&&!isNaN(d)&&c!==0){
+    const pct=((d-c)/Math.abs(c))*100;
+    el4.textContent=(pct>=0?'+':'')+pct.toFixed(2)+'%';
+    el4.className='prv '+(pct>=0?'g':'r');
+    el5.textContent=(d-c>=0?'+':'')+fmt4(d-c);
+    el5.className='prv '+(d-c>=0?'g':'r');
+  } else { el4.textContent='–'; el4.className='prv'; el5.textContent='–'; el5.className='prv'; }
+}
 
-    function info_online(url) {
-        // display info about current APK
-        fetch( url /*, options */)
-            .then((response) => response.text())
-            .then((html) => {
-                info_inline(html);
-        })
-        .catch((error) => {
-            console.warn(error);
-        });
-    }
-
-    function frame_online(url) {
-        window.frames["iframe"].location = url;
-    }
-
-    </script>
-
+// ─── INIT ─────────────────────────────────────────────────
+restoreModalHandlers();
+renderQuick();
+applyTheme(theme);
+createWidget();
+</script>
 </body>
 </html>
