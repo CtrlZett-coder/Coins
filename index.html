@@ -325,6 +325,30 @@ body{margin:0;padding:0;height:var(--tg-viewport-stable-height,var(--tg-viewport
 const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
 
+function applyViewport(){
+  const h=tg.viewportStableHeight||tg.viewportHeight||window.innerHeight;
+  if(h>50) document.body.style.height=h+'px';
+}
+function calcChartH(){
+  const el=document.getElementById('tv-chart');
+  if(el.offsetHeight>40) return el.offsetHeight;
+  const total=tg.viewportStableHeight||tg.viewportHeight||window.innerHeight;
+  const used=['top-tabs','dual-header','price-ticker','footer-controls']
+    .reduce((s,id)=>s+(document.getElementById(id)?.offsetHeight||0),0);
+  return Math.max(150, total-used);
+}
+tg.onEvent('viewportChanged',()=>{
+  applyViewport();
+  requestAnimationFrame(()=>{
+    if(!lwChart) return;
+    const el=document.getElementById('tv-chart');
+    const w=el.offsetWidth||window.innerWidth;
+    const h=calcChartH();
+    lwChart.applyOptions({width:w,height:h});
+    lwChart.timeScale().fitContent();
+  });
+});
+
 // ─── ASSETS ───────────────────────────────────────────────
 const ALL = [
   // CIS
@@ -709,8 +733,8 @@ async function createCryptoChart(){
     const rate=quote.id==='USD'?1:(fxCache[quote.id]||1);
     el.innerHTML='';
     const dk=theme==='dark';
-    const cw=el.offsetWidth||el.parentElement?.offsetWidth||window.innerWidth;
-    const ch=el.offsetHeight||el.parentElement?.offsetHeight||window.innerHeight-240;
+    const cw=el.offsetWidth||window.innerWidth;
+    const ch=calcChartH();
     lwChart=LightweightCharts.createChart(el,{
       width:cw, height:ch,
       layout:{background:{type:'solid',color:dk?'#000':'#fff'},textColor:dk?'#fff':'#000',fontSize:11},
@@ -733,7 +757,11 @@ async function createCryptoChart(){
       color:parseFloat(k[4])>=parseFloat(k[1])?'rgba(52,199,89,0.4)':'rgba(255,59,48,0.4)',
     })));
     lwChart.timeScale().fitContent();
-    lwRO=new ResizeObserver(()=>{if(lwChart)lwChart.applyOptions({width:el.offsetWidth,height:el.offsetHeight});});
+    lwRO=new ResizeObserver(()=>{
+      if(!lwChart) return;
+      const w=el.offsetWidth, h=el.offsetHeight;
+      if(w>0&&h>0){lwChart.applyOptions({width:w,height:h}); lwChart.timeScale().fitContent();}
+    });
     lwRO.observe(el);
   }catch(e){
     if(lwRO){lwRO.disconnect();lwRO=null;}
@@ -790,8 +818,8 @@ async function createFiatChart(){
     if(!data.length) throw new Error('no data');
     el.innerHTML='';
     const dk=theme==='dark';
-    const cw=el.offsetWidth||el.parentElement?.offsetWidth||window.innerWidth;
-    const ch=el.offsetHeight||el.parentElement?.offsetHeight||window.innerHeight-240;
+    const cw=el.offsetWidth||window.innerWidth;
+    const ch=calcChartH();
     lwChart=LightweightCharts.createChart(el,{
       width:cw, height:ch,
       layout:{background:{type:'solid',color:dk?'#000':'#fff'},textColor:dk?'#fff':'#000',fontSize:11},
@@ -1088,8 +1116,16 @@ function doPctChg(){
 restoreModalHandlers();
 renderQuick();
 applyTheme(theme);
-// Delay so Telegram WebApp has time to apply viewport and layout is ready
-requestAnimationFrame(()=>setTimeout(createWidget,50));
+applyViewport();
+// Wait for Telegram viewport to stabilize, then init chart
+if(tg.viewportStableHeight>50){
+  requestAnimationFrame(createWidget);
+} else {
+  const _onVP=()=>{ tg.offEvent('viewportChanged',_onVP); requestAnimationFrame(createWidget); };
+  tg.onEvent('viewportChanged',_onVP);
+  // Fallback if viewportChanged never fires (e.g. desktop)
+  setTimeout(()=>{ if(!lwChart) createWidget(); },500);
+}
 </script>
 </body>
 </html>
