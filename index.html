@@ -17,7 +17,8 @@
   --ios-border:#38383a; --ios-text:#fff; --hbg:#1c1c1e;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;padding:0;height:100vh;background:var(--ios-bg);font-family:var(--font);
+body{margin:0;padding:0;height:var(--tg-viewport-stable-height,var(--tg-viewport-height,100vh));
+  background:var(--ios-bg);font-family:var(--font);
   color:var(--ios-text);display:flex;flex-direction:column;overflow:hidden;transition:background .3s,color .3s}
 
 /* TOP TABS */
@@ -321,7 +322,7 @@ body{margin:0;padding:0;height:100vh;background:var(--ios-bg);font-family:var(--
 <script src="https://s3.tradingview.com/tv.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <script>
-const tg = window.Telegram.WebApp; tg.ready();
+const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 
 // ─── ASSETS ───────────────────────────────────────────────
 const ALL = [
@@ -532,7 +533,7 @@ let theme = localStorage.getItem('theme') ||
   (window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');
 function applyTheme(t){ theme=t; localStorage.setItem('theme',t);
   document.documentElement.setAttribute('data-theme',t); }
-function toggleTheme(){ applyTheme(theme==='light'?'dark':'light'); createWidget(); }
+function toggleTheme(){ applyTheme(theme==='light'?'dark':'light'); requestAnimationFrame(()=>setTimeout(createWidget,20)); }
 
 // ─── TAB SWITCHING ────────────────────────────────────────
 function switchTab(tab){
@@ -707,8 +708,10 @@ async function createCryptoChart(){
     const rate=quote.id==='USD'?1:(fxCache[quote.id]||1);
     el.innerHTML='';
     const dk=theme==='dark';
+    const cw=el.offsetWidth||el.parentElement?.offsetWidth||window.innerWidth;
+    const ch=el.offsetHeight||el.parentElement?.offsetHeight||window.innerHeight-240;
     lwChart=LightweightCharts.createChart(el,{
-      width:el.offsetWidth, height:el.offsetHeight||300,
+      width:cw, height:ch,
       layout:{background:{type:'solid',color:dk?'#000':'#fff'},textColor:dk?'#fff':'#000',fontSize:11},
       grid:{vertLines:{visible:false},horzLines:{color:dk?'#1e222d':'#f0f3fa'}},
       crosshair:{mode:1},
@@ -786,8 +789,10 @@ async function createFiatChart(){
     if(!data.length) throw new Error('no data');
     el.innerHTML='';
     const dk=theme==='dark';
+    const cw=el.offsetWidth||el.parentElement?.offsetWidth||window.innerWidth;
+    const ch=el.offsetHeight||el.parentElement?.offsetHeight||window.innerHeight-240;
     lwChart=LightweightCharts.createChart(el,{
-      width:el.offsetWidth, height:el.offsetHeight||300,
+      width:cw, height:ch,
       layout:{background:{type:'solid',color:dk?'#000':'#fff'},textColor:dk?'#fff':'#000',fontSize:11},
       grid:{vertLines:{visible:false},horzLines:{color:dk?'#1e222d':'#f0f3fa'}},
       crosshair:{mode:1},
@@ -1082,7 +1087,8 @@ function doPctChg(){
 restoreModalHandlers();
 renderQuick();
 applyTheme(theme);
-createWidget();
+// Delay so Telegram WebApp has time to apply viewport and layout is ready
+requestAnimationFrame(()=>setTimeout(createWidget,50));
 </script>
 </body>
 </html>
