@@ -128,8 +128,8 @@ body{margin:0;padding:0;height:var(--tg-viewport-stable-height,var(--tg-viewport
 /* MODAL */
 #modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:var(--ios-bg);
   z-index:9999;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
-  display:flex;flex-direction:column}
-#modal-overlay.open{transform:translateY(0)}
+  display:flex;flex-direction:column;pointer-events:none}
+#modal-overlay.open{transform:translateY(0);pointer-events:auto}
 #mhdr{padding:14px 16px;border-bottom:.5px solid var(--ios-border);display:flex;
   justify-content:space-between;align-items:center;flex-shrink:0}
 #mtitle{font-weight:800;font-size:17px}
@@ -323,6 +323,7 @@ body{margin:0;padding:0;height:var(--tg-viewport-stable-height,var(--tg-viewport
 <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
+if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
 
 // ─── ASSETS ───────────────────────────────────────────────
 const ALL = [
