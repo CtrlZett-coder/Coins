@@ -49,8 +49,8 @@ body{margin:0;padding:0;height:var(--tg-viewport-stable-height,var(--tg-viewport
 #price-change.down{color:var(--red)}
 #price-updated{font-size:11px;color:var(--ios-sec)}
 
-#chart-wrapper{position:relative;min-height:150px}
-#tv-chart{position:absolute;top:0;left:0;width:100%;height:100%}
+#chart-wrapper{flex:1;position:relative;overflow:hidden}
+#tv-chart{position:absolute;top:0;left:0;right:0;bottom:0}
 #hitbox-fix{position:absolute;top:0;right:0;width:120px;height:40px;z-index:10}
 
 #footer-controls{padding:10px 12px 20px;border-top:.5px solid var(--ios-border);background:var(--hbg);flex-shrink:0}
@@ -325,22 +325,8 @@ body{margin:0;padding:0;height:var(--tg-viewport-stable-height,var(--tg-viewport
 const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
 
-function sizeChart(){
-  const total=tg.viewportStableHeight||tg.viewportHeight||window.innerHeight;
-  const used=['top-tabs','dual-header','price-ticker','footer-controls']
-    .reduce((s,id)=>s+(document.getElementById(id)?.offsetHeight||0),0);
-  const h=Math.max(200, total-used);
-  document.getElementById('chart-wrapper').style.height=h+'px';
-  return h;
-}
 tg.onEvent('viewportChanged',()=>{
-  sizeChart();
-  requestAnimationFrame(()=>{
-    if(!lwChart) return;
-    const el=document.getElementById('tv-chart');
-    lwChart.applyOptions({width:el.offsetWidth||window.innerWidth, height:el.offsetHeight});
-    lwChart.timeScale().fitContent();
-  });
+  requestAnimationFrame(()=>{ if(lwChart) lwChart.timeScale().fitContent(); });
 });
 
 // ─── ASSETS ───────────────────────────────────────────────
@@ -652,7 +638,7 @@ let base=find('BTC'), quote=find('USD');
 let curRange='1D', curInterval='5', selMode='base', activeTab='crypto';
 let priceTimer=null;
 let fxCache={}, fxCacheTime=0;
-let lwChart=null, lwRO=null;
+let lwChart=null;
 const BN_PARAMS={
   '1D': ['5m', 288], '1M': ['1h', 720], '3M':  ['4h', 540],
   '6M': ['1d', 182], '12M':['1d', 365], 'ALL': ['1w', 260]
@@ -727,10 +713,8 @@ async function createCryptoChart(){
     const rate=quote.id==='USD'?1:(fxCache[quote.id]||1);
     el.innerHTML='';
     const dk=theme==='dark';
-    const cw=el.offsetWidth||window.innerWidth;
-    const ch=el.offsetHeight||sizeChart();
     lwChart=LightweightCharts.createChart(el,{
-      width:cw, height:ch,
+      autoSize:true,
       layout:{background:{type:'solid',color:dk?'#000':'#fff'},textColor:dk?'#fff':'#000',fontSize:11},
       grid:{vertLines:{visible:false},horzLines:{color:dk?'#1e222d':'#f0f3fa'}},
       crosshair:{mode:1},
@@ -751,14 +735,7 @@ async function createCryptoChart(){
       color:parseFloat(k[4])>=parseFloat(k[1])?'rgba(52,199,89,0.4)':'rgba(255,59,48,0.4)',
     })));
     lwChart.timeScale().fitContent();
-    lwRO=new ResizeObserver(()=>{
-      if(!lwChart) return;
-      const w=el.offsetWidth, h=el.offsetHeight;
-      if(w>0&&h>0){lwChart.applyOptions({width:w,height:h}); lwChart.timeScale().fitContent();}
-    });
-    lwRO.observe(el);
   }catch(e){
-    if(lwRO){lwRO.disconnect();lwRO=null;}
     if(lwChart){try{lwChart.remove();}catch(_){} lwChart=null;}
     el.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
       'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
@@ -812,10 +789,8 @@ async function createFiatChart(){
     if(!data.length) throw new Error('no data');
     el.innerHTML='';
     const dk=theme==='dark';
-    const cw=el.offsetWidth||window.innerWidth;
-    const ch=el.offsetHeight||sizeChart();
     lwChart=LightweightCharts.createChart(el,{
-      width:cw, height:ch,
+      autoSize:true,
       layout:{background:{type:'solid',color:dk?'#000':'#fff'},textColor:dk?'#fff':'#000',fontSize:11},
       grid:{vertLines:{visible:false},horzLines:{color:dk?'#1e222d':'#f0f3fa'}},
       crosshair:{mode:1},
@@ -830,10 +805,7 @@ async function createFiatChart(){
     });
     area.setData(data);
     lwChart.timeScale().fitContent();
-    lwRO=new ResizeObserver(()=>{if(lwChart)lwChart.applyOptions({width:el.offsetWidth,height:el.offsetHeight});});
-    lwRO.observe(el);
   }catch(e){
-    if(lwRO){lwRO.disconnect();lwRO=null;}
     if(lwChart){try{lwChart.remove();}catch(_){} lwChart=null;}
     el.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;'+
       'color:var(--ios-sec);flex-direction:column;gap:8px;font-size:14px">'+
@@ -1110,9 +1082,7 @@ function doPctChg(){
 restoreModalHandlers();
 renderQuick();
 applyTheme(theme);
-// Set explicit chart wrapper height before creating chart
-sizeChart();
-setTimeout(createWidget, 150);
+setTimeout(createWidget, 100);
 </script>
 </body>
 </html>
