@@ -17,7 +17,7 @@
   --ios-border:#38383a; --ios-text:#fff; --hbg:#1c1c1e;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;padding:0;height:var(--tg-viewport-stable-height,var(--tg-viewport-height,100vh));
+body{margin:0;padding:0;height:100dvh;
   background:var(--ios-bg);font-family:var(--font);
   color:var(--ios-text);display:flex;flex-direction:column;overflow:hidden;transition:background .3s,color .3s}
 
@@ -325,17 +325,8 @@ body{margin:0;padding:0;height:var(--tg-viewport-stable-height,var(--tg-viewport
 const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
 
-function applyViewport(){
-  const h = tg.viewportStableHeight || tg.viewportHeight || window.innerHeight;
-  if(h > 50) document.body.style.height = h + 'px';
-}
-
 tg.onEvent('viewportChanged', ()=>{
-  applyViewport();
-  requestAnimationFrame(()=>{
-    if(lwChart) lwChart.timeScale().fitContent();
-    else createWidget();
-  });
+  requestAnimationFrame(()=>{ if(lwChart) lwChart.timeScale().fitContent(); });
 });
 
 // ─── ASSETS ───────────────────────────────────────────────
@@ -1091,14 +1082,7 @@ function doPctChg(){
 restoreModalHandlers();
 renderQuick();
 applyTheme(theme);
-applyViewport();
-// viewportChanged fires after tg.expand() - that's when we know the real height.
-// Fallback: if viewport was already full-size on load, create chart after short delay.
-if(tg.viewportHeight > 100){
-  setTimeout(createWidget, 150);
-} else {
-  setTimeout(()=>{ if(!lwChart){ applyViewport(); createWidget(); } }, 800);
-}
+setTimeout(createWidget, 200);
 </script>
 </body>
 </html>
