@@ -1078,6 +1078,17 @@ function doPctChg(){
   } else { el4.textContent='–'; el4.className='prv'; el5.textContent='–'; el5.className='prv'; }
 }
 
+// ─── DEBUG ────────────────────────────────────────────────
+const _dbg=document.createElement('div');
+_dbg.style.cssText='position:fixed;top:50px;left:4px;background:rgba(0,0,0,.8);color:#0f0;font-size:9px;padding:4px 6px;z-index:99999;pointer-events:none;border-radius:6px;line-height:1.5;max-width:200px;word-break:break-all';
+document.body.appendChild(_dbg);
+function _upd(){
+  const cw=document.getElementById('chart-wrapper');
+  const tv=document.getElementById('tv-chart');
+  _dbg.innerHTML=`wiH:${window.innerHeight}<br>bodyH:${document.body.offsetHeight}<br>tgVH:${tg.viewportHeight}<br>tgSVH:${tg.viewportStableHeight}<br>cwH:${cw?.offsetHeight}<br>tvH:${tv?.offsetHeight}<br>lwChart:${!!lwChart}`;
+}
+setInterval(_upd,500); _upd();
+
 // ─── INIT ─────────────────────────────────────────────────
 restoreModalHandlers();
 renderQuick();
