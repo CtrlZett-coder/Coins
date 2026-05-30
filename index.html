@@ -325,8 +325,17 @@ body{margin:0;padding:0;height:var(--tg-viewport-stable-height,var(--tg-viewport
 const tg = window.Telegram.WebApp; tg.ready(); tg.expand();
 if(tg.disableVerticalSwipes) tg.disableVerticalSwipes();
 
-tg.onEvent('viewportChanged',()=>{
-  requestAnimationFrame(()=>{ if(lwChart) lwChart.timeScale().fitContent(); });
+function applyViewport(){
+  const h = tg.viewportStableHeight || tg.viewportHeight || window.innerHeight;
+  if(h > 50) document.body.style.height = h + 'px';
+}
+
+tg.onEvent('viewportChanged', ()=>{
+  applyViewport();
+  requestAnimationFrame(()=>{
+    if(lwChart) lwChart.timeScale().fitContent();
+    else createWidget();
+  });
 });
 
 // ─── ASSETS ───────────────────────────────────────────────
@@ -1082,7 +1091,14 @@ function doPctChg(){
 restoreModalHandlers();
 renderQuick();
 applyTheme(theme);
-setTimeout(createWidget, 100);
+applyViewport();
+// viewportChanged fires after tg.expand() - that's when we know the real height.
+// Fallback: if viewport was already full-size on load, create chart after short delay.
+if(tg.viewportHeight > 100){
+  setTimeout(createWidget, 150);
+} else {
+  setTimeout(()=>{ if(!lwChart){ applyViewport(); createWidget(); } }, 800);
+}
 </script>
 </body>
 </html>
