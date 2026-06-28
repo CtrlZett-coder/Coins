@@ -72,24 +72,24 @@ TIMEZONES = [
 ]
 
 # --- КАТАЛОГ АКТИВОВ ДЛЯ АЛЕРТОВ ---
-# ticker -> (coingecko_id, display_label)
+# ticker -> (binance_symbol, display_label)
 CRYPTO_IDS = {
-    "BTC":   ("bitcoin",          "₿ Bitcoin"),
-    "ETH":   ("ethereum",         "💎 Ethereum"),
-    "TON":   ("the-open-network", "💠 TON"),
-    "BNB":   ("binancecoin",      "🟡 BNB"),
-    "SOL":   ("solana",           "◎ Solana"),
-    "XRP":   ("ripple",           "✕ XRP"),
-    "ADA":   ("cardano",          "🔵 Cardano"),
-    "DOGE":  ("dogecoin",         "🐶 Doge"),
-    "AVAX":  ("avalanche-2",      "🔺 Avalanche"),
-    "DOT":   ("polkadot",         "⚫ Polkadot"),
-    "MATIC": ("matic-network",    "🟣 Polygon"),
-    "LINK":  ("chainlink",        "🔗 Chainlink"),
-    "LTC":   ("litecoin",         "🥈 Litecoin"),
-    "TRX":   ("tron",             "🔴 TRON"),
-    "UNI":   ("uniswap",          "🦄 Uniswap"),
-    "ATOM":  ("cosmos",           "⚛️ Cosmos"),
+    "BTC":   ("BTCUSDT",  "₿ Bitcoin"),
+    "ETH":   ("ETHUSDT",  "💎 Ethereum"),
+    "TON":   ("TONUSDT",  "💠 TON"),
+    "BNB":   ("BNBUSDT",  "🟡 BNB"),
+    "SOL":   ("SOLUSDT",  "◎ Solana"),
+    "XRP":   ("XRPUSDT",  "✕ XRP"),
+    "ADA":   ("ADAUSDT",  "🔵 Cardano"),
+    "DOGE":  ("DOGEUSDT", "🐶 Doge"),
+    "AVAX":  ("AVAXUSDT", "🔺 Avalanche"),
+    "DOT":   ("DOTUSDT",  "⚫ Polkadot"),
+    "MATIC": ("POLUSDT",  "🟣 Polygon"),
+    "LINK":  ("LINKUSDT", "🔗 Chainlink"),
+    "LTC":   ("LTCUSDT",  "🥈 Litecoin"),
+    "TRX":   ("TRXUSDT",  "🔴 TRON"),
+    "UNI":   ("UNIUSDT",  "🦄 Uniswap"),
+    "ATOM":  ("ATOMUSDT", "⚛️ Cosmos"),
 }
 
 # pair -> (display_label, base_ccy, quote_ccy)  — цена: 1 BASE = X QUOTE
@@ -185,16 +185,18 @@ def _fetch_all_prices() -> dict:
     headers = {"User-Agent": "Mozilla/5.0"}
 
     try:
-        ids_str = ",".join(cg_id for cg_id, _ in CRYPTO_IDS.values())
+        symbols = sorted({symbol for symbol, _ in CRYPTO_IDS.values()})
+        symbols_str = ",".join(f'"{s}"' for s in symbols)
         res = requests.get(
-            f"https://api.coingecko.com/api/v3/simple/price?ids={ids_str}&vs_currencies=usd",
+            f"https://api.binance.com/api/v3/ticker/price?symbols=[{symbols_str}]",
             headers=headers, timeout=15
         ).json()
-        for ticker, (cg_id, _) in CRYPTO_IDS.items():
-            if cg_id in res:
-                prices[ticker] = res[cg_id]["usd"]
+        by_symbol = {row["symbol"]: float(row["price"]) for row in res}
+        for ticker, (symbol, _) in CRYPTO_IDS.items():
+            if symbol in by_symbol:
+                prices[ticker] = by_symbol[symbol]
     except Exception as e:
-        logger.warning("Крипто API: %s", e)
+        logger.warning("Binance API: %s", e)
 
     _get_forex_rates()
     for pair in ALL_FOREX:
@@ -383,14 +385,14 @@ def _fetch_market_data() -> dict:
 
     try:
         res = requests.get(
-            "https://api.coingecko.com/api/v3/simple/price"
-            "?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true",
+            'https://api.binance.com/api/v3/ticker/24hr?symbols=["BTCUSDT","ETHUSDT"]',
             headers=headers, timeout=10
         ).json()
-        result["btc_price"] = res["bitcoin"]["usd"]
-        result["btc_change"] = res["bitcoin"]["usd_24h_change"]
-        result["eth_price"] = res["ethereum"]["usd"]
-        result["eth_change"] = res["ethereum"]["usd_24h_change"]
+        by_symbol = {row["symbol"]: row for row in res}
+        result["btc_price"] = float(by_symbol["BTCUSDT"]["lastPrice"])
+        result["btc_change"] = float(by_symbol["BTCUSDT"]["priceChangePercent"])
+        result["eth_price"] = float(by_symbol["ETHUSDT"]["lastPrice"])
+        result["eth_change"] = float(by_symbol["ETHUSDT"]["priceChangePercent"])
     except Exception as e:
         logger.warning("Не удалось получить данные крипты: %s", e)
         result["btc_price"] = 69200
